@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="..\source\colony.js" />
+    <None Include="..\source\colonyFunctions.js" />
+    <None Include="..\source\colonylogics.js" />
+    <None Include="..\source\colonyVisuals.js" />
+    <None Include="..\source\constants.js" />
+    <None Include="..\source\customprototypes.js" />
+    <None Include="..\source\defaults.js" />
+    <None Include="..\source\expansionplanner.js" />
+    <None Include="..\source\functions.js" />
+    <None Include="..\source\layouts.js" />
+    <None Include="..\source\main.js" />
+    <None Include="..\source\profiler.js" />
+    <None Include="..\source\prototypes.js" />
+    <None Include="..\source\requires.js" />
+    <None Include="..\source\roomvisuals.js" />
+    <None Include="..\source\traveler.js" />
+    <None Include="..\source\warCode.js" />
+    <None Include="..\source\warVisuals.js" />
+    <None Include="..\source\worldvisuals.js" />
+    <None Include="..\..\Screeps-Typescript-Declarations\tsconfig.json" />
+  </ItemGroup>
+</Project>
