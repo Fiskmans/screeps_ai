@@ -194,6 +194,7 @@ Scouting=function()
             }
             else
             {
+                console.log("Giving up on scouting " + roomname + " as creep + " + Memory.scouting[roomname] + " died");
                 Memory.scouting[roomname] = false;
                 delete Memory.scouting[roomname]
             }
@@ -238,29 +239,33 @@ Scouting=function()
 DecayMap=function()
 {
     let decayedSegments = [];
-    for(let segment in Memory.map.lastseen)
+    for(let segment in Memory.map)
     {
-        let decayed = true;
-        result = ""
-        for (var i = 0; i < 100; i++) 
+        if(Memory.map[segment].lastseen)
         {
-            let at = Memory.map.lastseen[segment][i];
-            if(at > 0)
+
+            let decayed = true;
+            result = ""
+            for (var i = 0; i < 100; i++) 
             {
-                decayed = false;
-                at = at-1;
+                let at = Memory.map[segment].lastseen[i];
+                if(at > 0)
+                {
+                    decayed = false;
+                    at = at-1;
+                }
+                result = result + at;
             }
-            result = result + at;
+            if (decayed) 
+            {
+                decayedSegments.push(segment);
+            }
+            Memory.map[segment].lastseen = result
         }
-        if (decayed) 
-        {
-            decayedSegments.push(segment);
-        }
-        Memory.map.lastseen[segment] = result
     }
     decayedSegments.forEach((d)=>
     {
-        delete Memory.map.lastseen[d];
+        delete Memory.mapd[d].lastseen;
     })
 	for(let segment in Memory.map)
 	{
@@ -327,13 +332,8 @@ Scan=function(room)
         SetMapData(room.name,"floodfill",'X');
     }
     let exits = Game.map.describeExits(room.name);
-	logObject(exits)
     ALL_DIRECTIONS.forEach((d) => 
     {
-		if(exits[d])
-		{
-			console.log(GetMapData(exits[d],"floodfill"));
-		}
         if (exits[d] && GetMapData(exits[d],"floodfill") == ' ' && GetMapData(exits[d],"nogo") == ' ') 
         {
             Memory.scouting[exits[d]] = false;
