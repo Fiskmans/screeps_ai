@@ -101,9 +101,6 @@ worldVisuals=function()
                 }
             }
             
-            
-
-            
             for(let name in Memory.scouting)
             {
                 let [sx,sy] = PosFromRoomName(name)
@@ -124,6 +121,20 @@ worldVisuals=function()
                         vis.line(vcx,vcy,
                                 vsx,vsy,{lineStyle:"dotted"});
                     }
+                }
+            }
+            if(Memory.map.powerbanks)
+            {
+                for(let name in Memory.map.powerbanks)
+                {
+                    let bank = Memory.map.powerbanks[name];
+                    let [px,py] = PosFromRoomName(name)
+                    let pdx = px - segx * 10;
+                    let pdy = py - segy * 10;
+                    let [vpx,vpy] = [pos.x + 2 + pdx,pos.y + 12-pdy]
+                    vis.symbol(vpx-0.35,vpy+0.35,RESOURCE_POWER,{scale:0.5});
+                    vis.text("x" + bank.amount, vpx-0.25,vpy+0.40,{font:0.2,align:"left"})
+                    vis.text(bank.livesUntil - Game.time, vpx-0.25,vpy+0.20,{font:0.2,align:"left"})
                 }
             }
         }

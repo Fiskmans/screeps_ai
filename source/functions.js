@@ -28,6 +28,24 @@ FindWorthWhileReactions=function()
     return worthy;
 }
 
+FindWorthWhileReselling=function()
+{
+    let worthy = {};
+    let prices = Memory.prices;
+    RESOURCES_ALL.forEach((r) =>
+    {
+        if(prices[ORDER_BUY][r] && prices[ORDER_SELL][r])
+        {
+            let gain = prices[ORDER_SELL][r].price / prices[ORDER_BUY][r].price
+            if (gain > 1)
+            {
+                worthy[r] = gain;
+            }
+        }
+    })
+    return worthy;
+}
+
 TrackCPU=function(current,level)
 {
     //delete Memory.performance
@@ -194,7 +212,7 @@ Scouting=function()
             }
             else
             {
-                console.log("Giving up on scouting " + roomname + " as creep + " + Memory.scouting[roomname] + " died");
+                console.log("Giving up on scouting " + roomname + " as creep " + Memory.scouting[roomname] + " died");
                 Memory.scouting[roomname] = false;
                 delete Memory.scouting[roomname]
             }
@@ -272,6 +290,18 @@ DecayMap=function()
 		delete Memory.map[segment].floodfill;
 	}
     
+    if(Memory.map.powerbanks)
+    {
+        let now = Game.time;
+        for(let roomname in Memory.map.powerbanks)
+        {
+            if(now > Memory.map.powerbanks[roomname].livesUntil)
+            {
+                delete Memory.map.powerbanks[roomname];
+            }
+        }
+    }
+
     console.log("Decaying map data");
 }
 
@@ -347,6 +377,23 @@ Scan=function(room)
         SetMapData(room.name,"minerals",minerals[0].mineralType);
         SetMapData(room.name,"mineralDensity",minerals[0].density);
     }
+
+    let pbanks = room.find(FIND_HOSTILE_STRUCTURES,{filter:(s) => {return s.structureType == STRUCTURE_POWER_BANK}});
+    if(pbanks.length > 0)
+    {
+        if(!Memory.map.powerbanks) {Memory.map.powerbanks = {}}
+        if(!Memory.map.powerbanks[room.name])
+        {
+            let bank = pbanks[0];
+            Memory.map.powerbanks[room.name]=
+            {
+                amount: bank.power,
+                livesUntil: Game.time+bank.ticksToDecay,
+                pos: bank.pos
+            }
+        }
+    }
+
 }
 
 SetMapData=function(roomName,dataName,char)
@@ -506,11 +553,13 @@ FireTurrets=function(targets,turrets)
 marketTracking=function()
 {
     let cpu = Game.cpu;
-    if (cpu.bucket < 100) 
+    if (cpu.bucket < 1000) 
     {
         return;
     }
     
+
+
     let market = Game.market;
     let orders = market.getAllOrders((o) => 
     {

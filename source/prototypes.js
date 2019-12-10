@@ -170,19 +170,15 @@ Room.prototype.refillable=function()
     let all = [];
     
     this.findAllStructures();
-    all = _.filter(this._structures[STRUCTURE_TOWER].concat(this._structures[STRUCTURE_EXTENSION].concat(this._structures[STRUCTURE_SPAWN].concat(this._structures[STRUCTURE_LAB]))),
+    all = _.filter(this._structures[STRUCTURE_EXTENSION].concat(this._structures[STRUCTURE_SPAWN].concat(this._structures[STRUCTURE_LAB])),
     (s) => 
     {
-        return s.store[RESOURCE_ENERGY] < s.store.getCapacity(RESOURCE_ENERGY); 
+        return s.store.getFreeCapacity(RESOURCE_ENERGY) > 0; 
     });
-    all = all.concat(_.filter(this._structures[STRUCTURE_TERMINAL], (s) =>
+    all = all.concat(_.filter(this._structures[STRUCTURE_TOWER],(s)=>
     {
-        return s.store[RESOURCE_ENERGY] < s.store.getCapacity() / 5;
-    }));
-    all = all.concat(_.filter(this._structures[STRUCTURE_STORAGE], (s) =>
-    {
-        return false;//s.store[RESOURCE_ENERGY] < s.store.getCapacity() /5*4;
-    }));
+        return s.store.getFreeCapacity(RESOURCE_ENERGY) > 400;
+    }))
     
     return all;
 }
@@ -234,7 +230,11 @@ Room.prototype.hostiles=function()
         this._hostiles = _.filter(this.find(FIND_HOSTILE_CREEPS),(c) => {
             return true;
         })
-        this._hostiles = this._hostiles.concat(this.find(FIND_HOSTILE_STRUCTURES))
+        if(this.controller && !this.controller.my)
+        {
+            this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,{filter:(s) => {return !s.my && s.structureType != STRUCTURE_CONTROLLER}}))
+
+        }
     }
     return this._hostiles;
 }
@@ -1052,9 +1052,9 @@ RoomVisual.prototype.DrawMapSegment=function(pos)
             owner = Memory.map[segment].owner;
         }
         let floodfill = false
-        if (Memory.map[segment] && (!flags["floodfill"] || flags["floodfill"].color != COLOR_RED)) 
+        if ((!flags["floodfill"] || flags["floodfill"].color != COLOR_RED)) 
         {
-            floodfill = Memory.map[segment].floodfill
+            floodfill = true;
         }
         let sources = false
         if (Memory.map[segment] && (!flags["sources"] || flags["sources"].color != COLOR_RED)) 
@@ -1098,11 +1098,16 @@ RoomVisual.prototype.DrawMapSegment=function(pos)
             }
             if (floodfill) 
             {
-                if (floodfill[i] != floodfill[i-1] && i > 1) 
+                let rp = [pos.segx*10+i%10,pos.segy*10+Math.floor(i/10)];
+                //logObject(rp)
+                let center = GetMapData(RoomNameFromPos(rp),"floodfill")
+                let left = GetMapData(RoomNameFromPos([rp[0]-1,rp[1]]),"floodfill");
+                let up = GetMapData(RoomNameFromPos([rp[0],rp[1]-1]),"floodfill");
+                if (center != left) 
                 {
                     this.line(gx-0.5,gy-0.5,gx-0.5,gy+0.5,{color:"#FFFFFF",opacity:0.7,width:0.05});
                 }
-                if (floodfill[i] != floodfill[i-10] && i > 10) 
+                if (center != up) 
                 {
                     this.line(gx-0.5,gy+0.5,gx+0.5,gy+0.5,{color:"#FFFFFF",opacity:0.7,width:0.05})
                 }
