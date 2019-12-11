@@ -98,6 +98,7 @@ Creep.prototype.dumbRefill=function()
 
 Creep.prototype.dumbUpgradeLoop=function()
 {
+    this.updateHarvestState()
     if (this.memory.harvesting) {
         this.dumbHarvest()
     }
@@ -105,10 +106,10 @@ Creep.prototype.dumbUpgradeLoop=function()
     {
         this.dumbUpgrade()
     }
-    this.updateHarvestState()
 }
 Creep.prototype.dumbRefillLoop=function()
 {
+    this.updateHarvestState()
     if (this.memory.harvesting) {
         this.dumbHarvest()
     }
@@ -116,11 +117,11 @@ Creep.prototype.dumbRefillLoop=function()
     {
         this.dumbRefill()
     }
-    this.updateHarvestState()
 }
 
 Creep.prototype.dismantleLoop=function(target)
 {
+    this.updateHarvestState()
     if (this.memory.harvesting) 
     {
         this.dumbDismantle(target)
@@ -129,7 +130,6 @@ Creep.prototype.dismantleLoop=function(target)
     {
         this.dumbRefill()
     }
-    this.updateHarvestState()
 }
 
 Creep.prototype.dumbDismantle = function(target)
@@ -144,6 +144,7 @@ Creep.prototype.dumbDismantle = function(target)
 
 Creep.prototype.dumbBuildLoop=function()
 {
+    this.updateHarvestState()
     if (this.memory.harvesting) {
         this.dumbHarvest()
     }
@@ -151,15 +152,14 @@ Creep.prototype.dumbBuildLoop=function()
     {
         this.dumbBuild()
     }
-    this.updateHarvestState()
 }
 Creep.prototype.updateHarvestState=function()
 {
-    if(this.carry.energy == this.carryCapacity)
+    if(this.store.getFreeCapacity(RESOURCE_ENERGY) == 0)
     {
         this.memory.harvesting = false
     }
-    if(this.carry.energy == 0)
+    if(this.store.getUsedCapacity(RESOURCE_ENERGY) == 0)
     {
         this.memory.harvesting = true
     }

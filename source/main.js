@@ -11,7 +11,7 @@ DoWars = profiler.registerFN(DoWars);
 profiler.enable();
 module.exports.loop = function()
 {
-//test 4
+//test 5
     defaultMemory()
     applyFlags()
         
