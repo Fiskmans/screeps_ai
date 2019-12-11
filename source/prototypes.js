@@ -179,6 +179,10 @@ Room.prototype.refillable=function()
     {
         return s.store.getFreeCapacity(RESOURCE_ENERGY) > 400;
     }))
+    all = all.concat(_.filter(this._structures[STRUCTURE_POWER_SPAWN],(s)=>
+    {
+        return s.store.getFreeCapacity(RESOURCE_ENERGY) > 1000;
+    }))
     
     return all;
 }

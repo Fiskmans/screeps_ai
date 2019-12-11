@@ -36,7 +36,7 @@ FindWorthWhileReselling=function()
     {
         if(prices[ORDER_BUY][r] && prices[ORDER_SELL][r])
         {
-            let gain = prices[ORDER_SELL][r].price / prices[ORDER_BUY][r].price
+            let gain = prices[ORDER_BUY][r].price / prices[ORDER_SELL][r].price
             if (gain > 1)
             {
                 worthy[r] = gain;
@@ -557,14 +557,6 @@ marketTracking=function()
     {
         return;
     }
-    
-
-
-    let market = Game.market;
-    let orders = market.getAllOrders((o) => 
-    {
-        return o.amount > 1000;
-    });
     if (!Memory.prices) {
         Memory.prices = {}
     }
@@ -576,17 +568,23 @@ marketTracking=function()
     }
     
     let now = Game.time;
-    
-    for(let direction in Memory.prices)
+    let limit = now - MARKETPRICE_TIMEOUT;
+    [ORDER_BUY,ORDER_SELL].forEach((type) =>
     {
-        for(let type in Memory.prices[direction])
+        for(let res in Memory.prices[type])
         {
-            if (!Memory.prices[direction][type].time || now - Memory.prices[direction][type].time > MARKETPRICE_TIMEOUT) {
-                delete Memory.prices[direction][type];
+            if(Memory.prices[type][res].time < limit || !Game.market.getOrderById(Memory.prices[type][res].id))
+            {
+                delete Memory.prices[type][res]
             }
         }
-    }
-    
+    })
+
+    let market = Game.market;
+    let orders = market.getAllOrders((o) => 
+    {
+        return o.amount > 1000;
+    });
     
     for(let i in orders)
     {
@@ -595,6 +593,10 @@ marketTracking=function()
         {
             let usedEnergy = Game.market.calcTransactionCost(1000,order.roomName,Memory.colonies[0].pos.roomName)/1000
             let energyPrice = usedEnergy*Memory.prices[ORDER_SELL][RESOURCE_ENERGY].price
+            if(order.type == ORDER_BUY)
+            {
+                energyPrice = -energyPrice;
+            }
             order.price = order.price + energyPrice
         }
         if (order.type == ORDER_BUY) 
