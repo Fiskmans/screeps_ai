@@ -1,3 +1,5 @@
+require('Globals')
+
 require('traveler')
 
 require('prototypes')

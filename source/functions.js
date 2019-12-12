@@ -14,9 +14,9 @@ FindWorthWhileReactions=function()
     let worthy = {};
     for(let result in REVERSED_REACTIONS)
     {
-        let gain = Memory.prices[ORDER_BUY][result];
-        let losses = [Memory.prices[ORDER_SELL][REVERSED_REACTIONS[result][0]],
-                    Memory.prices[ORDER_SELL][REVERSED_REACTIONS[result][1]]]
+        let gain = globalPrices.prices[ORDER_BUY][result];
+        let losses = [globalPrices.prices[ORDER_SELL][REVERSED_REACTIONS[result][0]],
+                    globalPrices.prices[ORDER_SELL][REVERSED_REACTIONS[result][1]]]
         if (gain && losses[0] && losses[1]) 
         {
             if (gain.price > losses[0].price + losses[1].price) 
@@ -31,7 +31,7 @@ FindWorthWhileReactions=function()
 FindWorthWhileReselling=function()
 {
     let worthy = {};
-    let prices = Memory.prices;
+    let prices = globalPrices.prices;
     RESOURCES_ALL.forEach((r) =>
     {
         if(prices[ORDER_BUY][r] && prices[ORDER_SELL][r])
@@ -105,12 +105,12 @@ FindWorthWhileCommodities=function()
     let worthy = {};
     for(let result in COMMODITIES)
     {
-        let gain = Memory.prices[ORDER_BUY][result];
+        let gain = globalPrices.prices[ORDER_BUY][result];
         let losses = 0;
         let canBuyAll = true;
         for(let input in COMMODITIES[result].components)
         {
-            let loss = Memory.prices[ORDER_SELL][input]
+            let loss = globalPrices.prices[ORDER_SELL][input]
             if (loss) 
             {
                 losses += loss.price * COMMODITIES[result].components[input];
@@ -553,29 +553,29 @@ FireTurrets=function(targets,turrets)
 marketTracking=function()
 {
     let cpu = Game.cpu;
-    if (cpu.bucket < 1000) 
+    if (cpu.bucket < 1000 || Game.time % MARKETPRICE_REFRESSRATE != 0) 
     {
         return;
     }
-    if (!Memory.prices) {
-        Memory.prices = {}
+    if (!globalPrices.prices) {
+        globalPrices.prices = {}
     }
-    if (!Memory.prices[ORDER_BUY]) {
-        Memory.prices[ORDER_BUY] = {}
+    if (!globalPrices.prices[ORDER_BUY]) {
+        globalPrices.prices[ORDER_BUY] = {}
     }
-    if (!Memory.prices[ORDER_SELL]) {
-        Memory.prices[ORDER_SELL] = {}
+    if (!globalPrices.prices[ORDER_SELL]) {
+        globalPrices.prices[ORDER_SELL] = {}
     }
     
     let now = Game.time;
     let limit = now - MARKETPRICE_TIMEOUT;
     [ORDER_BUY,ORDER_SELL].forEach((type) =>
     {
-        for(let res in Memory.prices[type])
+        for(let res in globalPrices.prices[type])
         {
-            if(Memory.prices[type][res].time < limit || !Game.market.getOrderById(Memory.prices[type][res].id))
+            if(globalPrices.prices[type][res].time < limit || !Game.market.getOrderById(globalPrices.prices[type][res].id))
             {
-                delete Memory.prices[type][res]
+                delete globalPrices.prices[type][res]
             }
         }
     })
@@ -589,10 +589,10 @@ marketTracking=function()
     for(let i in orders)
     {
         let order = orders[i];
-        if(Memory.prices[ORDER_SELL][RESOURCE_ENERGY])
+        if(globalPrices.prices[ORDER_SELL][RESOURCE_ENERGY])
         {
             let usedEnergy = Game.market.calcTransactionCost(1000,order.roomName,Memory.colonies[0].pos.roomName)/1000
-            let energyPrice = usedEnergy*Memory.prices[ORDER_SELL][RESOURCE_ENERGY].price
+            let energyPrice = usedEnergy*globalPrices.prices[ORDER_SELL][RESOURCE_ENERGY].price
             if(order.type == ORDER_BUY)
             {
                 energyPrice = -energyPrice;
@@ -601,28 +601,28 @@ marketTracking=function()
         }
         if (order.type == ORDER_BUY) 
         {
-            if(!Memory.prices[ORDER_BUY][order.resourceType])
+            if(!globalPrices.prices[ORDER_BUY][order.resourceType])
             {
-                Memory.prices[ORDER_BUY][order.resourceType] = {}
+                globalPrices.prices[ORDER_BUY][order.resourceType] = {}
             }
-            if (!Memory.prices[ORDER_BUY][order.resourceType].price || Memory.prices[ORDER_BUY][order.resourceType].price < order.price) 
+            if (!globalPrices.prices[ORDER_BUY][order.resourceType].price || globalPrices.prices[ORDER_BUY][order.resourceType].price < order.price) 
             {
-                Memory.prices[ORDER_BUY][order.resourceType].price = order.price;
-                Memory.prices[ORDER_BUY][order.resourceType].time = now;
-                Memory.prices[ORDER_BUY][order.resourceType].id = order.id
+                globalPrices.prices[ORDER_BUY][order.resourceType].price = order.price;
+                globalPrices.prices[ORDER_BUY][order.resourceType].time = now;
+                globalPrices.prices[ORDER_BUY][order.resourceType].id = order.id
             }
         }
         else
         {
-            if(!Memory.prices[ORDER_SELL][order.resourceType])
+            if(!globalPrices.prices[ORDER_SELL][order.resourceType])
             {
-                Memory.prices[ORDER_SELL][order.resourceType] = {}
+                globalPrices.prices[ORDER_SELL][order.resourceType] = {}
             }
-            if (!Memory.prices[ORDER_SELL][order.resourceType].price || Memory.prices[ORDER_SELL][order.resourceType].price > order.price) 
+            if (!globalPrices.prices[ORDER_SELL][order.resourceType].price || globalPrices.prices[ORDER_SELL][order.resourceType].price > order.price) 
             {
-                Memory.prices[ORDER_SELL][order.resourceType].price = order.price;
-                Memory.prices[ORDER_SELL][order.resourceType].time = now;
-                Memory.prices[ORDER_SELL][order.resourceType].Id = order.id
+                globalPrices.prices[ORDER_SELL][order.resourceType].price = order.price;
+                globalPrices.prices[ORDER_SELL][order.resourceType].time = now;
+                globalPrices.prices[ORDER_SELL][order.resourceType].Id = order.id
             }
         }
     }
@@ -1238,8 +1238,47 @@ applyFlags=function()
     if(flags["Abandon"])
     {
         for (var i = 0; i < Memory.colonies.length; i++) {
-            if (Memory.colonies[i].pos.roomName == flags["Abandon"].pos.roomName) 
+            let roomname = Memory.colonies[i].pos.roomName
+            if (roomname == flags["Abandon"].pos.roomName) 
             {
+                let room = Game.rooms[rooname];
+                if(room)
+                {
+                    let buildings = room.find(FIND_MY_STRUCTURES);
+                    buildings.forEach((s) =>
+                    {
+                        if (s.structureType == STRUCTURE_CONTROLLER) 
+                        {
+                            s.unclaim();
+                        } 
+                        else 
+                        {
+                            s.destroy();
+                        }
+                    })
+                    let creeps = room.find(FIND_MY_CREEPS);
+                    let closest = FindClosestColony(roomname,false);
+                    if (closest) 
+                    {
+                        creeps.forEach((c) =>
+                        {
+                            if (c.getActiveBodyparts(MOVE) > 0) 
+                            {
+                                if (c.getActiveBodyparts(CARRY) > 0) 
+                                {
+                                    if (c.getActiveBodyparts(WORK) > 0) 
+                                    {
+                                        closest.workerpool.push(c.name);
+                                    }
+                                    else
+                                    {
+                                        closest.haulerpool.push(c.name);
+                                    }
+                                }
+                            }
+                        })    
+                    }
+                }
                 Memory.colonies.splice(i,1)
                 break;
             }

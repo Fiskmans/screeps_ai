@@ -98,7 +98,5 @@ public/
 #visual studio folder
 .vs
 
-#credentials
-Credentials.json
-
 # End of https://www.gitignore.io/api/node
+Credentials.json
