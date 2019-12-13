@@ -1236,13 +1236,63 @@ applyFlags=function()
     if(flags["Abandon"])
     {
         for (var i = 0; i < Memory.colonies.length; i++) {
-            if (Memory.colonies[i].pos.roomName == flags["Abandon"].pos.roomName) 
+            let roomname = Memory.colonies[i].pos.roomName
+            if (roomname == flags["Abandon"].pos.roomName) 
             {
-                Memory.colonies.splice(i,1)
+                let room = Game.rooms[roomname];
+                if(room)
+                {
+                    let buildings = room.find(FIND_MY_STRUCTURES);
+                    if (buildings.length > 0) {
+                        buildings.forEach((s) =>
+                        {
+                            if (s.structureType == STRUCTURE_CONTROLLER) 
+                            {
+                                s.unclaim();
+                            } 
+                            else 
+                            {
+                                s.destroy();
+                            }
+                        })
+                    }
+                    else
+                    {
+                        let creeps = room.find(FIND_MY_CREEPS);
+                        if (creeps.length > 0) 
+                        {
+                            let closest = FindClosestColony(roomname,false);
+                            if (closest) 
+                            {
+                                creeps.forEach((c) =>
+                                {
+                                    if (c.getActiveBodyparts(MOVE) > 0) 
+                                    {
+                                        if (c.getActiveBodyparts(CARRY) > 0) 
+                                        {
+                                            if (c.getActiveBodyparts(WORK) > 0) 
+                                            {
+                                                closest.workerpool.push(c.name);
+                                            }
+                                            else
+                                            {
+                                                closest.haulerpool.push(c.name);
+                                            }
+                                        }
+                                    }
+                                })    
+                            }
+                        }
+                        else
+                        {
+                            Memory.colonies.splice(i,1)
+                            flags["Abandon"].remove();
+                        }
+                    }
+                }
                 break;
             }
         }
-        flags["Abandon"].remove();
     }
     
     if(Memory.wars)
