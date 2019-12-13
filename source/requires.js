@@ -22,3 +22,5 @@ require('constants')
 
 require('warCode')
 require('warVisuals')
+
+require('grafana')

@@ -41,7 +41,7 @@ ColonyRespawnWorkers=function(colony)
     let target = TARGET_WORKER_COUNT
     if (colony.level < 4)
     {
-        target = target + target + target
+        target = target * (4 - colony.level) 
     }
     
     if (colony.workerpool.length < target)

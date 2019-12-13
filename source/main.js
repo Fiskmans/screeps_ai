@@ -38,6 +38,7 @@ module.exports.loop = function()
         analyzeQueue()
         
         marketTracking()
+        UpdateGrafanaStats();
     }
 })
     
