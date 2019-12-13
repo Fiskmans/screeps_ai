@@ -1,3 +1,5 @@
+require('Globals')
+
 require('traveler')
 
 require('prototypes')
@@ -20,3 +22,5 @@ require('constants')
 
 require('warCode')
 require('warVisuals')
+
+require('grafana')

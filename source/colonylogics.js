@@ -45,6 +45,12 @@ colonyLogic=
     {
         this[5](colony)
         FindRecLink(colony)
+        let worth = FindWorthWhileReselling();
+        if(worth.length > 0)
+        {
+            console.log("Worth it to buy and resell:");
+            logObject(worth);
+        } 
     },
     //level 7
     7:function(colony)

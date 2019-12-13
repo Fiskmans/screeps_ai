@@ -162,6 +162,7 @@ colonyConstruct=function(colony)
                 let creep = Game.creeps[c];
                 if (creep) 
                 {
+                    creep.updateHarvestState()
                     if (creep.memory.harvesting) 
                     {
                         creep.dumbHarvest()
@@ -174,7 +175,6 @@ colonyConstruct=function(colony)
                             creep.travelTo(construction)
                         }
                     }
-                    creep.updateHarvestState()
                 }
             })
         }

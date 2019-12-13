@@ -146,9 +146,6 @@ worldVisuals=function()
         let barpos = {x:Game.flags["CPU"].pos.x+0.5,y:Game.flags["CPU"].pos.y-0.5};
         let vis = Game.flags["CPU"].room ? Game.flags["CPU"].room.visual : new RoomVisual(Game.flags["CPU"].room.name);
         
-        //Datacollecting
-        TrackCPU(Game.cpu.getUsed() / Game.cpu.limit);
-        
         if (Memory.performance) 
         {
             let spacing = 2.8;
