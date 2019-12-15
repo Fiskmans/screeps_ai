@@ -68,16 +68,20 @@ drawColony=function(colony,vis)
         for(var key in visuals)
         {
             visuals[key].connectRoads()
-        
-            let amount = room.energyAvailable / room.energyCapacityAvailable;
-            if (room.storage) 
-            {
-                vis.stock(colony.pos.x + 12,colony.pos.y+2,room.storage,{scale:0.7})
-            }
-            vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11*amount,1,{fill:"#FFFF00",stroke:"#00000000",opacity:0.6,strokeWidth:0.05})
-            vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
-            vis.text((room.energyAvailable + "/" + room.energyCapacityAvailable),colony.pos.x+0.5,colony.pos.y-2.8,{align:"left"})
-            vis.symbol(colony.pos.x,colony.pos.y-3,RESOURCE_ENERGY,{scale:2})
         }
+        
+        if (room.storage) 
+        {
+            vis.stock(colony.pos.x + 12,colony.pos.y+2,room.storage,{scale:0.7})
+        }
+        if(room.terminal)
+        {
+            vis.stock(colony.pos.x - 5.4,colony.pos.y+2,room.terminal,{scale:0.7})
+        }
+        let amount = room.energyAvailable / room.energyCapacityAvailable;
+        vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11*amount,1,{fill:"#FFFF00",stroke:"#00000000",opacity:0.6,strokeWidth:0.05})
+        vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
+        vis.text((room.energyAvailable + "/" + room.energyCapacityAvailable),colony.pos.x+0.5,colony.pos.y-2.8,{align:"left"})
+        vis.symbol(colony.pos.x,colony.pos.y-3,RESOURCE_ENERGY,{scale:2})
     }
 }
