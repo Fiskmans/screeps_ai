@@ -115,6 +115,38 @@ StartMining=function(colony)
     }
 }
 
+ColonyFindMisplaced=function(colony,structureType,layout)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(room)
+    {
+        let all = room.find(FIND_STRUCTURES,{filter:(s) =>
+        {
+            return s.structureType == structureType;
+        }});
+
+        if(!layout) { return; }
+        var wrong = false;
+        all.forEach((s) =>
+        {
+            if(!wrong) 
+            {
+                let dx = s.pos.x - colony.pos.x;
+                let dy = s.pos.y - colony.pos.y;
+                if(dx < 0 ||dy < 0 ||dy >= layout.length || dx >= layout[dy].length || layout[dy][dx] != structureType)
+                {
+                    wrong = s;
+                }
+            }
+        })
+        if(wrong)
+        {
+            console.log("Found misplaced " + structureType + " at " + wrong.pos.x + " " + wrong.pos.y + " " + wrong.pos.roomName);
+        }
+        return wrong;
+    }
+}
+
 ColonyFindBuildingWork=function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
@@ -126,10 +158,31 @@ ColonyFindBuildingWork=function(colony)
         {
             return;
         }
-        if (prio.pos.createConstructionSite(prio.struct) == OK)
+        let err = prio.pos.createConstructionSite(prio.struct);
+        if (err == OK)
         {
             console.log("Starting work on " + prio.struct + " at " + prio.pos.x + " " + prio.pos.y + " " + prio.pos.roomName)
             colony.constructionsite = prio.pos
+        }
+        else if(err = ERR_RCL_NOT_ENOUGH)
+        {
+            if(colony.disTargets.length == 0)
+            {
+                let wrong = ColonyFindMisplaced(colony,prio.struct,layout.structures[room.controller.level]);
+                if(wrong) 
+                {
+                    colony.disTargets.push(wrong.id);
+                }
+                else
+                {
+                    console.log("Could not find a wrongly placed structure but RLC is still to low for " + colony.pos.roomName + " [" + prio.struct + "]");
+                }
+                
+            }
+        }
+        else
+        {
+            console.log("Could not create constructionsite got unkown error: " + err);
         }
     }
 }

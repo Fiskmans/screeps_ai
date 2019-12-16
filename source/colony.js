@@ -74,7 +74,7 @@ colonyDumbRefill=function(colony)
             let creep = Game.creeps[colony.crefillers[i]];
             if (creep) 
             {
-                if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) 
+                if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0 || limit == 0) 
                 {
                     colony.haulerpool.push(colony.crefillers.splice(i,1))   
                 }
