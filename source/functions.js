@@ -32,6 +32,7 @@ FindWorthWhileReselling=function()
 {
     let worthy = {};
     let prices = globalPrices.prices;
+    if (!prices ) { return; }
     RESOURCES_ALL.forEach((r) =>
     {
         if(prices[ORDER_BUY][r] && prices[ORDER_SELL][r])
