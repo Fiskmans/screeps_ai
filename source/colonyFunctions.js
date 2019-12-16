@@ -249,17 +249,21 @@ ColonySelling=function(colony,terminal)
             if(!order) { break; }
             let amount = Math.min(order.amount,terminal.store.getUsedCapacity(res));
             if(!amount) { break; }
+            if(res == RESOURCE_ENERGY) { amount = amount/2; }
+            amount = Math.floor(amount);
+            if(!amount) { break; }
             let energyamount = Game.market.calcTransactionCost(amount,colony.pos.roomName,order.roomName)
             if(terminal.store.getUsedCapacity(RESOURCE_ENERGY) < energyamount) { return; }
 
             let err = Game.market.deal(order.id,amount,colony.pos.roomName);
             if(err == OK)
             {
-                console.log("Sold " + amount + " " + res + " from " + colony.pos.roomName + " for " + order.price + " credits/unit");
+                console.log("Sold " + amount + " " + res + " from " + colony.pos.roomName + " for " + order.price + " credits/unit total <font color=\"green\">" + (amount * order.price) + "<font>");
                 order.amount -= amount;
             }
             else
             {
+                console.log(amount)
                 console.log("Tried to sell " + res + " from " + colony.pos.roomName + " but got error: " + err);
             }
             break;

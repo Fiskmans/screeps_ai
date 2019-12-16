@@ -68,10 +68,21 @@ colonyDumbRefill=function(colony)
         }
     }
     else
-    {
-        while (colony.crefillers.length > 0) 
+    {   
+        for(let i in colony.crefillers)
         {
-            colony.haulerpool.push(colony.crefillers.shift())
+            let creep = Game.creeps[colony.crefillers[i]];
+            if (creep) 
+            {
+                if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) 
+                {
+                    colony.haulerpool.push(colony.crefillers.splice(i,1))   
+                }
+            }
+            else
+            {
+                colony.crefillers.splice(i,1);
+            }
         }
     }
     
