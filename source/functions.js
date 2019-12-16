@@ -31,8 +31,10 @@ FindWorthWhileReactions=function()
 FindWorthWhileReselling=function()
 {
     let worthy = {};
+    if(!globalPrices) { return worthy; }
     let prices = globalPrices.prices;
-    if (!prices ) { return; }
+    if(!prices || !prices[ORDER_BUY] || !prices[ORDER_SELL]) {return worthy;}
+
     RESOURCES_ALL.forEach((r) =>
     {
         if(prices[ORDER_BUY][r] && prices[ORDER_SELL][r])
@@ -590,16 +592,6 @@ marketTracking=function()
     for(let i in orders)
     {
         let order = orders[i];
-        if(globalPrices.prices[ORDER_SELL][RESOURCE_ENERGY])
-        {
-            let usedEnergy = Game.market.calcTransactionCost(1000,order.roomName,Memory.colonies[0].pos.roomName)/1000
-            let energyPrice = usedEnergy*globalPrices.prices[ORDER_SELL][RESOURCE_ENERGY].price
-            if(order.type == ORDER_BUY)
-            {
-                energyPrice = -energyPrice;
-            }
-            order.price = order.price + energyPrice
-        }
         if (order.type == ORDER_BUY) 
         {
             if(!globalPrices.prices[ORDER_BUY][order.resourceType])
@@ -623,7 +615,7 @@ marketTracking=function()
             {
                 globalPrices.prices[ORDER_SELL][order.resourceType].price = order.price;
                 globalPrices.prices[ORDER_SELL][order.resourceType].time = now;
-                globalPrices.prices[ORDER_SELL][order.resourceType].Id = order.id
+                globalPrices.prices[ORDER_SELL][order.resourceType].id = order.id
             }
         }
     }
@@ -668,7 +660,7 @@ colonize=function(colony)
             }
             else
             {
-                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName),{allowHostile:true})
+                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName))
             }
         }
         else
@@ -937,7 +929,7 @@ digMine=function(colony,miningSpot)
                                     let link = Game.getObjectById(miningSpot.link)
                                     if (link) 
                                     {
-                                        link.transferEnergy(target)
+                                        link.transferEnergy(target,Math.floor(link.store.getUsedCapacity(RESOURCE_ENERGY)/100)*100);
                                     }
                                     else
                                     {
@@ -1062,25 +1054,34 @@ applyFlags=function()
         let colony = FindClosestColony(flags["Mine"].pos.roomName,true)
         if (colony) 
         {
-            let room = Game.rooms[colony.pos.roomName];
+            let room = flags["Mine"].room;
             if (room) 
             {
                 if (flags["Mine"].room && !flags["StartRoad"] && !flags["EndRoad"]) 
                 {
                     AddMiningSpot(colony,new MiningSpot(flags["Mine"].pos));
-                    flags["Mine"].room.createFlag(flags["Mine"].pos,"EndRoad");
-                    room.createFlag(colony.pos.x+5,colony.pos.y+5,"StartRoad");
+                    room.createFlag(flags["Mine"].pos,"EndRoad");
+                    Game.rooms[colony.pos.roomName].createFlag(colony.pos.x+5,colony.pos.y+5,"StartRoad");
                     flags["Mine"].remove();
+                }
+                else
+                {
+                    console.log("start/endroad flags are busy");
                 }
             }
             else
             {
                 if (!Memory.scouting[flags["Mine"].pos.roomName]) 
                 {
+                    console.log("scouting " + flags["Mine"].pos.roomName + " to start mining");
                     Memory.scouting[flags["Mine"].pos.roomName] = false;
                 }
                 
             }
+        }
+        else
+        {
+            console.log("Could not find colony for mine flag")
         }
     }
     if (flags["Discard"]) 
@@ -1242,49 +1243,54 @@ applyFlags=function()
             let roomname = Memory.colonies[i].pos.roomName
             if (roomname == flags["Abandon"].pos.roomName) 
             {
-                let room = Game.rooms[rooname];
+                let room = Game.rooms[roomname];
                 if(room)
                 {
-                    let buildings = room.find(FIND_MY_STRUCTURES);
-                    buildings.forEach((s) =>
-                    {
-                        if (s.structureType == STRUCTURE_CONTROLLER) 
-                        {
-                            s.unclaim();
-                        } 
-                        else 
+                    let buildings = room.find(FIND_MY_STRUCTURES,{filter: (s) => s.structureType != STRUCTURE_CONTROLLER});
+                    if (buildings.length > 0) {
+                        console.log("Removing buildings")
+                        buildings.forEach((s) =>
                         {
                             s.destroy();
-                        }
-                    })
-                    let creeps = room.find(FIND_MY_CREEPS);
-                    let closest = FindClosestColony(roomname,false);
-                    if (closest) 
+                        })
+                    }
+                    else
                     {
-                        creeps.forEach((c) =>
+                        let creeps = room.find(FIND_MY_CREEPS);
+                        if (creeps.length > 0) 
                         {
-                            if (c.getActiveBodyparts(MOVE) > 0) 
+                            console.log("Orphaning creeps")
+                            let closest = FindClosestColony(roomname,false);
+                            if (closest) 
                             {
-                                if (c.getActiveBodyparts(CARRY) > 0) 
+                                creeps.forEach((c) =>
                                 {
-                                    if (c.getActiveBodyparts(WORK) > 0) 
+                                    if (c.getActiveBodyparts(MOVE) > 0) 
                                     {
-                                        closest.workerpool.push(c.name);
+                                        if (c.getActiveBodyparts(CARRY) > 0) 
+                                        {
+                                            if (c.getActiveBodyparts(WORK) > 0) 
+                                            {
+                                                closest.workerpool.push(c.name);
+                                            }
+                                            else
+                                            {
+                                                closest.haulerpool.push(c.name);
+                                            }
+                                        }
                                     }
-                                    else
-                                    {
-                                        closest.haulerpool.push(c.name);
-                                    }
-                                }
+                                })    
                             }
-                        })    
+                        }
+                        console.log("Unclaiming room")
+                        room.controller.unclaim();
+                        Memory.colonies.splice(i,1)
+                        flags["Abandon"].remove();
                     }
                 }
-                Memory.colonies.splice(i,1)
                 break;
             }
         }
-        flags["Abandon"].remove();
     }
     
     if(Memory.wars)
@@ -1902,6 +1908,7 @@ AddMiningSpot=function(colony,miningspot)
 {
     if (miningspot) 
     {
+        console.log(colony.pos.roommName + " started mining at: " + miningspot.myPosition.roomName);
         colony.miningSpots.push(miningspot);
         let center = new RoomPosition(colony.pos.x+5,colony.pos.y+5,colony.pos.roomName);
         let way = new Highway(center, miningspot.myPosition);
@@ -2033,8 +2040,27 @@ Scavange=function(colony)
                     let creep = Game.creeps[colony.haulerpool[index]];
                     if (creep) 
                     {
-                        creep.say("Moving out of the way")
-                        creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
+                        if (creep.store.getUsedCapacity() > 0) 
+                        {
+                            let res = false;
+                            RESOURCES_ALL.forEach((r) =>
+                                {
+                                    if (creep.store.getUsedCapacity(r) > 0) 
+                                    {
+                                        res = r;
+                                    }
+                                })
+                            let err = creep.transfer(storage,res);
+                            if (err == ERR_NOT_IN_RANGE) {
+                                creep.travelTo(storage);
+                            }
+                            creep.say("dumping")
+                        }
+                        else
+                        {
+                            creep.say("Moving out of the way")
+                            creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
+                        }
                     }
                 }
             }
@@ -2101,6 +2127,18 @@ TrackDelta=function(colony)
     {
         delta -= roads[i].hitsMax/ROAD_DECAY_TIME/50/10;
     }
+}
+
+ExtractContentOfStore=function(store)
+{
+    let out = [];
+    RESOURCES_ALL.forEach(r => {
+        if(store.getUsedCapacity(r) > 0)
+        {
+            out.push(r);
+        }
+    });
+    return out;
 }
 
 

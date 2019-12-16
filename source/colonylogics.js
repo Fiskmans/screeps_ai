@@ -51,6 +51,15 @@ colonyLogic=
             console.log("Worth it to buy and resell:");
             logObject(worth);
         } 
+        if(Game.time % COLONY_RETARGET_COLOY_SELLING_INTERVAL == 1)
+        {
+            let room = Game.rooms[colony.pos.roomName];
+            if(room && room.terminal)
+            {
+                ColonyRetargetSelling(colony);
+            }
+        }
+        ColonyMerchant(colony);
     },
     //level 7
     7:function(colony)

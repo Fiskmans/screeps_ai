@@ -24,6 +24,10 @@ Creep.prototype.dumbHarvest=function()
             this.travelTo(this.room.storage);
             return
         }
+        else if(err == OK)
+        {
+            return
+        }
     }
     
     let resourses = this.room.find(FIND_DROPPED_RESOURCES,{filter:(r) => {return r.resourceType == RESOURCE_ENERGY}});
@@ -155,7 +159,7 @@ Creep.prototype.dumbBuildLoop=function()
 }
 Creep.prototype.updateHarvestState=function()
 {
-    if(this.store.getFreeCapacity(RESOURCE_ENERGY) == 0)
+    if(this.store.getFreeCapacity() == 0)
     {
         this.memory.harvesting = false
     }
