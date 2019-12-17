@@ -149,7 +149,8 @@ QUIPS = [
     "Crabs are people",
     "Clams are people",
     "Even a broken clock is right two times a day",
-    "Apple pie recipie: 1.Lots of Hydrogen 2.Lots of Time"
+    "Apple pie recipie: 1.Lots of Hydrogen 2.Lots of Time",
+    "A million apes on a million typewriters will eventially write code that runs"
     ]
 
 ALWAYSPROFITABLE = 200
@@ -162,6 +163,7 @@ MinimumSellingPrice =
     [RESOURCE_LEMERGIUM]:0.068,
     [RESOURCE_UTRIUM]:0.038,
     [RESOURCE_KEANIUM]:0.038,
-    [RESOURCE_CATALYST]:0.130,
-    [RESOURCE_GHODIUM_OXIDE]:0.023
+    [RESOURCE_CATALYST]:0.110,
+    [RESOURCE_GHODIUM_OXIDE]:0.023,
+    [RESOURCE_POWER]:0.57
 }

@@ -346,3 +346,19 @@ ColonyMerchant=function(colony)
     ColonyRestock(colony,target,terminal,"store->terminal",storage);
     ColonySelling(colony,terminal)
 }
+
+ColonyDismantleAll=function(colony)
+{
+    if (colony._discheck) 
+    {
+        return;
+    }
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room || !room.storage || room.storage.structureType != STRUCTURE_STORAGE) { return; }
+    let all = room.find(FIND_HOSTILE_STRUCTURES);
+    all.forEach((s) =>
+    {
+        colony.disTargets.push(s.id);
+    })
+    colony._discheck = 1;
+}

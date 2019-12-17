@@ -123,7 +123,7 @@ worldVisuals=function()
                     }
                 }
             }
-            if(Memory.map.powerbanks)
+            if(Memory.map && Memory.map.powerbanks)
             {
                 for(let name in Memory.map.powerbanks)
                 {

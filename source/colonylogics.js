@@ -34,6 +34,7 @@ colonyLogic=
     4:function(colony)
     {
         this[3](colony)
+        ColonyDismantleAll(colony);
     },
     //level 5
     5:function(colony)
