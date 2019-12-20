@@ -1466,14 +1466,14 @@ spawnRoleIntoList=function(room,list,role,options={})
                 {
                     return;
                 }
+                if (!options.memory) 
+                {
+                    options.memory = {};   
+                }
+                options.memory.home = room.name;
                 code = s.spawnCreep(body,Memory.creepid,options);
                 if (code == OK) {
                     list.push(Memory.creepid);
-                    if (room.name == "E13N25")
-                    {
-                        console.log("spawning: " + role + " tick:" + Game.time);
-                        console.log(list);
-                    }
                     s.spawning = true;
                     Memory.creepid += 1;
                 }

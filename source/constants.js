@@ -150,7 +150,8 @@ QUIPS = [
     "Clams are people",
     "Even a broken clock is right two times a day",
     "Apple pie recipie: 1.Lots of Hydrogen 2.Lots of Time",
-    "A million apes on a million typewriters will eventially write code that runs"
+    "A million apes on a million typewriters will eventially write code that runs",
+    "Lurendrejs are not do goods for yous"
     ]
 
 ALWAYSPROFITABLE = 200
