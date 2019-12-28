@@ -191,30 +191,6 @@ Room.prototype.refillable=function()
     return all;
 }
 
-Room.prototype.spawns=function()
-{
-    this.findAllStructures();
-    return this._structures[STRUCTURE_SPAWN];
-}
-
-Room.prototype.turrets=function()
-{
-    this.findAllStructures();
-    return this._structures[STRUCTURE_TOWER];
-}
-
-Room.prototype.roads=function()
-{
-    this.findAllStructures();
-    return this._structures[STRUCTURE_ROAD];
-}
-
-Room.prototype.containers=function()
-{
-    this.findAllStructures();
-    return this._structures[STRUCTURE_CONTAINER];
-}
-
 Room.prototype.findAllStructures=function()
 {
     if(!this._structures)
@@ -241,10 +217,29 @@ Room.prototype.hostiles=function()
         if(this.controller && !this.controller.my)
         {
             this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,{filter:(s) => {return !s.my && s.structureType != STRUCTURE_CONTROLLER}}))
-
         }
     }
     return this._hostiles;
+}
+
+Room.prototype.PopulateShorthands=function()
+{
+    this.findAllStructures();
+    let ShorthandFirstOfType=function(type,room,alias) { if(room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
+    let ShorthandType=function(type,room,alias) { room[alias] = room._structures[type] }
+
+    ShorthandFirstOfType(STRUCTURE_FACTORY,this,"factory");
+    ShorthandFirstOfType(STRUCTURE_NUKER,this,"nuker");
+    ShorthandFirstOfType(STRUCTURE_OBSERVER,this,"observer");
+    ShorthandFirstOfType(STRUCTURE_EXTRACTOR,this,"extractor");
+    ShorthandFirstOfType(STRUCTURE_INVADER_CORE,this,"invaderCore");
+    ShorthandFirstOfType(STRUCTURE_POWER_SPAWN,this,"powerSpawn");
+    if(!this.storage) { ShorthandFirstOfType(STRUCTURE_CONTAINER,this,"storage") }
+
+    ShorthandType(STRUCTURE_CONTAINER,this,"containers");
+    ShorthandType(STRUCTURE_ROAD,this,"roads");
+    ShorthandType(STRUCTURE_TOWER,this,"towers");
+    ShorthandType(STRUCTURE_SPAWN,this,"spawns");
 }
 
 Room.Terrain.prototype.isSpaceEmpty=function(_x,_y,w,h)
@@ -330,7 +325,102 @@ RoomVisual.prototype.body=function(x,y,body,opt = {})
     }
     return this
 }
-    
+
+RoomVisual.prototype.recipe=function(x,y,type,opt = {},angleRange = [0,6.28])
+{
+    _.defaults(opt,{scale:1,alpha:1,radius:1.6,fanning:1.4,scalePerLevel:1})
+    let origScale = opt.scale;
+    this.symbol(x,y,type,opt);
+    opt.scale *= opt.scalePerLevel
+    if(RESOURCES_BASIC.includes(type)) { return; }
+    let ingredients = {};
+    let amount = 1;
+    //this.line(x,y,x+Math.cos(angleRange[0])*opt.radius*0.2,y+Math.sin(angleRange[0])*opt.radius*0.2,{color:"#00FF00"})
+    //this.line(x,y,x+Math.cos(angleRange[1])*opt.radius*0.2,y+Math.sin(angleRange[1])*opt.radius*0.2,{color:"#FF0000"})
+    if(COMMODITIES[type] && type != RESOURCE_GHODIUM)
+    {
+        amount = COMMODITIES[type].amount
+        for(let r in COMMODITIES[type].components)
+        {
+            ingredients[r] = COMMODITIES[type].components[r];
+        }
+    }
+    else if(REVERSED_REACTIONS[type])
+    {
+        ingredients[REVERSED_REACTIONS[type][0]] = 1;
+        ingredients[REVERSED_REACTIONS[type][1]] = 1;
+    }
+    let slots = [];
+    let count = Object.keys(ingredients).length;
+    for(let i = 0;i < count; i++)
+    {
+        let angle = (i+0.5)/count * (angleRange[1] - angleRange[0]) + angleRange[0];
+        slots.push({angle:angle})
+    }
+    for(let i = 0;i < count;i++)
+    {
+        let localradius = ingredients[Object.keys(ingredients)[i]] > 1 ? 2 : 1
+        slots[i].pos=[x+Math.cos(slots[i].angle)*opt.radius*localradius,y+Math.sin(slots[i].angle)*opt.radius*localradius]
+        let min = angleRange[0];
+        let max = angleRange[1];
+        if(i != 0)
+        {
+            min = (slots[i].angle + slots[i-1].angle)/2
+        }
+        if(i != count-1)
+        {
+            max = (slots[i].angle + slots[i+1].angle)/2
+        }
+        
+        let middle = (min + max)/2;
+        min = (min-middle)*opt.fanning+middle
+        max = (max-middle)*opt.fanning+middle
+
+        slots[i].angleRange = [min,max];
+    }
+
+    let current = 0;
+    for(let r in ingredients)
+    {
+        this.recipe(slots[current].pos[0],slots[current].pos[1],r,opt,slots[current].angleRange);
+        let start = [x,y]
+        let end = [slots[current].pos[0],slots[current].pos[1]]
+        let delta = [end[0] - start[0],end[1]-start[1]]
+
+        let localradius = ingredients[r] > 1 ? 2 : 1
+        let length = opt.radius * localradius;
+        let normalized = [delta[0]/length,delta[1]/length]
+
+        let innerRadius = 0.6;
+        let arrowStart = [start[0] + normalized[0]*innerRadius*opt.scale,start[1] + normalized[1]*innerRadius*opt.scale]
+        let arrowEnd = [end[0] - normalized[0]*innerRadius*opt.scale,end[1] - normalized[1]*innerRadius*opt.scale]
+        this.line(arrowStart[0],arrowStart[1],arrowEnd[0],arrowEnd[1],{opacity:opt.alpha})
+        if(ingredients[r] > 1)
+        {
+            let textPos = [(end[0]+start[0])/2,(end[1]+start[1])/2]
+            let label = "x" + ingredients[r]
+
+            let w = (label.length * 0.2+0.2)*opt.scale;
+            let h = 0.5*opt.scale;
+            this.rect(textPos[0]-w/2,textPos[1]-h/2+0.05*opt.scale,w,h,{fill:"#454545",opacity:0.9*opt.alpha});
+            this.text(label,textPos[0],textPos[1]+0.2*opt.scale,{font:0.4*opt.scale})
+        }
+
+        current++;
+    }
+    if(amount > 1)
+    {
+        let textPos = [x,y+0.6*opt.scale]
+        let label = "x" + amount
+
+        let w = (label.length * 0.2+0.2)*opt.scale;
+        let h = 0.5*opt.scale;
+        this.rect(textPos[0]-w/2,textPos[1]-h/2+0.05*opt.scale,w,h,{fill:"#454545",opacity:0.9*opt.alpha});
+        this.text(label,textPos[0],textPos[1]+0.2*opt.scale,{font:0.4*opt.scale})
+    }
+    opt.scale = origScale;
+}
+
 RoomVisual.prototype.graph=function(x,y,width,height,data,opt = {})
 {
     _.defaults(opt,{cliptops:false,top:false,bottom:false,left:false,right:false});
@@ -365,7 +455,14 @@ RoomVisual.prototype.graph=function(x,y,width,height,data,opt = {})
     }
     if (opt.left) 
     {
-        this.line(x,y,x,y+height,opt.left);
+        if (opt.right.type == "edge") 
+        {
+            this.line(_.last(path)[0],_.last(path)[1],x,y+height,opt.left);
+        }
+        else
+        {
+            this.line(x,y,x,y+height,opt.left);
+        }
     }
     if (opt.right) 
     {
@@ -378,11 +475,15 @@ RoomVisual.prototype.graph=function(x,y,width,height,data,opt = {})
             this.line(x+width,y,x+width,y+height,opt.right);
         }
     }
-    
 }
+
 RoomVisual.prototype.stock=function(x,y,obj,opt = {})
 {
-    _.defaults(opt,{scale:1,nox:false,offsetx:0.25,buffer:0})
+    _.defaults(opt,{scale:1,nox:false,offsetx:0.25,buffer:0,name:obj.structureType,noName:false})
+    if(opt.noName)
+    {
+        delete opt.name;
+    }
     let inv = obj.store;
     if(inv)
     {
@@ -397,9 +498,13 @@ RoomVisual.prototype.stock=function(x,y,obj,opt = {})
             }
         })
         
-        this.text(inv.getUsedCapacity() + "/" + inv.getCapacity(),x-0.3*opt.scale,y + 0.15*opt.scale,{font:0.7*opt.scale,align:"left"})
-        this.rect(x-0.45,y-0.45,(6+opt.offsetx+opt.buffer)*opt.scale,(Object.keys(has).length+1)*opt.scale + 0.1,{fill:"#C4C4C4",stroke:"#000000"})
-        y = y+opt.scale
+        if(opt.name)
+        {
+            this.text(opt.name,x-0.3*opt.scale,y + 0.15*opt.scale,{font:0.7*opt.scale,align:"left"})
+        }
+        this.text(inv.getUsedCapacity() + "/" + inv.getCapacity(),x-0.3*opt.scale,y + (opt.name ? 1.15 : 0.15)*opt.scale,{font:0.7*opt.scale,align:"left"})
+        this.rect(x-0.45,y-0.45,(6+opt.offsetx+opt.buffer)*opt.scale,(Object.keys(has).length+(opt.name ? 2 : 1))*opt.scale + 0.1,{fill:"#C4C4C4",stroke:"#000000"})
+        y = y+opt.scale * (opt.name ? 2 : 1)
         for(let type in has)
         {
             this.symbol(x+(opt.offsetx*opt.scale),y,type,opt)
@@ -415,8 +520,9 @@ RoomVisual.prototype.stock=function(x,y,obj,opt = {})
     return this
 }
 
-RoomVisual.prototype.plan=function(_x,_y,plan)
+RoomVisual.prototype.plan=function(_x,_y,plan,opt = {})
 {
+    _.defaults(opt,{scale:1,alpha:0.5})
     if(_x && _y && plan)
     {
         for(var y=0;y<plan.length;y++)
@@ -425,7 +531,7 @@ RoomVisual.prototype.plan=function(_x,_y,plan)
             {
                 if(plan[y][x])
                 {
-                    this.symbol(_x+x,_y+y,plan[y][x],{alpha:0.5})
+                    this.symbol(_x+x*opt.scale,_y+y*opt.scale,plan[y][x],opt)
                 }
             }
         }
@@ -440,253 +546,413 @@ RoomVisual.prototype.plan=function(_x,_y,plan)
     return this
 }
 
+RoomVisual.prototype.fluid=function(x,y,type,opt = {})
+{
+    _.defaults(opt,{scale:1,alpha:1})
+    this.circle(x,y,{radius:0.15*opt.scale,fill:ResourceColors[type][0],opacity:opt.alpha})
+}
+
+RoomVisual.prototype.mineral=function(x,y,type,opt = {})
+{
+    _.defaults(opt,{scale:1,alpha:1})
+    this.circle(x,y,{radius:0.35*opt.scale,fill:ResourceColors[type][1],stroke:ResourceColors[type][0],opacity:opt.alpha,strokeWidth:0.06*opt.scale})
+    this.text(type,x,y+0.15*opt.scale,{color:ResourceColors[type][0],font:"bold "+(0.45*opt.scale)+" arial",opacity:opt.alpha})
+}
+
+RoomVisual.prototype.compound=function(x,y,type,opt = {})
+{
+    _.defaults(opt,{scale:1,alpha:1})
+    let w = (0.26 + type.length * 0.26) * opt.scale
+    let h = 0.7*opt.scale
+    this.rect(x-w/2,y-h/2,w,h,{fill:ResourceColors[type][0],opacity:opt.alpha})
+    this.text(type.replace("2", '₂'),x,y+0.17*opt.scale,{color:ResourceColors[type][1],font:"bold "+(0.45*opt.scale)+" arial",opacity:opt.alpha})
+}
+
+RoomVisual.prototype.unique=function(x,y,type,opt={})
+{
+    _.defaults(opt,{scale:1,alpha:1})
+    if(RESOURCE_UNIQUE_ICONS[type])
+    {
+        RESOURCE_UNIQUE_ICONS[type].forEach((layer) =>
+        {
+            switch(layer.type)
+            {
+            case VISUALTYPE_POLY:
+                {
+                    let args = {}
+                    args.fill = layer.fill;
+                    args.stroke = layer.stroke;
+                    args.strokeWidth = layer.strokeWidth;
+                    args.opacity = layer.opacity * opt.alpha;
+                    
+                    this.poly(layer.poly.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]),args);
+                }
+                break;
+            case VISUALTYPE_RECT:
+                {
+                    let args = {};
+                    args.fill = layer.fill;
+                    args.stroke = layer.stroke;
+                    args.strokeWidth = layer.strokeWidth;
+                    args.opacity = layer.opacity * opt.alpha;
+                    
+                    this.rect(layer.x*opt.scale+x,layer.y*opt.scale+y,layer.width*opt.scale,layer.height*opt.scale,args)
+                }
+                break;
+            case VISUALTYPE_CIRCLE:
+                {
+                    let args = {};
+                    args.fill = layer.fill;
+                    args.opacity = layer.opacity*opt.alpha;
+                    args.stroke = layer.stroke;
+                    args.strokeWidth = layer.strokeWidth;
+                    args.radius = layer.radius;
+
+                    this.circle(layer.x*opt.scale+x,layer.y*opt.scale+y,args)
+                }
+                break;
+            }
+        })
+    }
+    else
+    {
+        this.text("?",x,y-0.3,{font:0.5});
+        this.text(type,x,y+0.5,{font:0.3});
+    }
+}
+
+RoomVisual.prototype.bar=function(x,y,type,opt = {})
+{
+    _.defaults(opt,{scale:1,alpha:1})
+    const letter = 
+    {
+        [RESOURCE_OXIDANT]:         'O',
+        [RESOURCE_REDUCTANT]:       'H',
+        [RESOURCE_ZYNTHIUM_BAR]:    'Z',
+        [RESOURCE_LEMERGIUM_BAR]:   'L',
+        [RESOURCE_UTRIUM_BAR]:      'U',
+        [RESOURCE_KEANIUM_BAR]:     'K',
+        [RESOURCE_PURIFIER]:        'X',
+        [RESOURCE_GHODIUM_MELT]:    'G',
+    }
+    let outer = 
+    [
+        [-0.45,-0.25],
+        [-0.45,-0.35],
+        [-0.4,-0.4],
+        [-0.25,-0.4],
+        [-0.2,-0.35],
+        [-0.2,-0.25],
+
+        [0.2,-0.25],
+        [0.2,-0.35],
+        [0.25,-0.4],
+        [0.4,-0.4],
+        [0.45,-0.35],
+        [0.45,-0.25],
+
+        [0.45,0.25],
+        [0.45,0.35],
+        [0.4,0.4],
+        [0.25,0.4],
+        [0.2,0.35],
+        [0.2,0.25],
+        
+        [-0.2,0.25],
+        [-0.2,0.35],
+        [-0.25,0.4],
+        [-0.4,0.4],
+        [-0.45,0.35],
+        [-0.45,0.25]
+    ];
+
+    let inner = 
+    [
+        [-0.45,-0.25],
+
+        [-0.2,-0.25],
+        [-0.2,-0.35],
+        [-0.15,-0.4],
+        [0.15,-0.4],
+        [0.2,-0.35],
+        [0.2,-0.25],
+        
+        [0.45,-0.25],
+
+        [0.45,0.25],
+
+        [0.2,0.25],
+        [0.2,0.35],
+        [0.15,0.4],
+        [-0.15,0.4],
+        [-0.2,0.35],
+        [-0.2,0.25],
+
+        [-0.45,0.25]
+    ];
+
+    this.poly(outer.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]), {
+        fill: ResourceColors[type][1],
+        stroke: "#00000000",
+        strokeWidth: 0,
+        opacity: opt.alpha
+    });
+    
+    this.poly(inner.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]), {
+        fill: ResourceColors[type][0],
+        stroke: "#00000000",
+        strokeWidth: 0,
+        opacity: opt.alpha
+    });
+
+    this.text(letter[type],x,y+0.17*opt.scale,{color:ResourceColors[type][1],font:"bold "+(0.45*opt.scale)+" arial",opacity:opt.alpha})
+}
+
+function calculateFactoryLevelGapsPoly() {
+    let x = -0.08;
+    let y = -0.52;
+    let result = [];
+  
+    let gapAngle = 16 * (Math.PI / 180);
+    let c1 = Math.cos(gapAngle);
+    let s1 = Math.sin(gapAngle);
+  
+    let angle = 72 * (Math.PI / 180);
+    let c2 = Math.cos(angle);
+    let s2 = Math.sin(angle);
+  
+    for (let i = 0; i < 5; ++i) {
+      result.push([0.0, 0.0]);
+      result.push([x, y]);
+      result.push([x * c1 - y * s1, x * s1 + y * c1]);
+      let tmpX = x * c2 - y * s2;
+      y = x * s2 + y * c2;
+      x = tmpX;
+    }
+    return result;
+}
+const factoryLevelGaps = calculateFactoryLevelGapsPoly();
+
 RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
 {
     _.defaults(opt,{scale:1,alpha:1})
     switch(symbol)
     {
         case RESOURCE_ENERGY:
-            this.circle(x,y,{radius:0.15*opt.scale,fill:"#F6DD69",opacity:1,opacity:opt.alpha})
-            break
         case RESOURCE_POWER:
-            this.circle(x,y,{radius:0.15*opt.scale,fill:"#ff1930",opacity:1,opacity:opt.alpha})
+            this.fluid(x,y,symbol,opt);
             break
         case RESOURCE_HYDROGEN:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#4C4C4C",stroke:"#CDCDCD",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("H",x,y+0.15*opt.scale,{color:"#B4B4B4",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_OXYGEN:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#4C4C4C",stroke:"#CDCDCD",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("O",x,y+0.17*opt.scale,{color:"#B4B4B4",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_UTRIUM:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#006181",stroke:"#50d7f9",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("U",x,y+0.17*opt.scale,{color:"#50d7f9",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_LEMERGIUM:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#236144",stroke:"#00f4a2",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("L",x,y+0.17*opt.scale,{color:"#00f4a2",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_KEANIUM:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#371383",stroke:"#a071ff",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("K",x,y+0.17*opt.scale,{color:"#a071ff",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYST:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#592121",stroke:"#ff7b7b",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("X",x,y+0.17*opt.scale,{color:"#ff7b7b",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_ZYNTHIUM:
-            this.circle(x,y,{radius:0.35*opt.scale,fill:"#5d4c2e",stroke:"#fdd388",opacity:opt.alpha,strokeWidth:0.06*opt.scale})
-            this.text("Z",x,y+0.17*opt.scale,{color:"#fdd388",font:0.5*opt.scale,opacity:opt.alpha})
+            this.mineral(x,y,symbol,opt)
             break
         case RESOURCE_GHODIUM:
-            w = 0.7*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("G",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_HYDROXIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#b4b4b4",opacity:opt.alpha})
-            this.text("OH",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_ZYNTHIUM_KEANITE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#b4b4b4",opacity:opt.alpha})
-            this.text("ZK",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_UTRIUM_LEMERGITE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#b4b4b4",opacity:opt.alpha})
-            this.text("UL",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
-            
         case RESOURCE_UTRIUM_HYDRIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#50d7f9",opacity:opt.alpha})
-            this.text("UH",x,y+0.17*opt.scale,{color:"#006181",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_UTRIUM_OXIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#50d7f9",opacity:opt.alpha})
-            this.text("UO",x,y+0.17*opt.scale,{color:"#006181",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_KEANIUM_HYDRIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#a071ff",opacity:opt.alpha})
-            this.text("KH",x,y+0.17*opt.scale,{color:"#371383",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_KEANIUM_OXIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#a071ff",opacity:opt.alpha})
-            this.text("KO",x,y+0.17*opt.scale,{color:"#371383",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_LEMERGIUM_HYDRIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#00f4a2",opacity:opt.alpha})
-            this.text("LH",x,y+0.17*opt.scale,{color:"#236144",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_LEMERGIUM_OXIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#00f4a2",opacity:opt.alpha})
-            this.text("LO",x,y+0.17*opt.scale,{color:"#236144",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_ZYNTHIUM_HYDRIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#fdd388",opacity:opt.alpha})
-            this.text("ZH",x,y+0.17*opt.scale,{color:"#5d4c2e",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_ZYNTHIUM_OXIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#fdd388",opacity:opt.alpha})
-            this.text("ZO",x,y+0.17*opt.scale,{color:"#5d4c2e",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_GHODIUM_HYDRIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("GH",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_GHODIUM_OXIDE:
-            w = 0.9625*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("GO",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
-            
         case RESOURCE_UTRIUM_ACID:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#50d7f9",opacity:opt.alpha})
-            this.text("UH2O",x,y+0.17*opt.scale,{color:"#006181",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_UTRIUM_ALKALIDE:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#50d7f9",opacity:opt.alpha})
-            this.text("UHO2",x,y+0.17*opt.scale,{color:"#006181",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_KEANIUM_ACID:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#a071ff",opacity:opt.alpha})
-            this.text("KH2O",x,y+0.17*opt.scale,{color:"#371383",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_KEANIUM_ALKALIDE:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#a071ff",opacity:opt.alpha})
-            this.text("KHO2",x,y+0.17*opt.scale,{color:"#371383",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_LEMERGIUM_ACID:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#00f4a2",opacity:opt.alpha})
-            this.text("LH2O",x,y+0.17*opt.scale,{color:"#236144",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_LEMERGIUM_ALKALIDE:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#00f4a2",opacity:opt.alpha})
-            this.text("LHO2",x,y+0.17*opt.scale,{color:"#236144",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_ZYNTHIUM_ACID:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#fdd388",opacity:opt.alpha})
-            this.text("ZH2O",x,y+0.17*opt.scale,{color:"#5d4c2e",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_ZYNTHIUM_ALKALIDE:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#fdd388",opacity:opt.alpha})
-            this.text("ZHO2",x,y+0.17*opt.scale,{color:"#5d4c2e",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_GHODIUM_ACID:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("GH2O",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_GHODIUM_ALKALIDE:
-            w = 1.5*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("GHO2",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
-            
         case RESOURCE_CATALYZED_UTRIUM_ACID:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#50d7f9",opacity:opt.alpha})
-            this.text("XUH2O",x,y+0.17*opt.scale,{color:"#006181",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_UTRIUM_ALKALIDE:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#50d7f9",opacity:opt.alpha})
-            this.text("XUHO2",x,y+0.17*opt.scale,{color:"#006181",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_KEANIUM_ACID:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#a071ff",opacity:opt.alpha})
-            this.text("XKH2O",x,y+0.17*opt.scale,{color:"#371383",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_KEANIUM_ALKALIDE:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#a071ff",opacity:opt.alpha})
-            this.text("XKHO2",x,y+0.17*opt.scale,{color:"#371383",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_LEMERGIUM_ACID:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#00f4a2",opacity:opt.alpha})
-            this.text("XLH2O",x,y+0.17*opt.scale,{color:"#236144",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#00f4a2",opacity:opt.alpha})
-            this.text("XLHO2",x,y+0.17*opt.scale,{color:"#236144",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_ZYNTHIUM_ACID:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#fdd388",opacity:opt.alpha})
-            this.text("XZH2O",x,y+0.17*opt.scale,{color:"#5d4c2e",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#fdd388",opacity:opt.alpha})
-            this.text("XZHO2",x,y+0.17*opt.scale,{color:"#5d4c2e",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_GHODIUM_ACID:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("XGH2O",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
-            break
         case RESOURCE_CATALYZED_GHODIUM_ALKALIDE:
-            w = 1.8*opt.scale
-            h = 0.7*opt.scale
-            this.rect(x-w/2,y-h/2,w,h,{fill:"#FFFFFF",opacity:opt.alpha})
-            this.text("XGHO2",x,y+0.17*opt.scale,{color:"#666666",font:0.5*opt.scale,opacity:opt.alpha})
+            this.compound(x,y,symbol,opt);
             break
-		//Structures ═══════════════════════════════════════════════════════════════════════════════════════════════════
+        case RESOURCE_UTRIUM_BAR:
+        case RESOURCE_LEMERGIUM_BAR:
+        case RESOURCE_ZYNTHIUM_BAR:
+        case RESOURCE_KEANIUM_BAR:
+        case RESOURCE_GHODIUM_MELT:
+        case RESOURCE_OXIDANT:
+        case RESOURCE_REDUCTANT:
+        case RESOURCE_PURIFIER:
+            this.bar(x,y,symbol,opt);
+            break;
+        case RESOURCE_SILICON:
+        case RESOURCE_ALLOY:
+        case RESOURCE_TUBE:
+        case RESOURCE_FIXTURES:
+        case RESOURCE_FRAME:
+        case RESOURCE_HYDRAULICS:
+        case RESOURCE_MACHINE:
+            
+        case RESOURCE_METAL:
+        case RESOURCE_WIRE:
+        case RESOURCE_SWITCH:
+        case RESOURCE_TRANSISTOR:
+        case RESOURCE_MICROCHIP:
+        case RESOURCE_CIRCUIT:
+        case RESOURCE_DEVICE:
+
+        case RESOURCE_BIOMASS:
+        case RESOURCE_CELL:
+        case RESOURCE_PHLEGM:
+        case RESOURCE_TISSUE:
+        case RESOURCE_MUSCLE:
+        case RESOURCE_ORGANOID:
+        case RESOURCE_ORGANISM:
+            
+        case RESOURCE_MIST:
+        case RESOURCE_CONDENSATE:
+        case RESOURCE_CONCENTRATE:
+        case RESOURCE_EXTRACT:
+        case RESOURCE_SPIRIT:
+        case RESOURCE_EMANATION:
+        case RESOURCE_ESSENCE:
+
+        case RESOURCE_OPS:
+        case RESOURCE_BATTERY:
+        case RESOURCE_COMPOSITE:
+        case RESOURCE_CRYSTAL:
+        case RESOURCE_LIQUID:
+
+            this.unique(x,y,symbol,opt);
+            break;
+
+
+        //Structures ═══════════════════════════════════════════════════════════════════════════════════════════════════
+        case STRUCTURE_FACTORY: 
+        {
+            const outline = [
+              [-0.68, -0.11],
+              [-0.84, -0.18],
+              [-0.84, -0.32],
+              [-0.44, -0.44],
+              [-0.32, -0.84],
+              [-0.18, -0.84],
+              [-0.11, -0.68],
+              
+              [0.11, -0.68],
+              [0.18, -0.84],
+              [0.32, -0.84],
+              [0.44, -0.44],
+              [0.84, -0.32],
+              [0.84, -0.18],
+              [0.68, -0.11],
+              
+              [0.68, 0.11],
+              [0.84, 0.18],
+              [0.84, 0.32],
+              [0.44, 0.44],
+              [0.32, 0.84],
+              [0.18, 0.84],
+              [0.11, 0.68],
+              
+              [-0.11, 0.68],
+              [-0.18, 0.84],
+              [-0.32, 0.84],
+              [-0.44, 0.44],
+              [-0.84, 0.32],
+              [-0.84, 0.18],
+              [-0.68, 0.11]
+            ];
+            this.poly(outline.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]), {
+              fill: null,
+              stroke: colors.outline,
+              strokeWidth: 0.05*opt.scale,
+              opacity: opt.alpha
+            });
+            // outer circle
+            this.circle(x, y, {
+              radius: 0.65*opt.scale,
+              fill: '#232323',
+              strokeWidth: 0.035*opt.scale,
+              stroke: '#140a0a',
+              opacity: opt.alpha
+            });
+            const spikes = [
+              [-0.4, -0.1],
+              [-0.8, -0.2],
+              [-0.8, -0.3],
+              [-0.4, -0.4],
+              [-0.3, -0.8],
+              [-0.2, -0.8],
+              [-0.1, -0.4],
+      
+              [0.1, -0.4],
+              [0.2, -0.8],
+              [0.3, -0.8],
+              [0.4, -0.4],
+              [0.8, -0.3],
+              [0.8, -0.2],
+              [0.4, -0.1],
+      
+              [0.4, 0.1],
+              [0.8, 0.2],
+              [0.8, 0.3],
+              [0.4, 0.4],
+              [0.3, 0.8],
+              [0.2, 0.8],
+              [0.1, 0.4],
+      
+              [-0.1, 0.4],
+              [-0.2, 0.8],
+              [-0.3, 0.8],
+              [-0.4, 0.4],
+              [-0.8, 0.3],
+              [-0.8, 0.2],
+              [-0.4, 0.1]
+            ];
+            this.poly(spikes.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]), {
+              fill: colors.gray,
+              stroke: '#140a0a',
+              strokeWidth: 0.04*opt.scale,
+              opacity: opt.alpha
+            });
+            // factory level circle
+            this.circle(x, y, {
+              radius: 0.54*opt.scale,
+              fill: '#302a2a',
+              strokeWidth: 0.04*opt.scale,
+              stroke: '#140a0a',
+              opacity: opt.alpha
+            });
+            this.poly(factoryLevelGaps.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]), {
+              fill: '#140a0a',
+              stroke: null,
+              opacity: opt.alpha
+            });
+            // inner black circle
+            this.circle(x, y, {
+              radius: 0.42*opt.scale,
+              fill: '#140a0a',
+              opacity: opt.alpha
+            });
+            this.rect(x - 0.24*opt.scale, y - 0.24*opt.scale, 0.48*opt.scale, 0.48*opt.scale, {
+              fill: '#3f3f3f',
+              opacity: opt.alpha
+            });
+            break;
+        }
         case STRUCTURE_EXTENSION:
 			this.circle(x, y, {
 				radius     : 0.5*opt.scale,
@@ -888,15 +1154,15 @@ RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
 			break;
 		case STRUCTURE_STORAGE:
 			let storageOutline = relativePoly(x, y, [
-				[-0.45, -0.55],
-				[0, -0.65],
-				[0.45, -0.55],
-				[0.55, 0],
-				[0.45, 0.55],
-				[0, 0.65],
-				[-0.45, 0.55],
-				[-0.55, 0],
-				[-0.45, -0.55],
+				[-0.45*opt.scale, -0.55*opt.scale],
+				[0, -0.65*opt.scale],
+				[0.45*opt.scale, -0.55*opt.scale],
+				[0.55*opt.scale, 0],
+				[0.45*opt.scale, 0.55*opt.scale],
+				[0, 0.65*opt.scale],
+				[-0.45*opt.scale, 0.55*opt.scale],
+				[-0.55*opt.scale, 0],
+				[-0.45*opt.scale, -0.55*opt.scale],
 			]);
 			this.poly(storageOutline, {
 				stroke     : "#789d7b",
@@ -1148,3 +1414,33 @@ RoomVisual.prototype.DrawMapSegment=function(pos)
     }
     return this;
 }
+
+RoomVisual.prototype.Timer=function(x,y,current,max,opt)
+{
+    _.defaults(opt,{scale:1,alpha:1,color:"#c5c5c5"})
+    this.circle(x,y,{radius:opt.scale,fill:"#00000000",stroke:opt.color,strokeWidth:0.1*opt.scale});
+    let poly = [];
+    poly.push([x,y])
+    for(let i = 0;i < 6.28;i+=0.1)
+    {
+        poly.push([x+Math.sin(i) * opt.scale,y-Math.cos(i) * opt.scale]);
+        if(i/6.28 > current/max)
+        {
+            break;
+        }
+    }
+    poly.push([x,y])
+    this.poly(poly,{fill:opt.color});
+}
+
+String.prototype.hashCode = function() {
+    var hash = 0, i, chr;
+    if (this.length === 0) return hash;
+    for (i = 0; i < this.length; i++) {
+      chr   = this.charCodeAt(i);
+      hash  = ((hash << 5) - hash) + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  };
+

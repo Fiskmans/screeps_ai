@@ -16,7 +16,6 @@ colonyLogic=
     //level 2
     2:function(colony)
     {
-        SetupLowTierStorage(colony)
         this[1](colony)
         StartMining(colony)
         BasicHaulersAndMiners(colony)
@@ -49,33 +48,17 @@ colonyLogic=
         let worth = FindWorthWhileReselling();
         if(worth.length > 0)
         {
-            console.log("Worth it to buy and resell:");
-            logObject(worth);
+            Game.notify("Worth it to buy and resell:\n\n" + PrettySerialize(worth));
         } 
-        if(Game.time % COLONY_RETARGET_COLOY_SELLING_INTERVAL == 1)
-        {
-            let room = Game.rooms[colony.pos.roomName];
-            if(room && room.terminal)
-            {
-                ColonyRetargetSelling(colony);
-            }
-        }
+        ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
     },
     //level 7
     7:function(colony)
     {
         this[6](colony)
-        
-        let room = Game.rooms[colony.pos.roomName];
-        if (room)
-        {
-            if (!colony.crafting) {colony.crafting = {}}
-            if (true) 
-            {
-                
-            }
-        }
+        ColonyRetargetFactory(colony);
+        ColonyCrafting(colony);
     },
     //level 8
     8:function(colony)

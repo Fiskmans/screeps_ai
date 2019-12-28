@@ -2,10 +2,6 @@ grafanaGlobals = {}
 
 UpdateGrafanaStats=function()
 {
-    if(Memory.stats.tick+1 != Game.time)
-    {
-        console.log("skipped tick")
-    }
     Memory.stats["game.time"] = Game.time;
     Memory.stats['cpu.getUsed'] = Game.cpu.getUsed()
     Memory.stats['cpu.limit'] = Game.cpu.limit
@@ -18,6 +14,8 @@ UpdateGrafanaStats=function()
     Memory.stats['gcl.progress'] = Game.gcl.progress;
     Memory.stats['gcl.progressTotal'] = Game.gcl.progressTotal;
     Memory.stats['gcl.level'] = Game.gcl.level;
+
+    Memory.stats['colonies.count'] = Memory.colonies.length;
 
     Memory.stats['store'] = {};
     _.forEach(Object.keys(Game.rooms), function(roomName){

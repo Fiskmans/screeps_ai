@@ -3,6 +3,14 @@ colonyMain=function()
     if(!Memory.colonies) {Memory.colonies = []}
     for(let key in Memory.colonies)
     {
+        let room = Game.rooms[Memory.colonies[key].pos.roomName];
+        if(room)
+        {
+            room.PopulateShorthands();
+        }
+    }
+    for(let key in Memory.colonies)
+    {
         colonyStart(Memory.colonies[key])
     }
 }
@@ -45,7 +53,7 @@ colonyDumbRefill=function(colony)
     deleteDead(colony.crefillers)
     let room = Game.rooms[colony.pos.roomName];
     let limit = room.find(FIND_MY_STRUCTURES,{filter: (s) => {return (s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}}).length / 10;
-    room.turrets().forEach((t) => 
+    room.towers.forEach((t) => 
     {
         if(t.store.getFreeCapacity(RESOURCE_ENERGY) > 400) 
         {
@@ -57,7 +65,7 @@ colonyDumbRefill=function(colony)
     {
         if (colony.crefillers.length < limit) 
         {
-            if (colony.haulerpool.length > 0) 
+            if (colony.haulerpool.length > 1) 
             {
                 colony.crefillers.push(colony.haulerpool.shift())
             }
@@ -274,7 +282,7 @@ colonyMiningSpots=function(colony)
 
 GuardSpawningColony=function(colony)
 {
-    if (Game.rooms[colony.pos.roomName].turrets().length == 0) 
+    if (Game.rooms[colony.pos.roomName].towers.length == 0) 
     {
         if (!colony.guards) 
         {
