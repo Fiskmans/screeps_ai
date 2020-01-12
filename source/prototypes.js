@@ -573,46 +573,7 @@ RoomVisual.prototype.unique=function(x,y,type,opt={})
     _.defaults(opt,{scale:1,alpha:1})
     if(RESOURCE_UNIQUE_ICONS[type])
     {
-        RESOURCE_UNIQUE_ICONS[type].forEach((layer) =>
-        {
-            switch(layer.type)
-            {
-            case VISUALTYPE_POLY:
-                {
-                    let args = {}
-                    args.fill = layer.fill;
-                    args.stroke = layer.stroke;
-                    args.strokeWidth = layer.strokeWidth;
-                    args.opacity = layer.opacity * opt.alpha;
-                    
-                    this.poly(layer.poly.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]),args);
-                }
-                break;
-            case VISUALTYPE_RECT:
-                {
-                    let args = {};
-                    args.fill = layer.fill;
-                    args.stroke = layer.stroke;
-                    args.strokeWidth = layer.strokeWidth;
-                    args.opacity = layer.opacity * opt.alpha;
-                    
-                    this.rect(layer.x*opt.scale+x,layer.y*opt.scale+y,layer.width*opt.scale,layer.height*opt.scale,args)
-                }
-                break;
-            case VISUALTYPE_CIRCLE:
-                {
-                    let args = {};
-                    args.fill = layer.fill;
-                    args.opacity = layer.opacity*opt.alpha;
-                    args.stroke = layer.stroke;
-                    args.strokeWidth = layer.strokeWidth;
-                    args.radius = layer.radius;
-
-                    this.circle(layer.x*opt.scale+x,layer.y*opt.scale+y,args)
-                }
-                break;
-            }
-        })
+        this.DrawSvg(x,y,RESOURCE_UNIQUE_ICONS[type],opt);
     }
     else
     {

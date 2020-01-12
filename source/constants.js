@@ -17,6 +17,8 @@ MARGETING_STOCK_OTHER = 10000
 MARKETING_IMPORT_LEVEL = 5000
 FACTORY_NUMBER_OF_CRAFTS_TO_STOCK = 6
 FACTORY_ENERGY_TO_LEAVE_IN_STORAGE = 60000
+SVG_DRAWER_CPU_LIMIT = Game.cpu.limit * 0.95;
+SVG_DRAWER_BUCKET_LIMIT = 3000
 
 ROLE_WORKER = 'worker'
 ROLE_HAULER = 'hauler'
@@ -194,6 +196,8 @@ MinimumSellingPrice =
     [RESOURCE_KEANIUM_BAR]:     0.200,
     [RESOURCE_PURIFIER]:        0.87,
     [RESOURCE_GHODIUM_MELT]:    2.0,
+
+    [RESOURCE_BATTERY]:         0.150
 }
 
 colors = 
@@ -284,319 +288,47 @@ VISUALTYPE_POLY = 1
 VISUALTYPE_RECT = 2
 VISUALTYPE_CIRCLE = 3
 
-
-let xml  = require("xmlParser");
-let ParseStyle=function(string)
-{
-    let out = {};
-    let key = "";
-    let value = "";
-    let readingKey = true;
-    for(let i = 0;i < string.length;i++)
-    {
-        let char = string[i];
-        if(readingKey)
-        {
-            if(char == ':')
-            {
-                readingKey = false;
-            }
-            else
-            {
-                key += char;
-            }
-        }
-        else
-        {
-            if(char == ';')
-            {
-                out[key] = value;
-                readingKey = true;
-                key = "";
-                value = "";
-            }
-            else
-            {
-                value += char;
-            }
-        }
-    }
-    return out;
-}
-
-let readNumber=function(at,string)
-{
-    let out = {};
-    let data = "";
-    for(let i = at;i < string.length; i++)
-    {
-        let char = string[i];
-        if(char != " " && char != ",")
-        {
-            data += char;
-        }
-        else
-        {
-            out.value = parseFloat(data);
-            out.jumpTo = i;
-            if(isNaN(out.value))
-            {
-                console.log(data)
-            }
-            return out;
-        }
-    }
-    out.value = 0;
-    out.jumpTo = string.length;
-    return out;
-}
-
-let readPoint=function(at,string)
-{
-    let out = {};
-    let x = readNumber(at,string);
-    at = x.jumpTo;
-    if(string[at] == ",") {at++};
-    let y = readNumber(at,string);
-
-    out.value = [x.value,y.value];
-    out.jumpTo = y.jumpTo;
-    return out;
-}
-
-let ParsePoly=function(string)
-{
-    let out = [];
-    let cursor = [0,0];
-    let argumentStarts = ["-","0",".","1","2","3","4","5","6","7","8","9"]
-    let lastCommand = "l";
-    for(let i = 0; i < string.length; i++)
-    {
-        let command = string[i];
-        if(command != " ")
-        {
-            if(argumentStarts.includes(command))
-            {
-                command = lastCommand;
-            }
-            else
-            {
-                i++;
-                for(; i < string.length; i++) { if(string[i]!= " ") { break; } }
-                lastCommand = command;        
-            }
-            switch(command)
-            {
-                case "h":
-                    {
-                        let dx = readNumber(i,string);
-                        i = dx.jumpTo;
-                        cursor[0] += dx.value;
-                        out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-                case "H":
-                    {
-                        let x = readNumber(i,string);
-                        i = x.jumpTo;
-                        cursor[0] = x.value;
-                        out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-                    
-                case "v":
-                    {
-                        let dy = readNumber(i,string);
-                        i = dy.jumpTo;
-                        cursor[1] += dy.value;
-                        out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-                case "V":
-                    {
-                        let y = readNumber(i,string);
-                        i = y.jumpTo;
-                        cursor[1] = y.value;
-                        out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-
-                case "m":
-                    {
-                        let d = readPoint(i,string);
-                        i = d.jumpTo;
-                        cursor[0] += d.value[0];
-                        cursor[1] += d.value[1];
-                        out.push([cursor[0],cursor[1]]);
-                        lastCommand = "l";
-                    }
-                    break;
-                case "M":
-                    {
-                        let d = readPoint(i,string);
-                        i = d.jumpTo;
-                        cursor[0] = d.value[0];
-                        cursor[1] = d.value[1];
-                        out.push([cursor[0],cursor[1]]);
-                        lastCommand = "L"
-                    }
-                    break;
-                
-                case "L":
-                    {
-                        let d = readPoint(i,string);
-                        i = d.jumpTo;
-                        cursor[0] = d.value[0];
-                        cursor[1] = d.value[1];
-                        out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-
-                case "l":
-                    {
-                        let d = readPoint(i,string);
-                        i = d.jumpTo;
-                        cursor[0] += d.value[0];
-                        cursor[1] += d.value[1];
-                        out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-                    
-                case "C":
-                    {
-                        let c1 = readPoint(i,string);
-                        i = c1.jumpTo + 1;
-                        let c2 = readPoint(i,string);
-                        i = c2.jumpTo + 1;
-                        let t = readPoint(i,string);
-                        i = t.jumpTo;
-                        
-                        out = out.concat(BezierFragment(5,[cursor, c1.value,c2.value,t.value]))
-
-                        cursor[0] = t.value[0];
-                        cursor[1] = t.value[1];
-                        //out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-                    
-                case "c":
-                    {
-                        let c1 = readPoint(i,string);
-                        i = c1.jumpTo + 1;
-                        let c2 = readPoint(i,string);
-                        i = c2.jumpTo + 1;
-                        let t = readPoint(i,string);
-                        i = t.jumpTo;
-                        
-                        c1.value[0] += cursor[0];
-                        c1.value[1] += cursor[1];
-                        c2.value[0] += cursor[0];
-                        c2.value[1] += cursor[1];
-                        t.value[0] += cursor[0];
-                        t.value[1] += cursor[1];
-                        out = out.concat(BezierFragment(5,[cursor, c1.value,c2.value,t.value]))
-                        cursor[0] = t.value[0];
-                        cursor[1] = t.value[1];
-                        //out.push([cursor[0],cursor[1]]);
-                    }
-                    break;
-
-                case "z":
-                case "Z":
-                    out.push(_.first(out));
-                    break;
-            }
-        }
-    }
-    return out;
-}
-let ParseSVG=function(fileName)
-{
-    let data = require(fileName);
-    let object = xml.parseFromString(""+data)
-
-    let out = [];
-    object.forEach((element) =>
-    {
-        if(element.type == "element")
-        {
-
-            switch(element.tagName.replace("\n",""))
-            {
-            case "rect":
-                {
-
-                    let layer = {};
-                    layer.type = VISUALTYPE_RECT
-                    let attr = element.attributes;
-                    layer.x = attr.x;
-                    layer.y = attr.y;
-                    layer.width = attr.width;
-                    layer.height = attr.height;
-                    
-                    let style = ParseStyle(attr.style);
-                    
-                    layer.fill = style.fill
-                    layer.opacity = style["fill-opacity"]||1;
-
-                    layer.stroke = style.stroke;
-                    layer.strokeWidth = style["stroke-width"];
-                    out.push(layer)
-                }
-                break;
-            case "path":
-                {
-                    let layer = {};
-                    layer.type = VISUALTYPE_POLY
-                    let attr = element.attributes;
-                    layer.poly = ParsePoly(attr.d)
-                    
-                    let style = ParseStyle(attr.style);
-                    
-                    layer.fill = style.fill
-                    layer.opacity = style["fill-opacity"]||1;
-                    layer.stroke = style.stroke;
-                    layer.strokeWidth = style["stroke-width"];
-                    out.push(layer)
-                }
-                break;
-            case "circle":
-                {
-                    let layer = {};
-                    layer.type = VISUALTYPE_CIRCLE
-                    let attr = element.attributes;
-                    layer.x = parseFloat(attr.cx)
-                    layer.y = parseFloat(attr.cy)
-                    layer.radius = parseFloat(attr.r);
-                    
-                    let style = ParseStyle(attr.style);
-                    
-                    layer.fill = style.fill
-                    layer.opacity = style["fill-opacity"];
-                    layer.stroke = style.stroke;
-                    layer.strokeWidth = style["stroke-width"];
-                    out.push(layer)
-                }
-                break;
-            }
-        }
-    })
-    return out;
-}
-
 RESOURCE_UNIQUE_ICONS=
 {
-    [RESOURCE_SILICON]:ParseSVG("RESOURCE_SILICON_SVG"),
+    [RESOURCE_SILICON]:"RESOURCE_SILICON_SVG",
 
-    [RESOURCE_METAL]:ParseSVG("RESOURCE_METAL_SVG"),
-
-    [RESOURCE_BIOMASS]:ParseSVG("RESOURCE_BIOMASS_SVG"),
-
-    [RESOURCE_MIST]:ParseSVG("RESOURCE_MIST_SVG"),
+    [RESOURCE_WIRE]:"RESOURCE_WIRE_SVG",
+    [RESOURCE_SWITCH]:"RESOURCE_SWITCH_SVG",
+    [RESOURCE_TRANSISTOR]:"RESOURCE_TRANSISTOR_SVG",
+    [RESOURCE_MICROCHIP]:"RESOURCE_MICROCHIP_SVG",
+    [RESOURCE_CIRCUIT]:"RESOURCE_CIRCUIT_SVG",
+    [RESOURCE_DEVICE]:"RESOURCE_DEVICE_SVG",
     
-    [RESOURCE_OPS]:ParseSVG("RESOURCE_OPS_SVG"),
-    [RESOURCE_BATTERY]:ParseSVG("RESOURCE_BATTERY_SVG"),
-    [RESOURCE_COMPOSITE]:ParseSVG("RESOURCE_COMPOSITE_SVG"),
-    [RESOURCE_CRYSTAL]:ParseSVG("RESOURCE_CRYSTAL_SVG"),
-    [RESOURCE_LIQUID]:ParseSVG("RESOURCE_LIQUID_SVG")
+    [RESOURCE_METAL]:"RESOURCE_METAL_SVG",
+
+    [RESOURCE_ALLOY]:"RESOURCE_ALLOY_SVG",
+    [RESOURCE_TUBE]:"RESOURCE_TUBE_SVG",
+    [RESOURCE_FIXTURES]:"RESOURCE_FIXTURES_SVG",
+    [RESOURCE_FRAME]:"RESOURCE_FRAME_SVG",
+    [RESOURCE_HYDRAULICS]:"RESOURCE_HYDRAULICS_SVG",
+    [RESOURCE_MACHINE]:"RESOURCE_MACHINE_SVG",
+
+    [RESOURCE_BIOMASS]:"RESOURCE_BIOMASS_SVG",
+
+    [RESOURCE_CELL]:"RESOURCE_CELL_SVG",
+    [RESOURCE_PHLEGM]:"RESOURCE_PHLEGM_SVG",
+    [RESOURCE_TISSUE]:"RESOURCE_TISSUE_SVG",
+    [RESOURCE_MUSCLE]:"RESOURCE_MUSCLE_SVG",
+    [RESOURCE_ORGANOID]:"RESOURCE_ORGANOID_SVG",
+    [RESOURCE_ORGANISM]:"RESOURCE_ORGANISM_SVG",
+    
+    [RESOURCE_MIST]:"RESOURCE_MIST_SVG",
+
+    [RESOURCE_CONDENSATE]:"RESOURCE_CONDENSATE_SVG",
+    [RESOURCE_CONCENTRATE]:"RESOURCE_CONCENTRATE_SVG",
+    [RESOURCE_EXTRACT]:"RESOURCE_EXTRACT_SVG",
+    [RESOURCE_SPIRIT]:"RESOURCE_SPIRIT_SVG",
+    [RESOURCE_EMANATION]:"RESOURCE_EMANATION_SVG",
+    [RESOURCE_ESSENCE]:"RESOURCE_ESSENCE_SVG",
+    
+    [RESOURCE_OPS]:"RESOURCE_OPS_SVG",
+    [RESOURCE_BATTERY]:"RESOURCE_BATTERY_SVG",
+    [RESOURCE_COMPOSITE]:"RESOURCE_COMPOSITE_SVG",
+    [RESOURCE_CRYSTAL]:"RESOURCE_CRYSTAL_SVG",
+    [RESOURCE_LIQUID]:"RESOURCE_LIQUID_SVG"
 }

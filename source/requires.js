@@ -4,6 +4,7 @@ require('traveler')
 
 require('prototypes')
 require('customprototypes')
+require('svgDrawer')
 
 require('functions')
 require('expansionplanner')
