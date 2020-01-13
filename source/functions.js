@@ -2151,6 +2151,7 @@ ExtractContentOfStore=function(store)
 
 ImportResources=function(terminal,items)
 {
+    return;
     if(terminal.cooldown > 0) { return; }
     if(!globalPrices) { return; }
     let prices = globalPrices.prices;
