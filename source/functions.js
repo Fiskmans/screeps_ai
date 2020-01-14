@@ -106,6 +106,7 @@ FlagSwitch=function(flagname)
 FindWorthWhileCommodities=function()
 {
     let worthy = {};
+    if(!globalPrices || !globalPrices.prices){console.log("No prices set"); return {}; }
     for(let result in COMMODITIES)
     {
         let gain = globalPrices.prices[ORDER_BUY][result];
@@ -152,6 +153,11 @@ RestartScouting=function()
     })
 }
 
+DeSerializeMemory=function()
+{
+    Memory;
+}
+
 Scouting=function()
 {
     if (!Memory.scouts) 
@@ -186,6 +192,7 @@ Scouting=function()
             let creep = Game.creeps[Memory.scouting[roomname]];
             if (creep) 
             {
+                creep.notifyWhenAttacked(false);
                 let room = Game.rooms[roomname];
                 if(GetMapData(creep.room.name,"lastseen") != 9)
                 {
@@ -196,6 +203,7 @@ Scouting=function()
                     let res = creep.signController(room.controller,QUIPS[Game.time%QUIPS.length]);
                     if (res == ERR_NOT_IN_RANGE) 
                     {
+                        creep.say('⛳')
                         creep.travelTo(room.controller,{offRoad:true,ignoreRoads:true})
                     }
                     else if(res == OK || res == ERR_INVALID_TARGET)
@@ -206,6 +214,7 @@ Scouting=function()
                 }
                 else
                 {
+                    creep.say('🗺️')
                     if(creep.travelTo(new RoomPosition(25,25,roomname),{offRoad:true,ignoreRoads:true,allowHostile:true}) == ERR_NO_PATH)
                     {
                         Memory.scouts.push(Memory.scouting[roomname]);
@@ -246,7 +255,6 @@ Scouting=function()
                     let creep = Game.creeps[name];
                     if (creep) 
                     {
-                        creep.notifyWhenAttacked(false);
                         Memory.scouting[roomname] = name;
                         break;
                     }
@@ -286,7 +294,7 @@ DecayMap=function()
     }
     decayedSegments.forEach((d)=>
     {
-        delete Memory.mapd[d].lastseen;
+        delete Memory.map[d].lastseen;
     })
 	for(let segment in Memory.map)
 	{
@@ -310,7 +318,6 @@ DecayMap=function()
 
 Scan=function(room)
 {
-	console.log("Scaned: " + room.name);
     SetMapData(room.name,"lastseen",'9');
     if (room.controller) 
     {
@@ -524,19 +531,19 @@ DefendColony=function(colony)
         {
             if((t instanceof Creep))
             {
-                //if (t.getActiveBodyparts(WORK) + t.getActiveBodyparts(ATTACK) + getActiveBodyparts(RANGED_ATTACK) > 0) 
-                //{
-                //    return true
-                //}
+                if (t.getActiveBodyparts(WORK) + t.getActiveBodyparts(ATTACK) + t.getActiveBodyparts(RANGED_ATTACK) > 0) 
+                {
+                    return true
+                }
             }
             else
             {
                 return true
             }
-            return true;
+            return false;
         })
         
-        let turrets = room.turrets();
+        let turrets = room.towers;
         
         if(targets.length > 0)
         {
@@ -545,9 +552,8 @@ DefendColony=function(colony)
             }
         }
     }
-    
-    
 }
+
 FireTurrets=function(targets,turrets)
 {
     turrets.forEach((t) => {t.attack(targets[0])});
@@ -907,7 +913,10 @@ digMine=function(colony,miningSpot)
                     }
                     if (miningSpot.link) 
                     {
-                        if (Game.time % MINE_LINK_TRANSFERRATE == 0) 
+                        if(!miningSpot.time) {miningSpot.time = Math.abs(miningSpot.link.hashCode())}
+                        if(miningSpot.time < 0 ) {miningSpot.time = 0}
+                        miningSpot.time = miningSpot.time + 1;
+                        if (miningSpot.time % MINE_LINK_TRANSFERRATE == 0) 
                         {
                             let link = Game.getObjectById(miningSpot.link)
                             if (link) 
@@ -921,7 +930,7 @@ digMine=function(colony,miningSpot)
                         }
                         if (colony.recievelink) 
                         {
-                            if (Game.time % MINE_LINK_TRANSFERRATE == 2) 
+                            if (miningSpot.time % MINE_LINK_TRANSFERRATE == 2) 
                             {
                                 let target =  Game.getObjectById(colony.recievelink)
                                 if (target) 
@@ -929,7 +938,8 @@ digMine=function(colony,miningSpot)
                                     let link = Game.getObjectById(miningSpot.link)
                                     if (link) 
                                     {
-                                        link.transferEnergy(target,Math.floor(link.store.getUsedCapacity(RESOURCE_ENERGY)/100)*100);
+                                        let max = Math.min(link.store.getUsedCapacity(RESOURCE_ENERGY),target.store.getFreeCapacity(RESOURCE_ENERGY))
+                                        link.transferEnergy(target,max);
                                     }
                                     else
                                     {
@@ -1419,7 +1429,7 @@ analyzeRegion=function(_x,_y,w,h)
     
 }
 
-logObject=function(obj,depth)
+PrettySerialize=function(obj,depth)
 {
     if(!depth){depth = 0}
     message = ""
@@ -1428,13 +1438,13 @@ logObject=function(obj,depth)
         if(obj[key] instanceof Array)
         {
             message += ("| ".repeat(depth) + key + ":[\n")
-            message += logObject(obj[key],depth+1)
+            message += PrettySerialize(obj[key],depth+1)
             message += ("| ".repeat(depth) + "]\n")
         }
         else if(obj[key] instanceof Object)
         {
             message += ("| ".repeat(depth) + key + ":{\n")
-            message += logObject(obj[key],depth+1)
+            message += PrettySerialize(obj[key],depth+1)
             message += ("| ".repeat(depth) + "}\n")
         }
         else
@@ -1442,14 +1452,12 @@ logObject=function(obj,depth)
             message += ("| ".repeat(depth) + key + ": " + obj[key] + "\n")
         }
     }
-    if(depth == 0)
-    {
-        console.log(message)
-    }
-    else
-    {
-        return message
-    }
+    return message
+}
+
+logObject=function(obj,depth)
+{
+    console.log(PrettySerialize(obj,0))
 }
 
 deleteDead=function(list)
@@ -1499,7 +1507,7 @@ spawnRoleIntoList=function(room,list,role,options={})
     }
     let code = ERR_BUSY;
     if (body) {
-        room.spawns().forEach((s) => {
+        room.spawns.forEach((s) => {
             if (!s.spawning) 
             {
                 if (code != ERR_BUSY) 
@@ -1963,7 +1971,7 @@ Scavange=function(colony)
         let storage = room.storage;
         
         if (storage && storage.store.getFreeCapacity() > 200) {
-            let things = room.find(FIND_TOMBSTONES).concat(room.find(FIND_RUINS)).concat(room.containers());
+            let things = room.find(FIND_TOMBSTONES).concat(room.find(FIND_RUINS)).concat(room.containers);
             
             colony.miningSpots.forEach((m) =>
             {
@@ -2162,7 +2170,7 @@ TrackDelta=function(colony)
         delta += room.find(FIND_SOURCES).length * 10;
     }
     
-    let roads = room.roads();
+    let roads = room.roads;
     for(let i in roads)
     {
         delta -= roads[i].hitsMax/ROAD_DECAY_TIME/50/10;
@@ -2181,6 +2189,71 @@ ExtractContentOfStore=function(store)
     return out;
 }
 
+ImportResources=function(terminal,items)
+{
+    return;
+    if(terminal.cooldown > 0) { return; }
+    if(!globalPrices) { return; }
+    let prices = globalPrices.prices;
+    if(!prices) { return; }
+    items.forEach((i) =>
+    {
+        if(terminal.store.getUsedCapacity(i) < MARKETING_IMPORT_LEVEL)
+        {
+            if(prices[ORDER_SELL][i])
+            {
+                let order = Game.market.getOrderById(prices[ORDER_SELL][i].id);
+                if(!order) { return; }
+                let amount = Math.min(order.amount,MARKETING_IMPORT_LEVEL-terminal.store.getUsedCapacity(i));
+                if(!amount) { return; }
+                if(i == RESOURCE_ENERGY) { amount = amount/2; }
+                amount = Math.floor(amount);
+                if(!amount) { return; }
+                let energyamount = Game.market.calcTransactionCost(amount,terminal.pos.roomName,order.roomName)
+                if(terminal.store.getUsedCapacity(RESOURCE_ENERGY) < energyamount) { return; }
+
+                let err = Game.market.deal(order.id,amount,terminal.pos.roomName);
+                if(err == OK)
+                {
+                    terminal.cooldown = 11;
+                    console.log("Imported " + amount + " " + i + " to " + terminal.pos.roomName + " for " + order.price + " credits/unit total <font color=\"red\">" + (amount * order.price) + "<font>");
+                    order.amount -= amount;
+                }
+                else
+                {
+                    console.log(amount)
+                    console.log("Tried to buy " + i + " in " + terminal.pos.roomName + " but got error: " + err);
+                }
+                return;
+            }
+        }
+    })
+}
 
 
+BezierInterpolate=function(points,part)
+{
+    while(points.length > 1)
+    {
+        for(let i = 0;i < points.length - 1;i++)
+        {
+            points[i][0] = points[i][0]*(1-part) + points[i+1][0] * part
+            points[i][1] = points[i][1]*(1-part) + points[i+1][1] * part
+        }
+        points.pop();
+    }
+    return points[0];
+}
 
+BezierFragment=function(numberOfFragments,points)
+{
+    let cloneSource = JSON.stringify(points);
+    let out = [];
+    
+    for(let i = 0;i< numberOfFragments;i++)
+    {
+        out.push(BezierInterpolate(JSON.parse(cloneSource),(i+0.5)/numberOfFragments));
+    }
+    //out.concat(JSON.parse(cloneSource));
+    return out;
+}

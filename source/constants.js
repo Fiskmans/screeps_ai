@@ -9,10 +9,16 @@ MAX_ACTIVE_SCOUTS = 2
 MINE_STATUS_REFRESHRATE = 11
 MINE_LINK_TRANSFERRATE = 20
 DATA_POINTS_PER_SEGMENT = 128
-COLONY_RETARGET_COLOY_SELLING_INTERVAL = 13
+COLONY_RETARGET_SELLING_INTERVAL = 13
+COLONY_RETARGET_FACTORY_INTERVAL = 17
 MARKETING_ENERGY_LOWER_LIMIT = 50000
 MARKETING_STOCK_ENERGY = 30000
 MARGETING_STOCK_OTHER = 10000
+MARKETING_IMPORT_LEVEL = 5000
+FACTORY_NUMBER_OF_CRAFTS_TO_STOCK = 6
+FACTORY_ENERGY_TO_LEAVE_IN_STORAGE = 60000
+SVG_DRAWER_CPU_LIMIT = Game.cpu.limit * 0.95;
+SVG_DRAWER_BUCKET_LIMIT = 3000
 
 ROLE_WORKER = 'worker'
 ROLE_HAULER = 'hauler'
@@ -28,13 +34,6 @@ ROLE_DISMANTLER = 'dismantler'
 ROLE_BANK_HEALER = 'bankhealer'
 ROLE_BANK_ATTACKER = 'bankattacker'
 
-OWNER_CORRIDOR = 'C'
-OWNER_ME = 'M'
-OWNER_UNOWNED = 'U'
-OWNER_ENEMY = 'E'
-OWNER_KEEPER = 'K'
-OWNER_UNKNOWN = ' '
-
 TARGET_WORKER_COUNT = [
     0,
     9, //1
@@ -46,6 +45,13 @@ TARGET_WORKER_COUNT = [
     1, //7
     1  //8
 ]
+
+OWNER_CORRIDOR = 'C'
+OWNER_ME = 'M'
+OWNER_UNOWNED = 'U'
+OWNER_ENEMY = 'E'
+OWNER_KEEPER = 'K'
+OWNER_UNKNOWN = ' '
 
 OWNER_COLOR = {
     [OWNER_CORRIDOR]:"#FFFFFF",
@@ -135,11 +141,23 @@ for(let left in REACTIONS)
     }
 }
 
+RESOURCES_BASIC=[
+    RESOURCE_ENERGY,
+    RESOURCE_POWER,
+    RESOURCE_HYDROGEN,
+    RESOURCE_OXYGEN,
+    RESOURCE_UTRIUM,
+    RESOURCE_LEMERGIUM,
+    RESOURCE_KEANIUM,
+    RESOURCE_ZYNTHIUM,
+    RESOURCE_CATALYST
+]
+
 ENEMIES = [
     "SteeleR",
-    "Jaemon",
-    "Viperl",
-    "CrossXBones"
+    "Jaemon", // self dying, sweet revenge >:)
+    "Viperl", // white peace? he didn't notice my attack and id dont what to fight
+    "CrossXBones" // nuke as soon as in range
     ]
 FRENEMIES = []
 
@@ -150,8 +168,9 @@ QUIPS = [
     "Clams are people",
     "Even a broken clock is right two times a day",
     "Apple pie recipie: 1.Lots of Hydrogen 2.Lots of Time",
-    "A million apes on a million typewriters will eventially write code that runs",
-    "Lurendrejs are not do goods for yous"
+    "A million apes on a million typewriters will eventually write code that runs",
+    "Lurendrejs are not do goods for yous",
+    "https://youtu.be/dQw4w9WgXcQ"
     ]
 
 ALWAYSPROFITABLE = 200
@@ -166,5 +185,150 @@ MinimumSellingPrice =
     [RESOURCE_KEANIUM]:0.038,
     [RESOURCE_CATALYST]:0.090,
     [RESOURCE_GHODIUM_OXIDE]:0.023,
-    [RESOURCE_POWER]:0.57
+    [RESOURCE_POWER]:0.57,
+    [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE]:0.46,
+
+    [RESOURCE_OXIDANT]:         0.22,
+    [RESOURCE_REDUCTANT]:       0.25,
+    [RESOURCE_ZYNTHIUM_BAR]:    0.26,
+    [RESOURCE_LEMERGIUM_BAR]:   0.500,
+    [RESOURCE_UTRIUM_BAR]:      0.200,
+    [RESOURCE_KEANIUM_BAR]:     0.200,
+    [RESOURCE_PURIFIER]:        0.87,
+    [RESOURCE_GHODIUM_MELT]:    2.0,
+
+    [RESOURCE_BATTERY]:         0.150
+}
+
+colors = 
+{
+    gray: '#555555',
+    light: '#AAAAAA',
+    road: '#666', // >:D
+    energy: '#FFE87B',
+    power: '#F53547',
+    dark: '#181818',
+    outline: '#8FBB93',
+    speechText: '#000000',
+    speechBackground: '#2ccf3b'
+}
+
+ColorSets = 
+{
+    white:  ["#ffffff", "#4c4c4c"],
+    grey:   ["#b4b4b4", "#4c4c4c"],
+    red:    ["#ff7b7b", "#592121"],
+    yellow: ["#fdd388", "#5d4c2e"],
+    green:  ["#00f4a2", "#236144"],
+    blue:   ["#50d7f9", "#006181"],
+    purple: ["#a071ff", "#371383"],
+};
+ResourceColors = 
+{
+    [RESOURCE_ENERGY]:    ColorSets.yellow,
+    [RESOURCE_POWER]:     ColorSets.red,
+    
+    [RESOURCE_HYDROGEN]:  ColorSets.grey,
+    [RESOURCE_OXYGEN]:    ColorSets.grey,
+    [RESOURCE_UTRIUM]:    ColorSets.blue,
+    [RESOURCE_LEMERGIUM]: ColorSets.green,
+    [RESOURCE_KEANIUM]:   ColorSets.purple,
+    [RESOURCE_ZYNTHIUM]:  ColorSets.yellow,
+    [RESOURCE_CATALYST]:  ColorSets.red,
+    [RESOURCE_GHODIUM]:   ColorSets.white,
+  
+    [RESOURCE_HYDROXIDE]:         ColorSets.grey,
+    [RESOURCE_ZYNTHIUM_KEANITE]:  ColorSets.grey,
+    [RESOURCE_UTRIUM_LEMERGITE]:  ColorSets.grey,
+  
+    [RESOURCE_UTRIUM_HYDRIDE]:    ColorSets.blue,
+    [RESOURCE_UTRIUM_OXIDE]:      ColorSets.blue,
+    [RESOURCE_KEANIUM_HYDRIDE]:   ColorSets.purple,
+    [RESOURCE_KEANIUM_OXIDE]:     ColorSets.purple,
+    [RESOURCE_LEMERGIUM_HYDRIDE]: ColorSets.green,
+    [RESOURCE_LEMERGIUM_OXIDE]:   ColorSets.green,
+    [RESOURCE_ZYNTHIUM_HYDRIDE]:  ColorSets.yellow,
+    [RESOURCE_ZYNTHIUM_OXIDE]:    ColorSets.yellow,
+    [RESOURCE_GHODIUM_HYDRIDE]:   ColorSets.white,
+    [RESOURCE_GHODIUM_OXIDE]:     ColorSets.white,
+  
+    [RESOURCE_UTRIUM_ACID]:       ColorSets.blue,
+    [RESOURCE_UTRIUM_ALKALIDE]:   ColorSets.blue,
+    [RESOURCE_KEANIUM_ACID]:      ColorSets.purple,
+    [RESOURCE_KEANIUM_ALKALIDE]:  ColorSets.purple,
+    [RESOURCE_LEMERGIUM_ACID]:    ColorSets.green,
+    [RESOURCE_LEMERGIUM_ALKALIDE]:ColorSets.green,
+    [RESOURCE_ZYNTHIUM_ACID]:     ColorSets.yellow,
+    [RESOURCE_ZYNTHIUM_ALKALIDE]: ColorSets.yellow,
+    [RESOURCE_GHODIUM_ACID]:      ColorSets.white,
+    [RESOURCE_GHODIUM_ALKALIDE]:  ColorSets.white,
+  
+    [RESOURCE_CATALYZED_UTRIUM_ACID]:         ColorSets.blue,
+    [RESOURCE_CATALYZED_UTRIUM_ALKALIDE]:     ColorSets.blue,
+    [RESOURCE_CATALYZED_KEANIUM_ACID]:        ColorSets.purple,
+    [RESOURCE_CATALYZED_KEANIUM_ALKALIDE]:    ColorSets.purple,
+    [RESOURCE_CATALYZED_LEMERGIUM_ACID]:      ColorSets.green,
+    [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE]:  ColorSets.green,
+    [RESOURCE_CATALYZED_ZYNTHIUM_ACID]:       ColorSets.yellow,
+    [RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE]:   ColorSets.yellow,
+    [RESOURCE_CATALYZED_GHODIUM_ACID]:        ColorSets.white,
+    [RESOURCE_CATALYZED_GHODIUM_ALKALIDE]:    ColorSets.white,
+
+    [RESOURCE_OXIDANT]:         ColorSets.grey,
+    [RESOURCE_REDUCTANT]:       ColorSets.grey,
+    [RESOURCE_ZYNTHIUM_BAR]:    ColorSets.yellow,
+    [RESOURCE_LEMERGIUM_BAR]:   ColorSets.green,
+    [RESOURCE_UTRIUM_BAR]:      ColorSets.blue,
+    [RESOURCE_KEANIUM_BAR]:     ColorSets.purple,
+    [RESOURCE_PURIFIER]:        ColorSets.red,
+    [RESOURCE_GHODIUM_MELT]:    ColorSets.white,
+};
+
+VISUALTYPE_POLY = 1
+VISUALTYPE_RECT = 2
+VISUALTYPE_CIRCLE = 3
+
+RESOURCE_UNIQUE_ICONS=
+{
+    [RESOURCE_SILICON]:"RESOURCE_SILICON_SVG",
+
+    [RESOURCE_WIRE]:"RESOURCE_WIRE_SVG",
+    [RESOURCE_SWITCH]:"RESOURCE_SWITCH_SVG",
+    [RESOURCE_TRANSISTOR]:"RESOURCE_TRANSISTOR_SVG",
+    [RESOURCE_MICROCHIP]:"RESOURCE_MICROCHIP_SVG",
+    [RESOURCE_CIRCUIT]:"RESOURCE_CIRCUIT_SVG",
+    [RESOURCE_DEVICE]:"RESOURCE_DEVICE_SVG",
+    
+    [RESOURCE_METAL]:"RESOURCE_METAL_SVG",
+
+    [RESOURCE_ALLOY]:"RESOURCE_ALLOY_SVG",
+    [RESOURCE_TUBE]:"RESOURCE_TUBE_SVG",
+    [RESOURCE_FIXTURES]:"RESOURCE_FIXTURES_SVG",
+    [RESOURCE_FRAME]:"RESOURCE_FRAME_SVG",
+    [RESOURCE_HYDRAULICS]:"RESOURCE_HYDRAULICS_SVG",
+    [RESOURCE_MACHINE]:"RESOURCE_MACHINE_SVG",
+
+    [RESOURCE_BIOMASS]:"RESOURCE_BIOMASS_SVG",
+
+    [RESOURCE_CELL]:"RESOURCE_CELL_SVG",
+    [RESOURCE_PHLEGM]:"RESOURCE_PHLEGM_SVG",
+    [RESOURCE_TISSUE]:"RESOURCE_TISSUE_SVG",
+    [RESOURCE_MUSCLE]:"RESOURCE_MUSCLE_SVG",
+    [RESOURCE_ORGANOID]:"RESOURCE_ORGANOID_SVG",
+    [RESOURCE_ORGANISM]:"RESOURCE_ORGANISM_SVG",
+    
+    [RESOURCE_MIST]:"RESOURCE_MIST_SVG",
+
+    [RESOURCE_CONDENSATE]:"RESOURCE_CONDENSATE_SVG",
+    [RESOURCE_CONCENTRATE]:"RESOURCE_CONCENTRATE_SVG",
+    [RESOURCE_EXTRACT]:"RESOURCE_EXTRACT_SVG",
+    [RESOURCE_SPIRIT]:"RESOURCE_SPIRIT_SVG",
+    [RESOURCE_EMANATION]:"RESOURCE_EMANATION_SVG",
+    [RESOURCE_ESSENCE]:"RESOURCE_ESSENCE_SVG",
+    
+    [RESOURCE_OPS]:"RESOURCE_OPS_SVG",
+    [RESOURCE_BATTERY]:"RESOURCE_BATTERY_SVG",
+    [RESOURCE_COMPOSITE]:"RESOURCE_COMPOSITE_SVG",
+    [RESOURCE_CRYSTAL]:"RESOURCE_CRYSTAL_SVG",
+    [RESOURCE_LIQUID]:"RESOURCE_LIQUID_SVG"
 }

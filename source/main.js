@@ -13,6 +13,7 @@ maintainColony = profiler.registerFN(maintainColony);
 colonyHighways = profiler.registerFN(colonyHighways);
 colonyMiningSpots = profiler.registerFN(colonyMiningSpots);
 drawColony = profiler.registerFN(drawColony);
+DeSerializeMemory = profiler.registerFN(DeSerializeMemory);
 
 profiler.enable();
 module.exports.loop = function()
@@ -20,6 +21,8 @@ module.exports.loop = function()
 //test 5
   profiler.wrap(function() {
 
+
+    DeSerializeMemory();
     defaultMemory()
     applyFlags()
     

@@ -6,11 +6,7 @@ worldVisuals=function()
         //vis.blocked(getBlocked(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,Game.flags["Colony"].pos.roomName,layout.structures[7]),{fill:"#FF0000"})
         var missing = findMissing(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,Game.flags["Colony"].pos.roomName, layout.structures[8])
         if (missing) {
-            vis.plan(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,missing)
-            var prio = Priorotized(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,Game.flags["Colony"].pos.roomName,missing)
-            if (prio && prio.pos) {
-                vis.circle(prio.pos.x,prio.pos.y,{fill:"#00FF00",opacity:0.2,radius:0.8})
-            }
+            vis.plan(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,missing,{alpha:1,scale:0.5 + Game.time%100/200})
         }
         vis.connectRoads()
     }
@@ -155,8 +151,8 @@ worldVisuals=function()
                         {strokeWidth:0.05,opacity:1,cliptops:false,
                             top:{width:0.05,opacity:1,lineStyle:"dotted"},
                             bottom:{width:0.05,opacity:1},
-                            left:{width:0.05,opacity:1},
-                            right:{width:0.05,opacity:1}
+                            left:{width:0.05,opacity:1,type:"edge"},
+                            right:{width:0.05,opacity:1,type:"edge"}
                         }
                     );
                 let at = 10-10*(Memory.performance[i].at / DATA_POINTS_PER_SEGMENT);
@@ -183,6 +179,46 @@ worldVisuals=function()
         vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+maxUsage,barpos.y+3,{color:"#FFFFFF",opacity:1,width:0.05})
         } 
     }
+
+    if(Game.flags["Recipe"] && Game.flags["Recipe"].color != COLOR_RED)
+    {
+        let pos = {x:Game.flags["Recipe"].pos.x,y:Game.flags["Recipe"].pos.y-4};
+        let vis = Game.flags["Recipe"].room && Game.flags["Recipe"].room.visual ? Game.flags["Recipe"].room.visual : new RoomVisual(Game.flags["Recipe"].room.name);
+        if(Game.flags["Recipe"].memory)
+        {
+            vis.recipe(pos.x,pos.y,Game.flags["Recipe"].memory[Game.time%Game.flags["Recipe"].memory.length],{radius:1.6})
+        }
+    }
+
+    if(Game.flags["ResourceDemo"] && Game.flags["ResourceDemo"].color != COLOR_RED)
+    {
+        let pos = {x:Game.flags["ResourceDemo"].pos.x+1,y:Game.flags["ResourceDemo"].pos.y+1};
+        let vis = Game.flags["ResourceDemo"].room && Game.flags["ResourceDemo"].room.visual ? Game.flags["ResourceDemo"].room.visual : new RoomVisual(Game.flags["ResourceDemo"].pos.roomName);
+        
+        RESOURCES_ALL.forEach((r) =>
+        {
+            vis.symbol(pos.x,pos.y,r,{scale:1.2});
+            pos.x += 2;
+            if(pos.x > 48)
+            {
+                pos.x = Game.flags["ResourceDemo"].pos.x+1;
+                pos.y += 2;
+            }
+        })
+    }
+    if(Game.flags["point1"] && Game.flags["point2"] && Game.flags["point3"] && Game.flags["point1"])
+    {
+        let vis = Game.flags["point1"].room && Game.flags["point1"].room.visual ? Game.flags["point1"].room.visual : new RoomVisual(Game.flags["point1"].pos.roomNname);
+        let points = [
+            [Game.flags["point1"].pos.x,Game.flags["point1"].pos.y],
+            [Game.flags["point2"].pos.x,Game.flags["point2"].pos.y],
+            [Game.flags["point3"].pos.x,Game.flags["point3"].pos.y],
+            [Game.flags["point4"].pos.x,Game.flags["point4"].pos.y]
+        ]
+        vis.poly(points)
+        vis.poly(BezierFragment(16,points))
+    }
+    
     
     DrawWars();
 }

@@ -17,7 +17,7 @@ module.exports = function(grunt) {
                     {
                         expand: true,
                         cwd: 'source/',
-                        src: ['**/*.{js,wasm}'],
+                        src: ['**/*.{js,wasm,svg}'],
                         flatten: true
                     }
                 ]
