@@ -1049,6 +1049,46 @@ applyFlags=function()
         addColony(startcolony.pos)
         startcolony.remove();
     }
+
+    if(flags["AbandonRoad"])
+    {
+        let pos = flags["AbandonRoad"].pos;
+        Memory.colonies.forEach(colony => 
+            {
+                for(let wayIndex in colony.highways)
+                {
+                    for(let pathIndex in colony.highways[wayIndex].path)
+                    {
+                        let pos2 = new RoomPosition(colony.highways[wayIndex].path[pathIndex].x,colony.highways[wayIndex].path[pathIndex].y,colony.highways[wayIndex].path[pathIndex].roomName);
+                        if (pos.x == pos2.x && pos.y == pos2.y && pos.roomName == pos2.roomName) 
+                        {
+                            console.log("removing road number " + wayIndex + " from " + colony.pos.roomName);
+                            colony.miningSpots.splice(wayIndex,1);
+                            break;
+                        }
+                    }
+                }
+            })
+        flags["AbandonRoad"].remove()
+    }
+    if(flags["RemoveMine"])
+    {
+        let pos = flags["RemoveMine"].pos;
+        Memory.colonies.forEach(colony => 
+            {
+                for(let index in colony.miningSpots)
+                {
+                    let pos2 = new RoomPosition(colony.miningSpots[index].myPosition.x,colony.miningSpots[index].myPosition.y,colony.miningSpots[index].myPosition.roomName);
+                    if (pos.x == pos2.x && pos.y == pos2.y && pos.roomName == pos2.roomName) 
+                    {
+                        console.log("removing mine number " + index + " from " + colony.pos.roomName);
+                        colony.miningSpots.splice(index,1);
+                        break;
+                    }
+                }
+            })
+        flags["RemoveMine"].remove()
+    }
     if (flags["Mine"]) 
     {
         let colony = FindClosestColony(flags["Mine"].pos.roomName,true)

@@ -1,8 +1,6 @@
-grafanaGlobals = {}
-
 UpdateGrafanaStats=function()
 {
-    if(Memory.stats.tick+1 != Game.time)
+    if(Memory.stats["game.time"]+1 != Game.time)
     {
         console.log("skipped tick")
     }

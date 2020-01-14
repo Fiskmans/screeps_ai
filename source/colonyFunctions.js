@@ -39,8 +39,12 @@ ColonyRespawnWorkers=function(colony)
 {
     
     let target = TARGET_WORKER_COUNT[colony.level]
-    
-    if (colony.workerpool.length < target)
+    let count = colony.workerpool.length;
+    colony.miningSpots.forEach((m) => {if(m.worker) {count++ }})
+    colony.highways.forEach((m) => {if(m.worker) {count++ }})
+
+
+    if (count < target)
     {
         spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER)
         if (Game.rooms[colony.pos.roomName].spawns().length == 0) 
