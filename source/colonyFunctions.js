@@ -236,7 +236,7 @@ ColonyRetargetFactory=function(colony)
     let best = false;
     for(let r in possabilities)
     {
-        if(!possabilities[r].level || 0 <= level)
+        if((!possabilities[r].level || 0 <= level) && r != RESOURCE_ENERGY)
         {
             if(!best || possabilities[r].gain > possabilities[best].gain)
             {

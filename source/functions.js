@@ -2191,7 +2191,8 @@ ExtractContentOfStore=function(store)
 
 ImportResources=function(terminal,items)
 {
-    return;
+    if(!terminal.room.storage) { return; }
+    if(terminal.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < 500000) { return; }
     if(terminal.cooldown > 0) { return; }
     if(!globalPrices) { return; }
     let prices = globalPrices.prices;
