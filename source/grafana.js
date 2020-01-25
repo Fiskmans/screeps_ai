@@ -13,6 +13,7 @@ UpdateGrafanaStats=function()
     Memory.stats['gcl.level'] = Game.gcl.level;
     
     Memory.stats['colonies.count'] = Memory.colonies.length;
+    Memory.stats['scouting.targets'] = Object.keys(Memory.scouting).length;
     
     Memory.stats['store'] = {};
     _.forEach(Object.keys(Game.rooms), function(roomName){
@@ -26,6 +27,11 @@ UpdateGrafanaStats=function()
         
         Memory.stats['rooms.' + roomName + '.spawn.energy'] = room.energyAvailable
         Memory.stats['rooms.' + roomName + '.spawn.energyTotal'] = room.energyCapacityAvailable
+
+        let mineral = room.find(FIND_MINERALS)[0];
+        if (mineral) {
+          Memory.stats['rooms.' + roomName + '.mineral.type.' + mineral.mineralType] = 1;
+        }
         
         if(room.storage){
           let store = room.storage.store;
