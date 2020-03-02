@@ -4,7 +4,12 @@ Creep.prototype.do=function(action,target)
     {
         target = Game.getObjectById(target);
     }
-    return this[action](target);
+    let err = this[action](target);
+    if(err == ERR_NOT_IN_RANGE)
+    {
+        this.travelTo(target)
+    }
+    return err;
 }
 Creep.prototype.LeaveEdge=function()
 {
@@ -18,7 +23,7 @@ Creep.prototype.dumbHarvest=function()
 {
     if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > this.store.getCapacity(RESOURCE_ENERGY))
     {
-        this.say("smarter H")
+        this.say("🧱")
         let err = this.withdraw(this.room.storage,RESOURCE_ENERGY);
         if (err == ERR_NOT_IN_RANGE) {
             this.travelTo(this.room.storage);
@@ -41,7 +46,7 @@ Creep.prototype.dumbHarvest=function()
         return;
     }
     
-    this.say("dumb H")
+    this.say("🧱")
     var source = this.pos.findClosestByPath(FIND_SOURCES_ACTIVE)
     if(this.harvest(source) == ERR_NOT_IN_RANGE)
     {
@@ -50,7 +55,7 @@ Creep.prototype.dumbHarvest=function()
 }
 Creep.prototype.dumbUpgrade=function()
 {
-    this.say("dumb U")
+    this.say("🔧")
     if(this.upgradeController(this.room.controller) == ERR_NOT_IN_RANGE)
     {
         this.travelTo(this.room.controller)
@@ -63,7 +68,7 @@ Creep.prototype.scavenge = function()
 
 Creep.prototype.dumbBuild=function()
 {
-    this.say("dumb B")
+    this.say("🏗️")
     if(this.build(this.room.find(FIND_MY_CONSTRUCTION_SITES)[0]) == ERR_NOT_IN_RANGE)
     {
         this.travelTo(this.room.find(FIND_MY_CONSTRUCTION_SITES)[0])
@@ -89,10 +94,15 @@ Creep.prototype.dumbRefill=function()
 {
     let target = false
     targets = _.sortBy( this.room.refillable(),(s) => { return this.pos.getRangeTo(s) + REFILLPRIORITY[s.structureType];});
-    this.say(targets.length)
+    
     if (targets.length > 0) 
     {
+        this.say(targets.length)
         target = targets[0];
+    }
+    else
+    {
+        this.say("No target")
     }
     if(target && (this.transfer(target,RESOURCE_ENERGY) == ERR_NOT_IN_RANGE))
     {
@@ -132,7 +142,32 @@ Creep.prototype.dismantleLoop=function(target)
     }
     else
     {
-        this.dumbRefill()
+        if(this.room.refillable.length == 0)
+        {
+            if(this.room.storage)
+            {
+                if(this.room.storage.store.getFreeCapacity() > 0)
+                {
+                    let err = this.transfer(this.room.storage,ExtractContentOfStore(this.store)[0]);
+                    if(err == ERR_NOT_IN_RANGE)
+                    {
+                        this.travelTo(this.room.storage);
+                    }
+                }
+                else
+                {
+                    this.drop(ExtractContentOfStore(this.store)[0]);
+                }
+            }
+            else
+            {
+                this.drop(ExtractContentOfStore(this.store)[0]);
+            }
+        }
+        else
+        {
+            this.dumbRefill();
+        }
     }
 }
 

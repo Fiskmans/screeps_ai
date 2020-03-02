@@ -170,13 +170,14 @@ worldVisuals=function()
         
         if(!Memory.onPhone)
         {
-        //Borders
-        vis.rect(barpos.x,barpos.y+2,10,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
-        vis.rect(barpos.x,barpos.y,10,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
-        vis.line(barpos.x+limit,barpos.y,barpos.x+limit,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
-        vis.line(barpos.x,barpos.y+2,barpos.x+limit,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
-        vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+10,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
-        vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+maxUsage,barpos.y+3,{color:"#FFFFFF",opacity:1,width:0.05})
+            //Borders
+            vis.rect(barpos.x,barpos.y+2,10,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
+            vis.rect(barpos.x,barpos.y,10,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
+            vis.line(barpos.x+limit,barpos.y,barpos.x+limit,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
+            vis.line(barpos.x,barpos.y+2,barpos.x+limit,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
+            vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+10,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
+            vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+maxUsage,barpos.y+3,{color:"#FFFFFF",opacity:1,width:0.05})
+            vis.text((bucket).toFixed(2) + "k/10k",barpos.x+9.85,barpos.y+2.85,{align:"right"})
         } 
     }
 

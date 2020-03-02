@@ -39,10 +39,12 @@ ColonyRespawnWorkers=function(colony)
 {
     
     let target = TARGET_WORKER_COUNT[colony.level]
-    let count = colony.workerpool.length;
+    let count = colony.workerpool.length + colony.refillers.length;
     colony.miningSpots.forEach((m) => {if(m.worker) {count++ }})
     colony.highways.forEach((m) => {if(m.worker) {count++ }})
 
+    let vis = new RoomVisual(colony.pos.roomName);
+    vis.text(count + " / " + target,25,3);
 
     if (count < target)
     {

@@ -63,6 +63,23 @@ colonyLogic=
     //level 8
     8:function(colony)
     {
-        this[7](colony)
+        DefendColony(colony);
+        GuardSpawningColony(colony)
+        ColonyRespawnWorkers(colony);
+        colonyDumbRefill(colony);
+        ColonyWorkerBehaviour(colony);
+        PerformAttacks(colony);
+        StartMining(colony)
+        BasicHaulersAndMiners(colony)
+        digAllMines(colony);
+        colonyDismantle(colony)
+        FindRecLink(colony)
+        FindRecLink(colony)
+        ColonyRetargetSelling(colony);
+        ColonyMerchant(colony);
+        ColonyRetargetFactory(colony);
+        ColonyCrafting(colony);
+        maintainall(colony)
+        ColonyDismantleAll(colony);
     }
 }

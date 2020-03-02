@@ -170,7 +170,8 @@ QUIPS = [
     "Apple pie recipie: 1.Lots of Hydrogen 2.Lots of Time",
     "A million apes on a million typewriters will eventually write code that runs",
     "Lurendrejs are not do goods for yous",
-    "https://youtu.be/dQw4w9WgXcQ"
+    "https://youtu.be/dQw4w9WgXcQ",
+    "An arrow in your knee is better than an arrow in your tea"
     ]
 
 ALWAYSPROFITABLE = 200
@@ -191,7 +192,7 @@ MinimumSellingPrice =
     [RESOURCE_OXIDANT]:         0.22,
     [RESOURCE_REDUCTANT]:       0.25,
     [RESOURCE_ZYNTHIUM_BAR]:    0.26,
-    [RESOURCE_LEMERGIUM_BAR]:   0.500,
+    [RESOURCE_LEMERGIUM_BAR]:   0.400,
     [RESOURCE_UTRIUM_BAR]:      0.200,
     [RESOURCE_KEANIUM_BAR]:     0.200,
     [RESOURCE_PURIFIER]:        0.87,

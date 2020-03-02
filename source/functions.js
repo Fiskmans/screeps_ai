@@ -894,66 +894,63 @@ digMine=function(colony,miningSpot)
                     creep.do('travelTo',new RoomPosition(25,25,miningSpot.myPosition.roomName))
                 }
                 
-                if (colony.pos.roomName == miningSpot.myPosition.roomName || Game.time % 2 == 0) 
+                creep.say("⛏️");
+                let result = creep.do('harvest',miningSpot.target);
+                switch(result)
                 {
-                    let result = creep.do('harvest',miningSpot.target);
-                    switch(result)
-                    {
-                        case ERR_NOT_IN_RANGE:
+                    case ERR_NOT_IN_RANGE:
+                        delete miningSpot.target;
+                        break;
+                    case ERR_INVALID_TARGET:
+                        let room = Game.rooms[miningSpot.myPosition.roomName];
+                        if (room || miningSpot.target == 'invalid') 
+                        {
+                            creep.say("forgot");
                             delete miningSpot.target;
-                            break;
-                        case ERR_INVALID_TARGET:
-                            let room = Game.rooms[miningSpot.myPosition.roomName];
-                            if (room || miningSpot.target == 'invalid') 
-                            {
-                                creep.say("forgot");
-                                delete miningSpot.target;
-                            }
-                            break;
-                    }
-                    if (miningSpot.link) 
-                    {
-                        if(!miningSpot.time) {miningSpot.time = Math.abs(miningSpot.link.hashCode())}
-                        if(miningSpot.time < 0 ) {miningSpot.time = 0}
-                        miningSpot.time = miningSpot.time + 1;
-                        if (miningSpot.time % MINE_LINK_TRANSFERRATE == 0) 
-                        {
-                            let link = Game.getObjectById(miningSpot.link)
-                            if (link) 
-                            {
-                                creep.transfer(link,RESOURCE_ENERGY);
-                            }
-                            else
-                            {
-                                delete miningSpot.link
-                            }
                         }
-                        if (colony.recievelink) 
+                        break;
+                }
+                if (miningSpot.link) 
+                {
+                    if(!miningSpot.time) {miningSpot.time = Math.abs(miningSpot.link.hashCode())}
+                    if(miningSpot.time < 0 ) {miningSpot.time = 0}
+                    miningSpot.time = miningSpot.time + 1;
+                    if (miningSpot.time % MINE_LINK_TRANSFERRATE == 0) 
+                    {
+                        let link = Game.getObjectById(miningSpot.link)
+                        if (link) 
                         {
-                            if (miningSpot.time % MINE_LINK_TRANSFERRATE == 2) 
+                            creep.transfer(link,RESOURCE_ENERGY);
+                        }
+                        else
+                        {
+                            delete miningSpot.link
+                        }
+                    }
+                    if (colony.recievelink) 
+                    {
+                        if (miningSpot.time % MINE_LINK_TRANSFERRATE == 2) 
+                        {
+                            let target =  Game.getObjectById(colony.recievelink)
+                            if (target) 
                             {
-                                let target =  Game.getObjectById(colony.recievelink)
-                                if (target) 
+                                let link = Game.getObjectById(miningSpot.link)
+                                if (link) 
                                 {
-                                    let link = Game.getObjectById(miningSpot.link)
-                                    if (link) 
-                                    {
-                                        let max = Math.min(link.store.getUsedCapacity(RESOURCE_ENERGY),target.store.getFreeCapacity(RESOURCE_ENERGY))
-                                        link.transferEnergy(target,max);
-                                    }
-                                    else
-                                    {
-                                        delete miningSpot.link
-                                    }
+                                    let max = Math.min(link.store.getUsedCapacity(RESOURCE_ENERGY),target.store.getFreeCapacity(RESOURCE_ENERGY))
+                                    link.transferEnergy(target,max);
                                 }
                                 else
                                 {
-                                    delete colony.recievelink
+                                    delete miningSpot.link
                                 }
+                            }
+                            else
+                            {
+                                delete colony.recievelink
                             }
                         }
                     }
-                    
                 }
                 if(Game.time % MINE_STATUS_REFRESHRATE == 0)
                 {
@@ -1998,6 +1995,8 @@ Scavange=function(colony)
                 return (((s instanceof Ruin) || (s instanceof Tombstone)) && s.store.getUsedCapacity() > 0) || s.store.getUsedCapacity() > 500;
             })
             
+            
+            things = things.concat(room.find(FIND_DROPPED_RESOURCES))
             if (colony.recievelink) 
             {
                 let link = Game.getObjectById(colony.recievelink);
@@ -2005,7 +2004,7 @@ Scavange=function(colony)
                 {
                     if (link.store.getUsedCapacity(RESOURCE_ENERGY) > 100) 
                     {
-                        things.push(link);
+                        things.unshift(link);
                     }
                 }
                 else
@@ -2013,8 +2012,6 @@ Scavange=function(colony)
                     delete colony.recievelink;
                 }
             }
-            
-            things = things.concat(room.find(FIND_DROPPED_RESOURCES))
             
             if (things.length > 0) 
             {
@@ -2036,7 +2033,7 @@ Scavange=function(colony)
                         if (err == ERR_NOT_IN_RANGE) {
                             creep.travelTo(storage);
                         }
-                        creep.say("dumping")
+                        creep.say("🚮")
                     }
                     else
                     {
@@ -2077,7 +2074,7 @@ Scavange=function(colony)
                                 creep.travelTo(target);
                             }
                         }
-                        creep.say("hunting")
+                        creep.say("🏹")
                     }
                 }
             }
@@ -2102,11 +2099,11 @@ Scavange=function(colony)
                             if (err == ERR_NOT_IN_RANGE) {
                                 creep.travelTo(storage);
                             }
-                            creep.say("dumping")
+                            creep.say("🚮")
                         }
                         else
                         {
-                            creep.say("Moving out of the way")
+                            creep.say("🚶‍♂️")
                             creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
                         }
                     }

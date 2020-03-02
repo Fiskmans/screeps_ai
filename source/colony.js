@@ -93,7 +93,6 @@ colonyDumbRefill=function(colony)
             }
         }
     }
-    
     if (limit > 0) 
     {
         if (colony.refillers.length + colony.crefillers.length < limit) 
