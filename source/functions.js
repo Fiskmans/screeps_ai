@@ -1516,9 +1516,9 @@ spawnRoleIntoList=function(room,list,role,options={})
                     options.memory = {};   
                 }
                 options.memory.home = room.name;
-                code = s.spawnCreep(body,Memory.creepid,options);
+                code = s.spawnCreep(body,ROLE_PREFIXES[role] + Memory.creepid,options);
                 if (code == OK) {
-                    list.push(Memory.creepid);
+                    list.push(ROLE_PREFIXES[role] + Memory.creepid);
                     s.spawning = true;
                     Memory.creepid += 1;
                 }
@@ -1603,6 +1603,37 @@ maintainall=function(colony)
         maintain(highway,colony)
     }
 }
+
+AllCorridorsWithinRange = function(roomName,range) 
+{
+    let out = []; 
+    for(let x = 0; x < Game.map.getWorldSize()/2;x++) 
+    { 
+        for(let y = 0; y < Game.map.getWorldSize()/2;y++) 
+        {
+            if(x % 10 == 0 || y % 10 == 0) 
+            {
+                if(Game.map.getRoomLinearDistance("E"+x+"N"+y,roomName) < range) 
+                {
+                    out.push("E"+x+"N"+y);
+                };
+                if(Game.map.getRoomLinearDistance("E"+x+"S"+y,roomName) < range)
+                {
+                    out.push("E"+x+"S"+y);
+                };
+                if(Game.map.getRoomLinearDistance("W"+x+"N"+y,roomName) < range)
+                {
+                    out.push("W"+x+"N"+y);
+                };
+                if(Game.map.getRoomLinearDistance("W"+x+"S"+y,roomName) < range)
+                {
+                    out.push("W"+x+"S"+y);
+                }; 
+            }
+        }
+    }; 
+    return out; 
+};
 
 maintainColony=function(colony)
 {
@@ -2015,21 +2046,26 @@ Scavange=function(colony)
             
             if (things.length > 0) 
             {
+                let thingLookup = {};
+                things.forEach((t) => {thingLookup[t.id] = t})
+                let thingIds = Object.keys(thingLookup);
+
                 for(let index in colony.haulerpool)
                 {
                     creep = Game.creeps[colony.haulerpool[index]];
                     if (creep.store.getUsedCapacity() > 0) 
                     {
-                        let res = false;
-                        for(let i in RESOURCES_ALL)
+                        if(creep.store.getFreeCapacity() > 0)
                         {
-                            if (creep.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) 
-                            {
-                                res = RESOURCES_ALL[i];
-                                break;
-                            }
+                            let objects = creep.room.lookAtArea(creep.pos.y - 1,creep.pos.x - 1,creep.pos.y + 1,creep.pos.x + 1,true);
+                            objects.forEach((o) => {
+                                if(thingIds.includes(o.id))
+                                {
+                                    creep.withdraw(o,ExtractContentOfStore(o.store)[0]);
+                                }
+                            })
                         }
-                        let err = creep.transfer(storage,res);
+                        let err = creep.transfer(storage,ExtractContentOfStore(creep.store)[0]);
                         if (err == ERR_NOT_IN_RANGE) {
                             creep.travelTo(storage);
                         }

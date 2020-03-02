@@ -113,7 +113,12 @@ colonyDumbRefill=function(colony)
     for(let index in colony.refillers)
     {
         let creep = Game.creeps[colony.refillers[index]];
-        if (creep) {
+        if (creep) 
+        {
+            if(creep.pos.roomName != colony.pos.roomName)
+            {
+                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName));
+            }
             creep.dumbRefillLoop()
         }
     }
@@ -122,6 +127,10 @@ colonyDumbRefill=function(colony)
         let creep = Game.creeps[colony.crefillers[index]];
         if (creep) 
         {
+            if(creep.pos.roomName != colony.pos.roomName)
+            {
+                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName));
+            }
             creep.dumbRefillLoop()
         }
     }
@@ -322,4 +331,22 @@ GuardSpawningColony=function(colony)
     }
 }
 
+ColonyLookForPower = function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room) { return; }
+    if(!room.observer) { return; }
+
+    if(!PowerPatrols[colony.pos.roomName])
+    {
+        PowerPatrols[colony.pos.roomName] = AllCorridorsWithinRange(colony.pos.roomName,7);
+    }
+    if(!colony.corridorIndex)
+    {
+        colony.corridorIndex = 0;
+    }
+
+    let list = PowerPatrols[colony.pos.roomName];
+    let vRoom = Game.rooms[list[colony.corridorIndex]];
+}
 
