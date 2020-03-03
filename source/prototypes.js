@@ -234,6 +234,9 @@ Room.prototype.findAllStructures=function()
         Object.keys(CONSTRUCTION_COST).forEach((s) => this._structures[s] = [])
         this._structures[STRUCTURE_CONTROLLER] = []
         this._structures[STRUCTURE_INVADER_CORE] = []
+        this._structures[STRUCTURE_POWER_BANK] = []
+        this._structures[STRUCTURE_KEEPER_LAIR] = []
+        this._structures[STRUCTURE_PORTAL] = []
         
         this.find(FIND_STRUCTURES).forEach((s) => {
                 this._structures[s.structureType].push(s)
@@ -260,7 +263,7 @@ Room.prototype.hostiles=function()
 Room.prototype.PopulateShorthands=function()
 {
     this.findAllStructures();
-    let ShorthandFirstOfType=function(type,room,alias) { if(room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
+    let ShorthandFirstOfType=function(type,room,alias) { if(room._structures[type] && room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
     let ShorthandType=function(type,room,alias) { room[alias] = room._structures[type] }
 
     ShorthandFirstOfType(STRUCTURE_FACTORY,this,"factory");
@@ -268,6 +271,7 @@ Room.prototype.PopulateShorthands=function()
     ShorthandFirstOfType(STRUCTURE_OBSERVER,this,"observer");
     ShorthandFirstOfType(STRUCTURE_EXTRACTOR,this,"extractor");
     ShorthandFirstOfType(STRUCTURE_INVADER_CORE,this,"invaderCore");
+    ShorthandFirstOfType(STRUCTURE_POWER_BANK,this,"powerBank");
     ShorthandFirstOfType(STRUCTURE_POWER_SPAWN,this,"powerSpawn");
     if(!this.storage) { ShorthandFirstOfType(STRUCTURE_CONTAINER,this,"storage") }
 
@@ -538,7 +542,7 @@ RoomVisual.prototype.stock=function(x,y,obj,opt = {})
             this.text(opt.name,x-0.3*opt.scale,y + 0.15*opt.scale,{font:0.7*opt.scale,align:"left"})
         }
         this.text(inv.getUsedCapacity() + "/" + inv.getCapacity(),x-0.3*opt.scale,y + (opt.name ? 1.15 : 0.15)*opt.scale,{font:0.7*opt.scale,align:"left"})
-        this.rect(x-0.45,y-0.45,(6+opt.offsetx+opt.buffer)*opt.scale,(Object.keys(has).length+(opt.name ? 2 : 1))*opt.scale + 0.1,{fill:"#C4C4C4",stroke:"#000000"})
+        this.rect(x-0.45,y-0.45,(6+opt.offsetx+opt.buffer)*opt.scale,Math.ceil((Object.keys(has).length+(opt.name ? 2 : 1))*opt.scale + 0.1),{fill:"#C4C4C4",stroke:"#000000"})
         y = y+opt.scale * (opt.name ? 2 : 1)
         for(let type in has)
         {

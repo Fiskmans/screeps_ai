@@ -347,6 +347,35 @@ ColonyLookForPower = function(colony)
     }
 
     let list = PowerPatrols[colony.pos.roomName];
+    if(!list || list.length < 1) { return; }
+    colony.corridorIndex = colony.corridorIndex % list.length;
     let vRoom = Game.rooms[list[colony.corridorIndex]];
+    if(vRoom)
+    {
+        vRoom.PopulateShorthands();
+        if(vRoom.powerBank)
+        {
+            let timeLeft = vRoom.powerBank.ticksToDecay;
+            let quality = (vRoom.powerBank.power - POWER_BANK_CAPACITY_MIN) / (POWER_BANK_CAPACITY_MAX - POWER_BANK_CAPACITY_MIN)
+            let distance = Game.map.getRoomLinearDistance(colony.pos.roomName,vRoom.name);
+            let slots = 0;
+            let pos = vRoom.powerBank.pos;
+            let terrain = vRoom.getTerrain();
+            ALL_DIRECTIONS.forEach((d) =>
+            {
+                if(terrain.get(pos.x + DIRECTION_OFFSET[d][0],pos.y + DIRECTION_OFFSET[d][1]) != TERRAIN_MASK_WALL)
+                {
+                    slots++;
+                }
+            })
+
+
+            console.log("Found Power in " + vRoom.name + " time left: " + timeLeft + " quality: " + quality + " distance: " + distance + " slots: " + slots);
+        }
+        //Look for power
+    }
+
+    room.observer.observeRoom(list[(colony.corridorIndex+1) % list.length]);
+    colony.corridorIndex++;
 }
 
