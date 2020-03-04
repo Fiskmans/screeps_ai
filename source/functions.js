@@ -522,6 +522,13 @@ setCharAt=function(str,index,chr) {
     return str.substr(0,index) + chr + str.substr(index+1);
 }
 
+GetRoomDiamondDistance=function(roomName1,roomName2)
+{
+    let [x1,y1] = PosFromRoomName(roomName1);
+    let [x2,y2] = PosFromRoomName(roomName2);
+    return Math.abs(x1-x2) + Math.abs(y1-y2)
+}
+
 DefendColony=function(colony)
 {
     let room = Game.rooms[colony.pos.roomName]
@@ -1613,19 +1620,19 @@ AllCorridorsWithinRange = function(roomName,range)
         {
             if(x % 10 == 0 || y % 10 == 0) 
             {
-                if(Game.map.getRoomLinearDistance("E"+x+"N"+y,roomName) < range) 
+                if(GetRoomDiamondDistance("E"+x+"N"+y,roomName) < range) 
                 {
                     out.push("E"+x+"N"+y);
                 };
-                if(Game.map.getRoomLinearDistance("E"+x+"S"+y,roomName) < range)
+                if(GetRoomDiamondDistance("E"+x+"S"+y,roomName) < range)
                 {
                     out.push("E"+x+"S"+y);
                 };
-                if(Game.map.getRoomLinearDistance("W"+x+"N"+y,roomName) < range)
+                if(GetRoomDiamondDistance("W"+x+"N"+y,roomName) < range)
                 {
                     out.push("W"+x+"N"+y);
                 };
-                if(Game.map.getRoomLinearDistance("W"+x+"S"+y,roomName) < range)
+                if(GetRoomDiamondDistance("W"+x+"S"+y,roomName) < range)
                 {
                     out.push("W"+x+"S"+y);
                 }; 
@@ -2055,7 +2062,7 @@ Scavange=function(colony)
                     creep = Game.creeps[colony.haulerpool[index]];
                     if (creep.store.getUsedCapacity() > 0) 
                     {
-                        if(creep.store.getFreeCapacity() > 0)
+                        /*if(creep.store.getFreeCapacity() > 0)
                         {
                             let objects = creep.room.lookAtArea(creep.pos.y - 1,creep.pos.x - 1,creep.pos.y + 1,creep.pos.x + 1,true);
                             objects.forEach((o) => {
@@ -2064,7 +2071,7 @@ Scavange=function(colony)
                                     creep.withdraw(o,ExtractContentOfStore(o.store)[0]);
                                 }
                             })
-                        }
+                        }*/
                         let err = creep.transfer(storage,ExtractContentOfStore(creep.store)[0]);
                         if (err == ERR_NOT_IN_RANGE) {
                             creep.travelTo(storage);

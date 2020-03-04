@@ -473,3 +473,20 @@ ColonyCrafting=function(colony)
     let err = room.factory.produce(colony.crafting);
 
 }
+
+ColonyCollectPower=function(colony)
+{
+    if(colony.expedition)
+    {
+        let exp = colony.expedition
+        if(Game.time > exp.endDate)
+        {
+            delete colony.expedition;
+            return;
+        }
+
+        if(!exp.attackers) {exp.attackers = []}
+        if(!exp.healers) {exp.healers = []}
+
+    }
+}

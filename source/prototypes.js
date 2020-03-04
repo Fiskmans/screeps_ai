@@ -7,7 +7,7 @@ Creep.prototype.do=function(action,target)
     let err = this[action](target);
     if(err == ERR_NOT_IN_RANGE)
     {
-        this.travelTo(target)
+        //this.travelTo(target)
     }
     return err;
 }
