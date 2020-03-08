@@ -11,6 +11,9 @@ UpdateGrafanaStats=function()
     Memory.stats['gcl.progress'] = Game.gcl.progress;
     Memory.stats['gcl.progressTotal'] = Game.gcl.progressTotal;
     Memory.stats['gcl.level'] = Game.gcl.level;
+    Memory.stats['gpl.progress'] = Game.gpl.progress;
+    Memory.stats['gpl.progressTotal'] = Game.gpl.progressTotal;
+    Memory.stats['gpl.level'] = Game.gpl.level;
     
     Memory.stats['colonies.count'] = Memory.colonies.length;
     Memory.stats['scouting.targets'] = Object.keys(Memory.scouting).length;

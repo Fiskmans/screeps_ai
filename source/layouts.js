@@ -196,7 +196,7 @@ layout = {
     ],
     5:[   
         [                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
-        [STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ],
+        [                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ],
         [STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ],
         [                   ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ],
         [                   ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_STORAGE  ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,                   ],
@@ -210,7 +210,7 @@ layout = {
     ],
     6:[   
         [                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
-        [STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ],
+        [                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ],
         [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,                   ,                   ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,                   ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
         [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,STRUCTURE_TERMINAL ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_STORAGE  ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
@@ -223,8 +223,8 @@ layout = {
         [                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ]
     ],
     7:[   
-        [                   ,                   ,                   ,STRUCTURE_FACTORY,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
-        [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,                   ,                   ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,                   ,STRUCTURE_TOWER    ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
+        [                   ,                   ,                   ,STRUCTURE_FACTORY  ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
+        [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,                   ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,                   ,STRUCTURE_TOWER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,                   ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
         [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,STRUCTURE_TERMINAL ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_STORAGE  ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
@@ -238,7 +238,7 @@ layout = {
     ],
     8:[   
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,                   ,STRUCTURE_FACTORY  ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_POWER_SPAWN,                 ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
-        [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_TOWER    ,STRUCTURE_LAB      ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_LAB      ,STRUCTURE_TOWER    ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
+        [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_TOWER    ,STRUCTURE_LAB      ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_LAB      ,STRUCTURE_TOWER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
         [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_TERMINAL ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_STORAGE  ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],

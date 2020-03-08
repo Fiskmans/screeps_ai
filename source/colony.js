@@ -66,12 +66,11 @@ colonyDumbRefill=function(colony)
         limit++;
     }
 
-
     if (limit > 0 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 1000) 
     {
         if (colony.crefillers.length < limit) 
         {
-            if (colony.haulerpool.length > 1) 
+            if (colony.haulerpool.length > 1 || (colony.haulerpool.length == 1 && limit > 2)) 
             {
                 colony.crefillers.push(colony.haulerpool.shift())
             }
@@ -343,6 +342,8 @@ ColonyLookForPower = function(colony)
     if(!room) { return; }
     if(!room.observer) { return; }
     if(colony.expedition) { return; }
+    if(!room.storage) { return; }
+    if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < POWER_SEARCHING_ENERGY_LIMIT) { return; }
 
     if(!PowerPatrols[colony.pos.roomName])
     {
@@ -378,23 +379,33 @@ ColonyLookForPower = function(colony)
             let attractivness = 1;
             attractivness *= slots > 2 ? 1.2 : slots < 2 ? 0 : 1; // 0 : 1 : 1.2
             attractivness *= quality; // 0 -> 2?
-            attractivness *= timeLeft < 3500 ? 0 : (timeLeft - 3500) / 1000; // 0 -> 1.5 
-            attractivness *= (10-distance) / 10 + 0.5;
+            attractivness *= timeLeft < 3000 ? 0 : (timeLeft - 3000) / 1000; // 0 -> 1.5 
+            attractivness *= distance == 1 ? 5 : (10-distance) / 10 + 0.5;
 
             console.log("Found Power in " + vRoom.name + " time left: " + timeLeft + " quality: " + quality + " distance: " + distance + " slots: " + slots + " attractiveness: " + attractivness);
             if(attractivness > 0.5)
             {
-                colony.expedition = {}
-                let exp = colony.expedition;
-                exp.target = vRoom.name;
-                exp.endDate = Game.time + timeLeft;
-                exp.amount = vRoom.powerBank.power;
-                exp.slots = slots;
-                exp.pos = pos;
-                console.log(vRoom.name + " is attractive enough, starting expedition");
+                let busy = false; 
+                Memory.colonies.forEach((c) => {
+                    if(c.expedition && c.expedition.targetRoom == vRoom.name)
+                    {
+                        busy = true;
+                    }
+                })
+                if(!busy)
+                {
+                    colony.expedition = {}
+                    let exp = colony.expedition;
+                    exp.targetRoom = vRoom.name;
+                    exp.target = vRoom.powerBank.id;
+                    exp.endDate = Game.time + timeLeft;
+                    exp.amount = vRoom.powerBank.power;
+                    exp.slots = slots;
+                    exp.pos = pos;
+                    console.log(vRoom.name + " is attractive enough, starting expedition");
+                }
             }
         }
-        //Look for power
     }
 
     room.observer.observeRoom(list[(colony.corridorIndex+1) % list.length]);

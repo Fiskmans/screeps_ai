@@ -204,6 +204,25 @@ Creep.prototype.updateHarvestState=function()
     }
 }
 
+Creep.prototype.Retire = function(roomName)
+{
+    let room = Game.rooms[roomName];
+    room.PopulateShorthands();
+    let spawn = room.spawns[0];
+    if(spawn)
+    {
+        let res = spawn.recycleCreep(this);
+        if(res == ERR_NOT_IN_RANGE)
+        {
+            this.travelTo(spawn);
+        }
+    }
+    else
+    {
+        this.say("bad retirement");
+    }
+}
+
 Room.prototype.refillable=function()
 {
     let all = [];

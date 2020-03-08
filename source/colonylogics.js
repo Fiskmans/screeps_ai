@@ -83,5 +83,6 @@ colonyLogic=
         ColonyDismantleAll(colony);
         ColonyLookForPower(colony);
         ColonyCollectPower(colony);
+        ColonyProcessPower(colony);
     }
 }
