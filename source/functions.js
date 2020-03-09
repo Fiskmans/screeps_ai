@@ -846,6 +846,10 @@ digMine=function(colony,miningSpot)
                         let mineral = Game.getObjectById(miningSpot.target)
                         if (mineral && mineral.mineralAmount == 0) 
                         {
+                            deleteDead(miningSpot.miners)
+                            miningSpot.miners.forEach((name) => {
+                                Game.creeps[name].Retire(colony.pos.roomName);
+                            })
                             return;
                         }
                     }
@@ -2332,7 +2336,15 @@ PowerCreeps=function()
         }
         else
         {
-            if(!matilda.pos.isNearTo(matilda.room.controller))
+            if(matilda.ticksToLive < 1000)
+            {
+                let err = matilda.renew(matilda.room.powerSpawn);
+                if(err == ERR_NOT_IN_RANGE)
+                {
+                    matilda.travelTo(matilda.room.powerSpawn);
+                }
+            }
+            else if(!matilda.pos.isNearTo(matilda.room.controller))
             {
                 matilda.travelTo(matilda.room.controller);
             }

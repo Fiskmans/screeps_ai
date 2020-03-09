@@ -14,10 +14,7 @@ colonyHighways = profiler.registerFN(colonyHighways);
 colonyMiningSpots = profiler.registerFN(colonyMiningSpots);
 drawColony = profiler.registerFN(drawColony);
 DeSerializeMemory = profiler.registerFN(DeSerializeMemory);
-<<<<<<< HEAD
-=======
 PowerCreeps = profiler.registerFN(PowerCreeps);
->>>>>>> f835072b0fe4d40a512fe0a69c5bbea8979b2dcf
 
 profiler.enable();
 module.exports.loop = function()
@@ -28,16 +25,10 @@ module.exports.loop = function()
 
     DeSerializeMemory();
     defaultMemory()
-<<<<<<< HEAD
-    applyFlags()
-    
-    colonyMain()
-=======
     applyFlags();
     
     colonyMain();
     PowerCreeps();
->>>>>>> f835072b0fe4d40a512fe0a69c5bbea8979b2dcf
     
     DoWars();
     

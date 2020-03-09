@@ -208,32 +208,33 @@ QUIPS = [
 ALWAYSPROFITABLE = 200
 MinimumSellingPrice = 
 {
-    [RESOURCE_ENERGY]:0.05,
-    [RESOURCE_BATTERY]:         0.150,
+    [RESOURCE_ENERGY]:                      0.05,
+    [RESOURCE_BATTERY]:                     0.150,
     
-    [RESOURCE_POWER]:3.57,
+    [RESOURCE_POWER]:                       3.57,
+    [RESOURCE_OPS]:                         0.25,
 
-    [RESOURCE_OXYGEN]:0.036,
-    [RESOURCE_HYDROGEN]:0.034,
-    [RESOURCE_ZYNTHIUM]:0.036,
-    [RESOURCE_LEMERGIUM]:0.073,
-    [RESOURCE_UTRIUM]:0.038,
-    [RESOURCE_KEANIUM]:0.038,
-    [RESOURCE_CATALYST]:0.090,
-    [RESOURCE_GHODIUM_OXIDE]:0.023,
-    [RESOURCE_UTRIUM_HYDRIDE]:0.08,
-    [RESOURCE_KEANIUM_OXIDE]:0.08,
+    [RESOURCE_OXYGEN]:                      0.036,
+    [RESOURCE_HYDROGEN]:                    0.034,
+    [RESOURCE_ZYNTHIUM]:                    0.036,
+    [RESOURCE_LEMERGIUM]:                   0.073,
+    [RESOURCE_UTRIUM]:                      0.038,
+    [RESOURCE_KEANIUM]:                     0.038,
+    [RESOURCE_CATALYST]:                    0.090,
+    [RESOURCE_GHODIUM_OXIDE]:               0.023,
+    [RESOURCE_UTRIUM_HYDRIDE]:              0.08,
+    [RESOURCE_KEANIUM_OXIDE]:               0.08,
     [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE]:0.46,
 
 
-    [RESOURCE_OXIDANT]:         0.22,
-    [RESOURCE_REDUCTANT]:       0.25,
-    [RESOURCE_ZYNTHIUM_BAR]:    0.26,
-    [RESOURCE_LEMERGIUM_BAR]:   0.400,
-    [RESOURCE_UTRIUM_BAR]:      0.200,
-    [RESOURCE_KEANIUM_BAR]:     0.200,
-    [RESOURCE_PURIFIER]:        0.87,
-    [RESOURCE_GHODIUM_MELT]:    2.0
+    [RESOURCE_OXIDANT]:                     0.22,
+    [RESOURCE_REDUCTANT]:                   0.25,
+    [RESOURCE_ZYNTHIUM_BAR]:                0.26,
+    [RESOURCE_LEMERGIUM_BAR]:               0.400,
+    [RESOURCE_UTRIUM_BAR]:                  0.200,
+    [RESOURCE_KEANIUM_BAR]:                 0.200,
+    [RESOURCE_PURIFIER]:                    0.87,
+    [RESOURCE_GHODIUM_MELT]:                2.0
 
 }
 
