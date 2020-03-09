@@ -19,6 +19,8 @@ FACTORY_NUMBER_OF_CRAFTS_TO_STOCK = 6
 FACTORY_ENERGY_TO_LEAVE_IN_STORAGE = 60000
 SVG_DRAWER_CPU_LIMIT = Game.cpu.limit * 0.95;
 SVG_DRAWER_BUCKET_LIMIT = 3000
+POWER_PROCESS_ENERGY_LIMIT = 20000
+POWER_SEARCHING_ENERGY_LIMIT = 30000
 
 ROLE_WORKER = 'worker'
 ROLE_HAULER = 'hauler'
@@ -133,7 +135,7 @@ BODIES =
     [ROLE_BANK_HEALER]:[
         {cost:6900,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL]}],
     [ROLE_BANK_ATTACKER]:[
-        {cost:2340,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK]}]
+        {cost:2340,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,MOVE]}]
 }
 
 ALL_DIRECTIONS = [
@@ -198,13 +200,19 @@ QUIPS = [
     "A million apes on a million typewriters will eventually write code that runs",
     "Lurendrejs are not do goods for yous",
     "https://youtu.be/dQw4w9WgXcQ",
-    "An arrow in your knee is better than an arrow in your tea"
+    "An arrow in your knee is better than an arrow in your tea",
+    "A human has a head, 2 legs and 2 arms and even it loses a one, it’s still a human.",
+    "Ingenuity is shorting a battery to make a light when it's dark, stupidity is taking them out of the flashlight first."
     ]
 
 ALWAYSPROFITABLE = 200
 MinimumSellingPrice = 
 {
     [RESOURCE_ENERGY]:0.05,
+    [RESOURCE_BATTERY]:         0.150,
+    
+    [RESOURCE_POWER]:3.57,
+
     [RESOURCE_OXYGEN]:0.036,
     [RESOURCE_HYDROGEN]:0.034,
     [RESOURCE_ZYNTHIUM]:0.036,
@@ -213,8 +221,10 @@ MinimumSellingPrice =
     [RESOURCE_KEANIUM]:0.038,
     [RESOURCE_CATALYST]:0.090,
     [RESOURCE_GHODIUM_OXIDE]:0.023,
-    [RESOURCE_POWER]:0.57,
+    [RESOURCE_UTRIUM_HYDRIDE]:0.08,
+    [RESOURCE_KEANIUM_OXIDE]:0.08,
     [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE]:0.46,
+
 
     [RESOURCE_OXIDANT]:         0.22,
     [RESOURCE_REDUCTANT]:       0.25,
@@ -223,9 +233,8 @@ MinimumSellingPrice =
     [RESOURCE_UTRIUM_BAR]:      0.200,
     [RESOURCE_KEANIUM_BAR]:     0.200,
     [RESOURCE_PURIFIER]:        0.87,
-    [RESOURCE_GHODIUM_MELT]:    2.0,
+    [RESOURCE_GHODIUM_MELT]:    2.0
 
-    [RESOURCE_BATTERY]:         0.150
 }
 
 colors = 

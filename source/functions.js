@@ -1494,8 +1494,6 @@ spawnRoleIntoList=function(room,list,role,options={})
             return;
         }
     }
-    
-    
     let worth = room.energyCapacityAvailable * 0.1; //wont create creep with a body thats much lower than current max i.e no [work carry move] when the cap is 6000
     
     if (list.length < 1) {
@@ -1509,8 +1507,17 @@ spawnRoleIntoList=function(room,list,role,options={})
             body = build.body;
         }
     }
+    if(!body)
+    {
+        let last = _.last(BODIES[role]);
+        if(last.cost <= room.energyAvailable)
+        {
+            body = last.body;
+        }
+    }
     let code = ERR_BUSY;
-    if (body) {
+    if (body) 
+    {
         room.spawns.forEach((s) => {
             if (!s.spawning) 
             {
@@ -2057,67 +2064,66 @@ Scavange=function(colony)
                 things.forEach((t) => {thingLookup[t.id] = t})
                 let thingIds = Object.keys(thingLookup);
 
+                let number = 0;
                 for(let index in colony.haulerpool)
                 {
                     creep = Game.creeps[colony.haulerpool[index]];
-                    if (creep.store.getUsedCapacity() > 0) 
+                    number++;
+                    if(number > 5)
                     {
-                        /*if(creep.store.getFreeCapacity() > 0)
-                        {
-                            let objects = creep.room.lookAtArea(creep.pos.y - 1,creep.pos.x - 1,creep.pos.y + 1,creep.pos.x + 1,true);
-                            objects.forEach((o) => {
-                                if(thingIds.includes(o.id))
-                                {
-                                    creep.withdraw(o,ExtractContentOfStore(o.store)[0]);
-                                }
-                            })
-                        }*/
-                        let err = creep.transfer(storage,ExtractContentOfStore(creep.store)[0]);
-                        if (err == ERR_NOT_IN_RANGE) {
-                            creep.travelTo(storage);
-                        }
-                        creep.say("🚮")
+                        creep.Retire(colony.pos.roomName);
                     }
                     else
                     {
-                        
-                        let target = false;
-                        if(index < things.length)
+                        if (creep.store.getUsedCapacity() > 0) 
                         {
-                            target = things[index]
+                            let err = creep.transfer(storage,ExtractContentOfStore(creep.store)[0]);
+                            if (err == ERR_NOT_IN_RANGE) {
+                                creep.travelTo(storage);
+                            }
+                            creep.say("🚮")
                         }
                         else
                         {
-                            target = things[0]
-                        }
-                        
-                        let err = false;
-                        if (target) 
-                        {
-                            let res = false;
-                            for(let i in RESOURCES_ALL)
+                            
+                            let target = false;
+                            if(index < things.length)
                             {
-                                if (!target.store) 
-                                {
-                                    res = RESOURCE_ENERGY;
-                                    break
-                                }
-                                if (target.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) 
-                                {
-                                    res = RESOURCES_ALL[i];
-                                    break;
-                                }
+                                target = things[index]
                             }
-                            err = creep.withdraw(target,res);
-                            if (err == ERR_INVALID_TARGET) 
+                            else
                             {
-                                err = creep.pickup(target);
+                                target = things[0]
                             }
-                            if (err == ERR_NOT_IN_RANGE) {
-                                creep.travelTo(target);
+                            
+                            let err = false;
+                            if (target) 
+                            {
+                                let res = false;
+                                for(let i in RESOURCES_ALL)
+                                {
+                                    if (!target.store) 
+                                    {
+                                        res = RESOURCE_ENERGY;
+                                        break
+                                    }
+                                    if (target.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) 
+                                    {
+                                        res = RESOURCES_ALL[i];
+                                        break;
+                                    }
+                                }
+                                err = creep.withdraw(target,res);
+                                if (err == ERR_INVALID_TARGET) 
+                                {
+                                    err = creep.pickup(target);
+                                }
+                                if (err == ERR_NOT_IN_RANGE) {
+                                    creep.travelTo(target);
+                                }
                             }
+                            creep.say("🏹")
                         }
-                        creep.say("🏹")
                     }
                 }
             }
@@ -2297,4 +2303,39 @@ BezierFragment=function(numberOfFragments,points)
     }
     //out.concat(JSON.parse(cloneSource));
     return out;
+}
+
+PowerCreeps=function()
+{
+    let matilda = Game.powerCreeps["Matilda"];
+    if(matilda && matilda.shard == Game.shard.name) // dont execute if on another shard ;)
+    {
+        if(Game.time % 50 == 0)
+        {
+            matilda.usePower(PWR_GENERATE_OPS);
+        }
+        if(matilda.store.getFreeCapacity(RESOURCE_OPS) < 50)
+        {
+            let targetRoom = Game.rooms[Memory.colonies[0].pos.roomName];
+            if(targetRoom && targetRoom.controller && targetRoom.controller.my)
+            {
+                let storage = targetRoom.storage;
+                if(storage)
+                {
+                    let res = matilda.transfer(storage,ExtractContentOfStore(matilda.store)[0]);
+                    if(res == ERR_NOT_IN_RANGE)
+                    {
+                        matilda.travelTo(storage);
+                    }
+                }
+            }
+        }
+        else
+        {
+            if(!matilda.pos.isNearTo(matilda.room.controller))
+            {
+                matilda.travelTo(matilda.room.controller);
+            }
+        }
+    }
 }

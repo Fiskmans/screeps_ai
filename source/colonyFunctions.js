@@ -73,6 +73,10 @@ BasicHaulersAndMiners=function(colony)
         if(!colony.haulerpool) {colony.haulerpool = []}
         let limit = 2;
         limit += Math.max(0,colony.miningSpots.length-3);
+        if(colony.level > 6)
+        {
+            limit /= 2;
+        }
         if (colony.haulerpool.length < limit) 
         {
             spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER)
@@ -276,9 +280,19 @@ ColonyRestock=function(colony,stockto,target,rolename,source)
                 {
                     let res = ExtractContentOfStore(creep.store)[0];
                     creep.say("⬆️ "+ res + " ⬆️");
-                    if(creep.transfer(target,res) == ERR_NOT_IN_RANGE)
+                    if(target.store.getFreeCapacity(res) < 10)
                     {
-                        creep.travelTo(target)
+                        if(creep.transfer(source,res) == ERR_NOT_IN_RANGE)
+                        {
+                            creep.travelTo(source)
+                        }
+                    }
+                    else
+                    {
+                        if(creep.transfer(target,res) == ERR_NOT_IN_RANGE)
+                        {
+                            creep.travelTo(target)
+                        }
                     }
                 }
                 else
@@ -487,6 +501,213 @@ ColonyCollectPower=function(colony)
 
         if(!exp.attackers) {exp.attackers = []}
         if(!exp.healers) {exp.healers = []}
+        if(!exp.haulers) {exp.haulers = []}
+        if(!exp.finishingUp)
+        {
+            let carryCapacity = 0;
+            deleteDead(exp.attackers);
+            deleteDead(exp.healers);
+            deleteDead(exp.haulers);
+            
+            let target = Game.getObjectById(exp.target);
+            let room = Game.rooms[exp.targetRoom];
+            let origRoom = Game.rooms[colony.pos.roomName];
+            if(origRoom && origRoom.observer)
+            {
+                origRoom.observer.observeRoom(exp.targetRoom);
+            }
 
+            let pickups = room ? room.lookForAt(LOOK_RESOURCES,exp.pos.x,exp.pos.y) : [];
+            let pickup = false;
+            if(pickups.length > 0)
+            {
+                pickup = pickups[0];
+            }
+            let ruins = room ? room.lookForAt(LOOK_RUINS,exp.pos.x,exp.pos.y) : [];
+            let ruin = false;
+            if(ruins.length > 0)
+            {
+                ruin = ruins[0];
+            }
+
+            exp.haulers.forEach((name) =>
+            {
+                let creep = Game.creeps[name];
+                carryCapacity += creep.store.getFreeCapacity();
+                if(target)
+                {
+                    if(Math.max(Math.abs(creep.pos.x-target.pos.x),Math.abs(creep.pos.y-target.pos.y)) > 2 || creep.pos.roomName != target.pos.roomName)
+                    {
+                        creep.travelTo(new RoomPosition(exp.pos.x,exp.pos.y,exp.pos.roomName),{preferHighway:true});
+                    }
+                }
+                else
+                {
+                    if(creep.store.getUsedCapacity() == 0)
+                    {
+                        if(ruin)
+                        {
+                            let err = creep.withdraw(ruin,ExtractContentOfStore(ruin.store)[0]);
+                            switch(err)
+                            {
+                            case ERR_NOT_IN_RANGE:
+                                creep.travelTo(ruin);
+                                break;
+                            case OK:
+                                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName));
+                                break;
+                            }
+                        }
+                        if(pickup)
+                        {
+                            let err = creep.pickup(pickup);
+                            switch(err)
+                            {
+                            case ERR_NOT_IN_RANGE:
+                                creep.travelTo(pickup);
+                                break;
+                            case OK:
+                                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName));
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName));
+                    }
+                }
+
+            })
+
+            let limit = Math.min(exp.slots,3);
+            if(target)
+            {
+                limit = Math.min(limit,target.hits/500000);
+            }
+            if(room && !target)
+            {
+                limit = 0;
+            }
+            let attackindex = 0;
+            exp.attackers.forEach((name) =>
+            {
+                let creep = Game.creeps[name];
+                if(attackindex > limit)
+                {
+                    creep.Retire(colony.pos.roomName);
+                }
+                else
+                {
+                    creep.travelTo(new RoomPosition(exp.pos.x,exp.pos.y,exp.pos.roomName),{preferHighway:true});
+                    if(target && (target.hits > 2500 || carryCapacity > exp.amount || target.Decay < 50))
+                    {
+                        creep.attack(target);
+                    }
+                }
+                attackindex++;
+            })
+            
+            let count = 0;
+            exp.healers.forEach((name) =>
+            {
+                let creep = Game.creeps[name];
+                if(count < limit && exp.attackers.length <= count)
+                {
+                    creep.Retire(colony.pos.roomName);
+                }
+                else
+                {
+                    if(exp.attackers.length <= count && (!target || (Math.max(Math.abs(creep.pos.x-target.pos.x),Math.abs(creep.pos.y-target.pos.y)) > 2 || creep.pos.roomName != target.pos.roomName)))
+                    {
+                        creep.travelTo(new RoomPosition(exp.pos.x,exp.pos.y,exp.pos.roomName),{preferHighway:true});
+                    }
+                    else
+                    {
+                        let targetname = exp.attackers[count];
+                        count++;
+                        let targetCreep = Game.creeps[targetname]
+                        if(targetCreep)
+                        {
+                            let err = creep.heal(targetCreep);
+                            if(err == ERR_NOT_IN_RANGE)
+                            {
+                                creep.travelTo(targetCreep);
+                            }
+                        }
+                    }
+                }
+                })
+
+            if(exp.healers.length < Math.min(exp.attackers.length,limit))
+            {
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.healers,ROLE_BANK_HEALER);
+            }
+            if(exp.attackers.length < limit && exp.attackers.length <= exp.healers.length)
+            {
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.attackers,ROLE_BANK_ATTACKER);
+            }
+            if(((target && target.hits < 200000) ||ruin ||pickup) && carryCapacity < exp.amount)
+            {
+                for(let i = colony.haulerpool.length -1;i >= 0;i--)
+                {
+                    let name = colony.haulerpool[i];
+                    let creep = Game.creeps[name];
+                    if(creep.ticksToLive > 800 && creep.store.getUsedCapacity() == 0)
+                    {
+                        exp.haulers.push(name);
+                        colony.haulerpool.splice(i,1);
+                    }
+                }
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER);
+            }
+
+            if(room && !(pickup || ruin || target))
+            {
+                exp.finishingUp = true;
+            }
+        }
+        else
+        {    
+            deleteDead(exp.attackers);
+            deleteDead(exp.healers);
+            deleteDead(exp.haulers);
+            exp.attackers.forEach((name) =>
+            {
+                let creep = Game.creeps[name];
+                creep.Retire(colony.pos.roomName);
+            })
+            exp.healers.forEach((name) =>
+            {
+                let creep = Game.creeps[name];
+                creep.Retire(colony.pos.roomName);
+            })
+            exp.haulers.forEach((name) => 
+            {
+                colony.haulerpool.push(name)
+            })
+            exp.haulers = [];
+            if(exp.attackers.length == 0 && exp.healers.length == 0 && exp.haulers.length == 0)
+            {
+                delete colony.expedition;
+            }
+        }
     }
+}
+
+ColonyProcessPower=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room) { return; }
+    if(!room.powerSpawn) { return; }
+    if(!room.storage) { return; }
+    let target = {[RESOURCE_POWER]:0};
+    if(room.powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 80)
+    {
+        target[RESOURCE_POWER] = 100;
+    }
+    ColonyRestock(colony,target,room.powerSpawn,"storage->powerSpawn",room.storage);
+    if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < POWER_PROCESS_ENERGY_LIMIT) { return; }
+    room.powerSpawn.processPower();
+
 }

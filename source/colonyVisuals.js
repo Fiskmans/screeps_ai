@@ -1,6 +1,9 @@
 drawColony=function(colony,vis)
 {
+<<<<<<< HEAD
 
+=======
+>>>>>>> f835072b0fe4d40a512fe0a69c5bbea8979b2dcf
     let room = Game.rooms[colony.pos.roomName];
     if (room && Memory.rooms && Memory.rooms[room.name] && (Game.time - Memory.rooms[room.name].lastViewed < 10)) 
     {
@@ -26,6 +29,7 @@ drawColony=function(colony,vis)
                 mvis = new RoomVisual(spot.myPosition.roomName);
             }
             if(missing)
+<<<<<<< HEAD
             {
                 mvis.plan(spot.myPosition.x - 1, spot.myPosition.y - 1, missing)
             }
@@ -38,6 +42,20 @@ drawColony=function(colony,vis)
             let highway = colony.highways[h]
             for(let p in highway.path)
             {
+=======
+            {
+                mvis.plan(spot.myPosition.x - 1, spot.myPosition.y - 1, missing)
+            }
+        }
+        
+        let visuals = []
+        visuals.push(vis)
+        for(let h in colony.highways)
+        {
+            let highway = colony.highways[h]
+            for(let p in highway.path)
+            {
+>>>>>>> f835072b0fe4d40a512fe0a69c5bbea8979b2dcf
                 let pos = highway.path[p]
                 if (_.last(visuals).roomName != pos.roomName) 
                 {
@@ -94,6 +112,7 @@ drawColony=function(colony,vis)
             }
         }
         if(room.factory)
+<<<<<<< HEAD
         {
             vis.stock(colony.pos.x - 10,colony.pos.y+2,room.factory,{scale:0.7,name:"Factory"})
         }
@@ -101,6 +120,15 @@ drawColony=function(colony,vis)
         {
             vis.recipe(colony.pos.x - 6,colony.pos.y - 4,colony.crafting,{radius:1.7,scale:0.7,scalePerLevel:1});
         }
+=======
+        {
+            vis.stock(colony.pos.x - 10,colony.pos.y+2,room.factory,{scale:0.7,name:"Factory"})
+        }
+        if(colony.crafting)
+        {
+            vis.recipe(colony.pos.x - 6,colony.pos.y - 4,colony.crafting,{radius:1.7,scale:0.7,scalePerLevel:1});
+        }
+>>>>>>> f835072b0fe4d40a512fe0a69c5bbea8979b2dcf
         let amount = room.energyAvailable / room.energyCapacityAvailable;
         vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11*amount,1,{fill:"#FFFF00",stroke:"#00000000",opacity:0.6,strokeWidth:0.05})
         vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
@@ -157,5 +185,58 @@ drawColony=function(colony,vis)
                 }
             }
         })
+<<<<<<< HEAD
+=======
+
+        if(colony.expedition)
+        {
+            let exp = colony.expedition;
+            let bank = Game.getObjectById(exp.target);
+
+
+            vis.text("Expedition",45.5,1.5);
+            vis.symbol(43,2,RESOURCE_POWER);
+            vis.text("x" + exp.amount,43.5,2.3,{align:"left"})
+            vis.text("⚔️x" + exp.attackers.length,42.5,3.5,{align:"left"});
+            vis.text("🚑x" + exp.healers.length,42.5,4.5,{align:"left"});
+            vis.text("🧺x" + exp.haulers.length,42.5,5.5,{align:"left"});
+            vis.text((exp.endDate - Game.time) + " ⏰", 48.5,2.3,{align:"right"});
+            vis.text((exp.targetRoom) + " 🗺️", 48.5,4.3,{align:"right"});
+
+            let carryCapacity = 0;
+            exp.haulers.forEach((name) =>
+            {
+                let creep = Game.creeps[name];
+                if(creep)
+                {
+                    carryCapacity += creep.store.getFreeCapacity();
+                }
+            })
+            let carryProcent = Math.min(carryCapacity/exp.amount,1);
+            vis.rect(44.5,4.7,0.1,1,{ fill:"#000000FF",stroke:"#FFFFFF",strokeWidth:0.03,opacity:1 });
+            vis.rect(44.5,4.7,0.1,1*carryProcent,{ fill:"#00FF00",opacity:1 });
+
+            if(bank)
+            {
+                let state = bank.hits / bank.hitsMax;
+                let delta = state - exp.lastKnownState;
+                exp.lastKnownState = state;
+
+                let expectedVictory = state/delta;
+
+                let VictoryProcent = (expectedVictory)/5000 + (exp.endDate - Game.time) / 5000;
+                vis.text(-Math.ceil(expectedVictory) + " 💣", 48.5,3.2,{align:"right",font:0.3});
+                
+                vis.rect(45.5,2.5,3,0.1,{ fill:"#000000FF",stroke:"#FFFFFF",strokeWidth:0.03,opacity:1 });
+                vis.rect(45.5,2.5,3 * (exp.endDate - Game.time) / 5000,0.1,{ fill:"#FFFF00",opacity:1 });
+                vis.line(45.5 + 3 * VictoryProcent,2.5,45.5 + 3 * VictoryProcent,2.6,{width:0.03,color:"#000000",opacity:1});
+
+                vis.rect(45.5,2.65,3,0.1,{ fill:"#000000FF",stroke:"#FFFFFF",strokeWidth:0.03,opacity:1 });
+                vis.rect(45.5,2.65,3 * bank.hits / bank.hitsMax,0.1,{ fill:"#FF0000",opacity:1 });
+            }
+            
+
+        }
+>>>>>>> f835072b0fe4d40a512fe0a69c5bbea8979b2dcf
     }
 }
