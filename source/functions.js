@@ -534,10 +534,15 @@ DefendColony=function(colony)
     let room = Game.rooms[colony.pos.roomName]
     if (room) {
         let targets = room.hostiles();
+
         targets = _.filter(targets,(t)=>
         {
             if((t instanceof Creep))
             {
+                if(t.pos.inRangeTo(colony.pos.x+5,colony.pos.y+5,6))
+                {
+                    return true;
+                }
                 if (t.getActiveBodyparts(WORK) + t.getActiveBodyparts(ATTACK) + t.getActiveBodyparts(RANGED_ATTACK) > 0) 
                 {
                     return true
