@@ -1,2 +1,2 @@
 grunt
-screeps-grunt
+grunt-screeps
