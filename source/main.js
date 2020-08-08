@@ -37,14 +37,14 @@ module.exports.loop = function()
     TrackCPU(Game.cpu.getUsed() / Game.cpu.limit);
     if (Game.cpu.bucket > 1000 && Game.cpu.getUsed() < Game.cpu.limit) 
     {
-        Scouting();
-        deleteAllDead()
-        checkSomePlanned(500)
-        analyzeQueue()
+      //Scouting();
+      deleteAllDead()
+      checkSomePlanned(500)
+      analyzeQueue()
         
-        marketTracking()
-        UpdateGrafanaStats();
+      marketTracking()
     }
+    UpdateGrafanaStats();
 })
     
         

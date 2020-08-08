@@ -95,6 +95,10 @@ drawColony=function(colony,vis)
         if(room.factory)
         {
             vis.stock(colony.pos.x - 10,colony.pos.y+2,room.factory,{scale:0.7,name:"Factory"})
+            if(room.factory.cooldown > 0)
+            {
+                vis.Timer(room.terminal.pos.x,room.terminal.pos.yroom.factory.cooldown,20,{scale:0.7,color:"#FFFF00"})
+            }
         }
         if(colony.crafting)
         {
@@ -105,6 +109,24 @@ drawColony=function(colony,vis)
         vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
         vis.text((room.energyAvailable + "/" + room.energyCapacityAvailable),colony.pos.x+0.5,colony.pos.y-2.8,{align:"left"})
         vis.symbol(colony.pos.x,colony.pos.y-3,RESOURCE_ENERGY,{scale:2})
+
+        {
+            let target = TARGET_WORKER_COUNT[colony.level];
+            let count = colony.workersensus.length;
+            vis.text("🧱" + count + "/" + target,colony.pos.x-0.5,colony.pos.y-0.75,{align:'left',color:"#FFFFFF"});
+        }
+
+        {
+            
+            let target = 2;
+            target += Math.max(0,colony.miningSpots.length-3);
+            if(colony.level > 6)
+            {
+                target /= 2;
+            }
+            let count = colony.haulersensus.length;
+            vis.text(count + "/" + target + "📦",colony.pos.x+10.5,colony.pos.y-0.75,{align:'right',color:"#FFFFFF"});
+        }
 
         let minerals = room.find(FIND_MINERALS);
         if(minerals.length > 0)

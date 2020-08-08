@@ -37,18 +37,19 @@ ColonyIdleWorkers=function(colony)
 
 ColonyRespawnWorkers=function(colony)
 {
+    if(!colony.workerpool) {colony.workerpool = []};
+    if(!colony.workersensus) {colony.workersensus = []};
+    deleteDead(colony.workersensus);
     
-    let target = TARGET_WORKER_COUNT[colony.level]
-    let count = colony.workerpool.length + colony.refillers.length;
-    colony.miningSpots.forEach((m) => {if(m.worker) {count++ }})
-    colony.highways.forEach((m) => {if(m.worker) {count++ }})
+    let target = TARGET_WORKER_COUNT[colony.level];
+    let count = colony.workersensus.length;
 
     let vis = new RoomVisual(colony.pos.roomName);
     vis.text(count + " / " + target,25,3);
 
     if (count < target)
     {
-        spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER)
+        spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER,{},colony.workersensus);
         if (Game.rooms[colony.pos.roomName].spawns.length == 0) 
         {
             let closest = FindClosestColony(colony.pos.roomName);
@@ -71,15 +72,17 @@ BasicHaulersAndMiners=function(colony)
     if (room && room.storage) 
     {
         if(!colony.haulerpool) {colony.haulerpool = []}
+        if(!colony.haulersensus) {colony.haulersensus = []}
+        deleteDead(colony.haulersensus);
         let limit = 2;
         limit += Math.max(0,colony.miningSpots.length-3);
         if(colony.level > 6)
         {
             limit /= 2;
         }
-        if (colony.haulerpool.length < limit) 
+        if (colony.haulersensus.length < limit) 
         {
-            spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER)
+            spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER,{},colony.haulersensus)
         }
         Scavange(colony)
         MaintainMiningSpots(colony)
@@ -167,7 +170,7 @@ ColonyFindBuildingWork=function(colony)
             console.log("Starting work on " + prio.struct + " at " + prio.pos.x + " " + prio.pos.y + " " + prio.pos.roomName)
             colony.constructionsite = prio.pos
         }
-        else if(err = ERR_RCL_NOT_ENOUGH)
+        else if(err == ERR_RCL_NOT_ENOUGH)
         {
             if(colony.disTargets.length == 0)
             {
@@ -182,6 +185,16 @@ ColonyFindBuildingWork=function(colony)
                 }
                 
             }
+        }
+        else if (err == ERR_INVALID_TARGET)
+        {
+            prio.pos.look().forEach((thing) =>
+            {
+                if(thing.type == 'structure')
+                {
+                    colony.disTargets.push(thing.structure.id);
+                }
+            });
         }
         else
         {
@@ -213,19 +226,23 @@ ColonyRetargetSelling=function(colony)
     if(!prices) { return; }
     colony.selling = _.filter(has,(r) =>
     {
-        if(prices[ORDER_BUY][r]) 
+        if(r != RESOURCE_ENERGY || storage.store.getUsedCapacity(RESOURCE_ENERGY) > ENERGY_SELLING_ENERGY_LIMIT)
         {
-            if(MinimumSellingPrice[r])
+
+            if(prices[ORDER_BUY][r]) 
             {
-                if(prices[ORDER_BUY][r].price > MinimumSellingPrice[r])
+                if(MinimumSellingPrice[r])
                 {
-                    return true;
+                    if(prices[ORDER_BUY][r].price > MinimumSellingPrice[r])
+                    {
+                        return true;
+                    }
                 }
-            }
-            else
-            {
-                Game.notify(r + " has no minimum sell price but could be sold");
-                MinimumSellingPrice[r] = ALWAYSPROFITABLE
+                else
+                {
+                    Game.notify(r + " has no minimum sell price but could be sold");
+                    MinimumSellingPrice[r] = ALWAYSPROFITABLE
+                }
             }
         }
         return false;
@@ -351,7 +368,7 @@ ColonySelling=function(colony,terminal)
             if(err == OK)
             {   
                 terminal.cooldown = 11;
-                console.log("Sold " + amount + " " + res + " from " + colony.pos.roomName + " for " + order.price + " credits/unit total <font color=\"green\">" + (amount * order.price) + "<font>");
+                console.log(("Sold ".padEnd(10)) + (amount + " " + res).padEnd(20) + " from " + colony.pos.roomName + (" for " + order.price + " credits/unit").padEnd(26) + " total <font color=\"green\">" + (amount * order.price) + "<font>");
                 order.amount -= amount;
             }
             else
@@ -533,6 +550,7 @@ ColonyCollectPower=function(colony)
             exp.haulers.forEach((name) =>
             {
                 let creep = Game.creeps[name];
+                creep.wa
                 carryCapacity += creep.store.getFreeCapacity();
                 if(target)
                 {
@@ -659,10 +677,27 @@ ColonyCollectPower=function(colony)
                         colony.haulerpool.splice(i,1);
                     }
                 }
-                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER);
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER,{},colony.haulersensus);
             }
-
-            if(room && !(pickup || ruin || target))
+            let threatend = false;
+            room.find(FIND_TOMBSTONES).forEach((t) => {
+                if(t.store.getUsedCapacity(RESOURCE_ENERGY) > 100)
+                {
+                    threatend = true;
+                }
+            })
+            let inDanger = false;
+            if(threatend)
+            {
+                room.find(FIND_CREEPS).forEach((c) =>
+                {
+                    if (!c.my)
+                    {
+                        inDanger = true;
+                    }
+                })
+            }
+            if(inDanger || (room && !(pickup || ruin || target)))
             {
                 exp.finishingUp = true;
             }

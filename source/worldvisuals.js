@@ -1,3 +1,5 @@
+let LastTickBucket = 0;
+
 worldVisuals=function()
 {
     if (Game.flags["Colony"])
@@ -162,6 +164,8 @@ worldVisuals=function()
         let cpuusage = Game.cpu.getUsed() / Game.cpu.tickLimit*10;
         let limit = Game.cpu.limit/Game.cpu.tickLimit *10;
         let bucket = Game.cpu.bucket / 10000*10
+        let bucketDelta = bucket - LastTickBucket;
+        LastTickBucket = bucket;
         let maxUsage = (Game.cpu.tickLimit-Game.cpu.limit) / 10000 * 10
         
         //Drawing
@@ -177,7 +181,8 @@ worldVisuals=function()
             vis.line(barpos.x,barpos.y+2,barpos.x+limit,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
             vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+10,barpos.y+1,{color:"#FFFFFF",opacity:1,width:0.05})
             vis.line(barpos.x+maxUsage,barpos.y+2,barpos.x+maxUsage,barpos.y+3,{color:"#FFFFFF",opacity:1,width:0.05})
-            vis.text((bucket).toFixed(2) + "k/10k",barpos.x+9.85,barpos.y+2.85,{align:"right"})
+            vis.text((bucket).toFixed(3) + "k/10k",barpos.x+9.85,barpos.y+2.85,{align:"right"})
+            vis.text((bucketDelta > 0 ? "+" : "") + (bucketDelta).toFixed(4) + "k",barpos.x+10.20,barpos.y+2.85,{align:"left",color:((bucketDelta > 0 ? "#88FF88" : "#FF8888"))});
         } 
     }
 

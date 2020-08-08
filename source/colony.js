@@ -382,6 +382,13 @@ ColonyLookForPower = function(colony)
             attractivness *= timeLeft < 3000 ? 0 : (timeLeft - 3000) / 1000; // 0 -> 1.5 
             attractivness *= distance == 1 ? 5 : (10-distance) / 10 + 0.5;
 
+            vRoom.find(FIND_CREEPS).forEach((c) =>{
+                if(!c.my)
+                {
+                    attractivness = 0;
+                }
+            })
+
             console.log("Found Power in " + vRoom.name + " time left: " + timeLeft + " quality: " + quality + " distance: " + distance + " slots: " + slots + " attractiveness: " + attractivness);
             if(attractivness > 0.5)
             {

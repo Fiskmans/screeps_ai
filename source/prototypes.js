@@ -29,6 +29,13 @@ Creep.prototype.dumbHarvest=function()
             this.travelTo(this.room.storage);
             return
         }
+        else if(err == ERR_FULL)
+        {
+            if(this.store.getUsedCapacity(RESOURCE_ENERGY) < 50)
+            {
+                err = this.transfer(this.room.storage,ExtractContentOfStore(this.store)[0]);
+            }
+        }
         else if(err == OK)
         {
             return

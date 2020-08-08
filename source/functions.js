@@ -844,6 +844,10 @@ digMine=function(colony,miningSpot)
                 {
                     return;
                 }
+                else if(!room.storage || room.storage.store.getFreeCapacity() < 100000)
+                {
+                    return;
+                }
                 else
                 {
                     if (miningSpot.target) 
@@ -934,7 +938,7 @@ digMine=function(colony,miningSpot)
                     if (miningSpot.time % MINE_LINK_TRANSFERRATE == 0) 
                     {
                         let link = Game.getObjectById(miningSpot.link)
-                        if (link) 
+                        if (link)
                         {
                             creep.transfer(link,RESOURCE_ENERGY);
                         }
@@ -980,7 +984,8 @@ digMine=function(colony,miningSpot)
                 
             }
         })
-        if (needReplacement) {
+        if (needReplacement) 
+        {
             let room = Game.rooms[colony.pos.roomName]
             if (room) 
             {
@@ -988,7 +993,32 @@ digMine=function(colony,miningSpot)
                 {
                     if (miningSpot.link) 
                     {
-                        spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINER)
+                        let boost = 0;
+                        if(Memory.boostedSource[miningSpot.target])
+                        {
+                            boost = Memory.boostedSource[miningSpot.target];
+                        }
+                        switch(boost)
+                        {
+                            case 0:
+                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINER)
+                                break;
+                            case 1:
+                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST1)
+                                break;
+                            case 2:
+                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST2)
+                                break;
+                            case 3:
+                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST3)
+                                break;
+                            case 4:
+                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST4)
+                                break;
+                            case 5:
+                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST5)
+                                break;
+                        }
                     }
                     else
                     {
@@ -1086,7 +1116,7 @@ applyFlags=function()
                         if (pos.x == pos2.x && pos.y == pos2.y && pos.roomName == pos2.roomName) 
                         {
                             console.log("removing road number " + wayIndex + " from " + colony.pos.roomName);
-                            colony.miningSpots.splice(wayIndex,1);
+                            colony.highways.splice(wayIndex,1);
                             break;
                         }
                     }
@@ -1495,7 +1525,7 @@ deleteAllDead=function()
     }
         
 }
-spawnRoleIntoList=function(room,list,role,options={})
+spawnRoleIntoList=function(room,list,role,options={},additionalList)
 {
     if (typeof(room) == 'string') {
         room = Game.rooms[room];
@@ -1503,15 +1533,15 @@ spawnRoleIntoList=function(room,list,role,options={})
             return;
         }
     }
-    let worth = room.energyCapacityAvailable * 0.1; //wont create creep with a body thats much lower than current max i.e no [work carry move] when the cap is 6000
+    let minWorth = room.energyCapacityAvailable * 0.1; //wont create creep with a body thats much lower than current max i.e no [work carry move] when the cap is 6000
     
     if (list.length < 1) {
-        worth = 0; // we need more creeps to function override the cap
+        minWorth = 0; // we need more creeps to function override the cap
     }
     let body = false;
     for(let build of BODIES[role])
     {
-        if (build.cost >= worth && build.cost <= room.energyAvailable) 
+        if (build.cost >= minWorth && build.cost <= room.energyAvailable) 
         {
             body = build.body;
         }
@@ -1542,6 +1572,10 @@ spawnRoleIntoList=function(room,list,role,options={})
                 code = s.spawnCreep(body,ROLE_PREFIXES[role] + Memory.creepid,options);
                 if (code == OK) {
                     list.push(ROLE_PREFIXES[role] + Memory.creepid);
+                    if(additionalList)
+                    {
+                        additionalList.push(ROLE_PREFIXES[role] + Memory.creepid);
+                    }
                     s.spawning = true;
                     Memory.creepid += 1;
                 }
@@ -2349,9 +2383,75 @@ PowerCreeps=function()
                     matilda.travelTo(matilda.room.powerSpawn);
                 }
             }
-            else if(!matilda.pos.isNearTo(matilda.room.controller))
+            else
             {
-                matilda.travelTo(matilda.room.controller);
+                let didSomething = false;
+                if(matilda.room.controller && matilda.room.controller.my)
+                {
+                    if(matilda.room.controller.isPowerEnabled)
+                    {
+                        let sources = matilda.room.find(FIND_SOURCES);
+                        sources.forEach((s) =>
+                        {
+                            if(!didSomething)
+                            {
+                                let has = false;
+                                let timeLeft = 0;
+                                if(s.effects)
+                                {
+                                    s.effects.forEach((e) =>
+                                    {
+                                        if (e.effect == PWR_REGEN_SOURCE)
+                                        {
+                                            has = true;
+                                            timeLeft = e.ticksRemaining;
+                                        }
+                                    });
+                                }
+                                if(!has || timeLeft < 15)
+                                {
+                                    didSomething = true;
+                                    matilda.say("Boosting");
+                                    let err = matilda.usePower(PWR_REGEN_SOURCE,s);
+                                    switch(err)
+                                    {
+                                        case OK:
+                                            if(!Memory.boostedSource) { Memory.boostedSource = {}}
+                                            Memory.boostedSource[s.id] = matilda.powers[PWR_REGEN_SOURCE].level;
+                                            break;
+                                        case ERR_TIRED:
+                                            matilda.say("Out of sync");
+                                            break;
+                                        case ERR_NOT_IN_RANGE:
+                                            matilda.say("Moving");
+                                            matilda.travelTo(s);
+                                            break;
+                                    }
+                                }
+                            }
+                        })
+                    }
+                    else
+                    {
+                        matilda.travelTo(matilda.room.controller);
+                        matilda.enableRoom(matilda.room.controller);
+                        didSomething = true;
+                    }
+                }
+                if(!didSomething)
+                {
+                    matilda.say("Idle");
+
+                    let target = matilda.room.controller;
+                    if (Game.flags["Matilda_Idle"])
+                    {
+                        target = Game.flags["Matilda_Idle"];
+                    }
+                    if(!matilda.pos.isNearTo(target))
+                    {
+                        matilda.travelTo(target);
+                    }
+                }
             }
         }
     }
