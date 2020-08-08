@@ -227,7 +227,7 @@ battlefrontstages =
                 {
                     GenerateFlowMap(roomname,battlefront.path,creep.pos.roomName);
                 }
-                creep.travelTo(new RoomPosition(25,25,battlefront.path[creep.pos.roomName],{ignoreRoads:true}))
+                creep.travelTo(new RoomPosition(25,25,battlefront.path[creep.pos.roomName],{ignoreRoads:true,maxOps:100}))
             }
         })
         
@@ -388,7 +388,7 @@ battlefrontstages =
                             {
                                 GenerateFlowMap(roomname,battlefront.path,creep.pos.roomName);
                             }
-                            creep.travelTo(new RoomPosition(25,25,battlefront.path[creep.pos.roomName],{ignoreRoads:true}))
+                            creep.travelTo(new RoomPosition(25,25,battlefront.path[creep.pos.roomName],{ignoreRoads:true,maxOps:100}))
                         }
                     }
                 }
@@ -454,7 +454,7 @@ battlefrontstages =
                         battlefront.wasted += BODYPART_COST[p.type];
                     })
                 }
-                if ((creep.hitsMax - creep.hits < 150 || towercount == 0) && room) 
+                if ((creep.hitsMax - creep.hits < 450 || towercount == 0) && room) 
                 {
                     if (creep.pos.roomName != roomname) 
                     {
@@ -464,7 +464,16 @@ battlefrontstages =
                             {
                                 GenerateFlowMap(roomname,battlefront.path,creep.pos.roomName);
                             }
-                            creep.travelTo(new RoomPosition(25,25,battlefront.path[creep.pos.roomName],{ignoreRoads:true}))
+                            let tarRoom = battlefront.path[creep.pos.roomName];
+                            creep.say(roomname);
+                            if(creep.memory.targetPos)
+                            {
+                                creep.travelTo(new RoomPosition(creep.memory.targetPos.x,creep.memory.targetPos.y,creep.memory.targetPos.roomName,{ignoreRoads:true}))
+                            }
+                            else
+                            {
+                                creep.travelTo(new RoomPosition(25,25,roomname,{ignoreRoads:true,maxOps:1000}))
+                            }
                         }
                         else
                         {
@@ -483,50 +492,31 @@ battlefrontstages =
                             }
                             else
                             {
-                                
-                                let target = new RoomPosition(battlefront.maintarget.pos.x,battlefront.maintarget.pos.y,battlefront.maintarget.pos.roomName)
-                                let path = room.findPath(creep.pos,target);
-                                let canReach = false;
-                                if( !path.length || !target.isEqualTo(path[path.length - 1]) )
+                                creep.say("havoc");
+                                let struct = creep.pos.findClosestByPath(FIND_STRUCTURES);
+                                if(struct)
                                 {
-                                    canReach = true;
-                                }
-                                if (canReach)
-                                {
-                                    creep.say("main")
-                                    let obj = Game.getObjectById(battlefront.maintarget.id)
-                                    if (obj) 
+                                    let err = creep.dismantle(struct);
+                                    if(err == ERR_NOT_IN_RANGE)
                                     {
-                                        creep.dismantle(obj);
-                                    }
-                                }
-                                else
-                                {
-                                    if (battlefront.secondary) 
-                                    {
-                                        battlefront.secondary.forEach((t) =>
-                                        {
-                                            if(!creep.hasActed)
-                                            {
-                                                let target = Game.getObjectById(t.id)
-                                                if (prio && creep.pos.inRangeTo(t.pos.x,t.pos.y))
-                                                {
-                                                    creep.dismantle(target);
-                                                }
-                                                else
-                                                {
-                                                    if (creep.travelTo(new RoomPosition(t.pos.x,t.pos.y,t.pos.roomName)) == ERR_NO_PATH)
-                                                    {
-                                                        creep.say("secondary")
-                                                        creep.hasActed = true;
-                                                    }
-                                                }
-                                            }
-                                        })
+                                        creep.travelTo(struct);
+                                        creep.memory.targetPos = struct.pos;
                                     }
                                 }
                             }
-                            
+                        }
+                        else
+                        {    
+                            let struct = creep.pos.findClosestByPath(FIND_STRUCTURES);
+                            if(struct)
+                            {
+                                let err = creep.dismantle(struct);
+                                if(err == ERR_NOT_IN_RANGE)
+                                {
+                                    creep.travelTo(struct);
+                                    creep.memory.targetPos = struct.pos;
+                                }
+                            }
                         }
                     }
                 }
