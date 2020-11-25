@@ -25,3 +25,5 @@ require('warCode')
 require('warVisuals')
 
 require('grafana')
+
+require('flags')

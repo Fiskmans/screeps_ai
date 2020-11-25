@@ -304,9 +304,17 @@ GuardSpawningColony=function(colony)
         if (colony.guards.length < 1) 
         {
             let room = Game.rooms[colony.pos.roomName];
-            if (room.spawns().length == 0) 
+            if(!room)
+            {
+                return;
+            }
+            if (room.spawns.length == 0) 
             {
                 let closest = FindClosestColony(colony.pos.roomName);
+                if(!closest)
+                {
+                    return;
+                }
                 room = Game.rooms[closest.pos.roomName];
             }
             if (room) {

@@ -67,9 +67,9 @@ ROLE_PREFIXES = {
 TARGET_WORKER_COUNT = [
     0,
     9, //1
-    6, //2
-    3, //3
-    3, //4
+    9, //2
+    6, //3
+    4, //4
     3, //5
     2, //6
     1, //7
@@ -268,7 +268,8 @@ MinimumSellingPrice =
     [RESOURCE_GHODIUM]:                     1.0,
     [RESOURCE_GHODIUM_MELT]:                2.0,
 
-    [RESOURCE_MIST]:                        3.5
+    [RESOURCE_MIST]:                        3.5,
+    [RESOURCE_CONDENSATE]:                  50
 
 }
 

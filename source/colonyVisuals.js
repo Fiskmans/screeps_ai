@@ -32,8 +32,10 @@ drawColony=function(colony,vis)
         
         let visuals = []
         visuals.push(vis)
+        let roadPanels = [];
         for(let h in colony.highways)
         {
+            roadPanels.push([])
             let highway = colony.highways[h]
             for(let p in highway.path)
             {
@@ -41,6 +43,13 @@ drawColony=function(colony,vis)
                 if (_.last(visuals).roomName != pos.roomName) 
                 {
                     visuals.push(new RoomVisual(pos.roomName))
+                }
+                else
+                {
+                    if(p < highway.path.length/2)
+                    {
+                        roadPanels[h] = [pos.x,pos.y];
+                    }
                 }
                 let roadroom = Game.rooms[pos.roomName];
                 let road = false;
@@ -97,7 +106,7 @@ drawColony=function(colony,vis)
             vis.stock(colony.pos.x - 10,colony.pos.y+2,room.factory,{scale:0.7,name:"Factory"})
             if(room.factory.cooldown > 0)
             {
-                vis.Timer(room.terminal.pos.x,room.terminal.pos.yroom.factory.cooldown,20,{scale:0.7,color:"#FFFF00"})
+                vis.Timer(room.terminal.pos.x,room.terminal.pos.y,room.factory.cooldown,20,{scale:0.7,color:"#FFFF00"})
             }
         }
         if(colony.crafting)

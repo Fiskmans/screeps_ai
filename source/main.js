@@ -45,6 +45,11 @@ module.exports.loop = function()
       marketTracking()
     }
     UpdateGrafanaStats();
+
+    if(Game.cpu.bucket > 9900)
+    {
+      Game.cpu.generatePixel();
+    }
 })
     
         

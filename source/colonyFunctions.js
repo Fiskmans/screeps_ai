@@ -316,7 +316,7 @@ ColonyRestock=function(colony,stockto,target,rolename,source)
                 {
                     let res = Object.keys(missing)[0];
                     creep.say("⬇️ "+ res + " ⬇️");
-                    if(creep.withdraw(source, res) == ERR_NOT_IN_RANGE)
+                    if(creep.withdraw(source, res,Math.max(creep.store.getFreeCapacity(res),store.getFreeCapacity(res))) == ERR_NOT_IN_RANGE)
                     {
                         creep.travelTo(source)
                     }
