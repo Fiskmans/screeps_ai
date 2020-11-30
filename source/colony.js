@@ -32,7 +32,6 @@ colonyStart=function(colony)
         colonyLogic[0](colony);
         return;
     }
-    maintainColony(colony)
     colonyHighways(colony)
     colonyMiningSpots(colony)
     drawColony(colony)
@@ -201,7 +200,20 @@ colonyConstruct=function(colony)
                     }
                     else
                     {
-                        let code = creep.build(construction)
+                        let code;
+                        if (construction instanceof Structure) 
+                        {
+                            code = creep.do("repair",construction)
+                            if (construction.hits == construction.hitsMax) 
+                            {    
+                                delete colony.constructionsite
+                            }
+                        }
+                        else
+                        {
+                            code = creep.do("build",construction)
+                        }
+                        
                         if (code == ERR_NOT_IN_RANGE) 
                         {
                             creep.travelTo(construction)
@@ -337,7 +349,7 @@ GuardSpawningColony=function(colony)
                 }
                 else
                 {
-                    creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),{movingTarget:true})
+                    creep.travelTo(new RoomPosition(colony.pos.x-1,colony.pos.y-1,colony.pos.roomName),{movingTarget:true})
                 }
             }
         })

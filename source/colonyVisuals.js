@@ -1,18 +1,30 @@
 drawColony=function(colony,vis)
 {
     let room = Game.rooms[colony.pos.roomName];
-    if (room && Memory.rooms && Memory.rooms[room.name] && (Game.time - Memory.rooms[room.name].lastViewed < 10)) 
+    if (true) 
     {
         if(!vis) {vis = new RoomVisual(colony.pos.roomName)}
-        //vis.blocked(getBlocked(colony.pos.x,colony.pos.y,colony.pos.roomName,layout.structures[7]),{fill:"#FF0000"})
-        let missing = findMissing(colony.pos.x,colony.pos.y,colony.pos.roomName, layout.structures[Game.rooms[colony.pos.roomName].controller.level])
-        if (missing) {
-            vis.plan(colony.pos.x,colony.pos.y,missing)
-            let prio = Priorotized(colony.pos.x,colony.pos.y,colony.pos.roomName,missing)
-            if (prio && prio.pos) {
-                vis.circle(prio.pos.x,prio.pos.y,{fill:"#00FF00",opacity:0.2,radius:0.8})
-            }
-        }
+
+        let pos = colony.pos;
+        let center = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
+
+        //if(colony.layout)
+        //{
+        //    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+        //    SetupMatrix(buildings);
+//
+        //    let mat = BuildingPathingMap(colony.pos.roomName);
+        //    if(mat)
+        //    {
+        //        vis.DrawMatrix(mat);
+        //        
+        //        var pathToCore = PathFinder.search(new RoomPosition(11,32,center.roomName),[{pos:center,range:0}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+        //        
+        //        vis.poly(pathToCore.path,{fill:"#00000000",stroke:"#FF0000"})
+        //    }
+        //}
+        
+        
         
         for(let miningSpot in colony.miningSpots)
         {
@@ -80,16 +92,16 @@ drawColony=function(colony,vis)
         
         if (room.storage) 
         {
-            vis.stock(colony.pos.x + 12,colony.pos.y+2,room.storage,{scale:0.7,name:"Storage"})
+            vis.stock(pos.x + 12,pos.y+2,room.storage,{scale:0.7,name:"Storage"})
         }
         if(room.terminal)
         {
-            vis.stock(colony.pos.x - 5.4,colony.pos.y+2,room.terminal,{scale:0.7,name:"Terminal"})
+            vis.stock(pos.x - 5.4,pos.y+2,room.terminal,{scale:0.7,name:"Terminal"})
             if(colony.selling.length > 0)
             {
-                vis.text("📦",colony.pos.x-5.2,colony.pos.y+1.3);
-                let x = colony.pos.x - 4.5
-                let y = colony.pos.y + 1.2
+                vis.text("📦",pos.x-5.2,pos.y+1.3);
+                let x = pos.x - 4.5
+                let y = pos.y + 1.2
                 colony.selling.forEach((r) =>
                 {
                     vis.symbol(x,y,r,{scale:0.5})
@@ -103,7 +115,7 @@ drawColony=function(colony,vis)
         }
         if(room.factory)
         {
-            vis.stock(colony.pos.x - 10,colony.pos.y+2,room.factory,{scale:0.7,name:"Factory"})
+            vis.stock(pos.x - 10,pos.y+2,room.factory,{scale:0.7,name:"Factory"})
             if(room.factory.cooldown > 0)
             {
                 vis.Timer(room.terminal.pos.x,room.terminal.pos.y,room.factory.cooldown,20,{scale:0.7,color:"#FFFF00"})
@@ -111,18 +123,18 @@ drawColony=function(colony,vis)
         }
         if(colony.crafting)
         {
-            vis.recipe(colony.pos.x - 6,colony.pos.y - 4,colony.crafting,{radius:1.7,scale:0.7,scalePerLevel:1});
+            vis.recipe(pos.x - 6,pos.y - 4,colony.crafting,{radius:1.7,scale:0.7,scalePerLevel:1});
         }
         let amount = room.energyAvailable / room.energyCapacityAvailable;
-        vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11*amount,1,{fill:"#FFFF00",stroke:"#00000000",opacity:0.6,strokeWidth:0.05})
-        vis.rect(colony.pos.x-0.5,colony.pos.y-2.5,11,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
-        vis.text((room.energyAvailable + "/" + room.energyCapacityAvailable),colony.pos.x+0.5,colony.pos.y-2.8,{align:"left"})
-        vis.symbol(colony.pos.x,colony.pos.y-3,RESOURCE_ENERGY,{scale:2})
+        vis.rect(pos.x-0.5,pos.y-2.5,11*amount,1,{fill:"#FFFF00",stroke:"#00000000",opacity:0.6,strokeWidth:0.05})
+        vis.rect(pos.x-0.5,pos.y-2.5,11,1,{fill:"#00000000",stroke:"#FFFFFF",opacity:1,strokeWidth:0.05})
+        vis.text((room.energyAvailable + "/" + room.energyCapacityAvailable),pos.x+0.5,pos.y-2.8,{align:"left"})
+        vis.symbol(pos.x,pos.y-3,RESOURCE_ENERGY,{scale:2})
 
         {
             let target = TARGET_WORKER_COUNT[colony.level];
             let count = colony.workersensus.length;
-            vis.text("🧱" + count + "/" + target,colony.pos.x-0.5,colony.pos.y-0.75,{align:'left',color:"#FFFFFF"});
+            vis.text("🧱" + count + "/" + target,pos.x-0.5,pos.y-0.75,{align:'left',color:"#FFFFFF"});
         }
 
         {
@@ -133,8 +145,12 @@ drawColony=function(colony,vis)
             {
                 target /= 2;
             }
-            let count = colony.haulersensus.length;
-            vis.text(count + "/" + target + "📦",colony.pos.x+10.5,colony.pos.y-0.75,{align:'right',color:"#FFFFFF"});
+            let count = 0;
+            if(colony.haulersensus)
+            {
+                count += colony.haulersensus.length;
+            }
+            vis.text(count + "/" + target + "📦",pos.x+10.5,pos.y-0.75,{align:'right',color:"#FFFFFF"});
         }
 
         let minerals = room.find(FIND_MINERALS);

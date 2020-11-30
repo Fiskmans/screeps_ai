@@ -1311,9 +1311,12 @@ makeTerrainMap=function(roomName)
 
 maintainall=function(colony)
 {
-    for(let highway of colony.highways)
+    if(Memory.mainColony == colony.pos.roomName)
     {
-        maintain(highway,colony)
+        for(let highway of colony.highways)
+        {
+            maintain(highway,colony)
+        }
     }
 }
 
@@ -1352,112 +1355,230 @@ maintainColony=function(colony)
 {
     if (Game.time - colony.lastmaintained > COLONY_MAINTAIN_INTERVAL) 
     {
-        let room = Game.rooms[colony.pos.roomName]
-        if(!room) 
-        {
-            Game.notify("No vision on colony " + colony.pos.roomName); 
-            return
+        if(Memory.mainColony == colony.pos.roomName)
+        {   
+            MaintainColonystatic(colony);
         }
-        if(!colony.at) { colony.at = 0 } //if 'at' doesn't resolve start at 0
-        if(!colony.worker) { colony.worker = colony.workerpool.shift() } //if no worker take one from the worker pool
-        if(colony.worker) // state can change, cant use an else
+        else
         {
-            let creep = Game.creeps[colony.worker]
-            if(creep)
+            MaintainColonydynamic(colony);
+        }
+    }
+}
+
+MaintainColonystatic=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName]
+    if(!room) 
+    {
+        Game.notify("No vision on colony " + colony.pos.roomName); 
+        return
+    }
+    if(!colony.at) { colony.at = 0 } //if 'at' doesn't resolve start at 0
+    if(!colony.worker) { colony.worker = colony.workerpool.shift() } //if no worker take one from the worker pool
+    if(colony.worker) // state can change, cant use an else
+    {
+        let creep = Game.creeps[colony.worker]
+        if(creep)
+        {
+            if (creep.memory.harvesting) 
             {
-                if (creep.memory.harvesting) 
+                creep.dumbHarvest()
+            }
+            else
+            {
+                let dx = colony.at%11
+                let dy = Math.floor(colony.at/11)
+                if(dy >= layout.structures[room.controller.level].length) //if one past the last reset and reset maintain timer 
                 {
-                    creep.dumbHarvest()
+                    colony.at = false
+                    colony.workerpool.push(colony.worker)
+                    colony.worker = false
+                    colony.lastmaintained = Game.time
+                    return;
+                }
+                
+                let pos = {x:colony.pos.x + dx,y:colony.pos.y + dy,roomName:colony.pos.roomName}
+                let wantedstruct = layout.structures[room.controller.level][dy][dx]
+                if(!wantedstruct) 
+                {
+                    colony.at += 1
                 }
                 else
                 {
-                    let dx = colony.at%11
-                    let dy = Math.floor(colony.at/11)
-                    if(dy >= layout.structures[room.controller.level].length) //if one past the last reset and reset maintain timer 
+                    if (creep.pos.roomName != pos.roomName || creep.pos.getRangeTo(pos.x,pos.y) > 2) // path to current structure
                     {
-                        colony.at = false
-                        colony.workerpool.push(colony.worker)
-                        colony.worker = false
-                        colony.lastmaintained = Game.time
-                        return;
+                        creep.travelTo(new RoomPosition(pos.x,pos.y,pos.roomName))
                     }
-                    
-                    let pos = {x:colony.pos.x + dx,y:colony.pos.y + dy,roomName:colony.pos.roomName}
-                    let wantedstruct = layout.structures[room.controller.level][dy][dx]
-                    if(!wantedstruct) 
-                    {
-                        colony.at += 1
-                    }
-                    else
-                    {
-                        if (creep.pos.roomName != pos.roomName || creep.pos.getRangeTo(pos.x,pos.y) > 2) // path to current structure
+                    let struct = false
+                    if (room) {
+                        let structures = room.lookForAt(LOOK_STRUCTURES,pos.x,pos.y) //look for structure object
+                        for (let s of structures)
                         {
-                            creep.travelTo(new RoomPosition(pos.x,pos.y,pos.roomName))
-                        }
-                        let struct = false
-                        if (room) {
-                            let structures = room.lookForAt(LOOK_STRUCTURES,pos.x,pos.y) //look for structure object
-                            for (let s of structures)
+                            if (s.structureType == wantedstruct) 
                             {
-                                if (s.structureType == wantedstruct) 
+                                struct = s;
+                                break;
+                            }
+                        }
+                        if (!struct) 
+                        {
+                            let constructions = room.lookForAt(LOOK_CONSTRUCTION_SITES,pos.x,pos.y) //look for constructionssite
+                            for(let c of constructions)
+                            {
+                                if (c instanceof ConstructionSite) 
                                 {
-                                    struct = s;
-                                    break;
+                                    struct = c
                                 }
                             }
                             if (!struct) 
                             {
-                                let constructions = room.lookForAt(LOOK_CONSTRUCTION_SITES,pos.x,pos.y) //look for constructionssite
-                                for(let c of constructions)
+                                let stored = 0;
+                                let cost = CONSTRUCTION_COST[wantedstruct]
+                                if (room.storage) 
                                 {
-                                    if (c instanceof ConstructionSite) 
-                                    {
-                                        struct = c
-                                    }
+                                    stored = room.storage.store.getUsedCapacity(RESOURCE_ENERGY)
                                 }
-                                if (!struct) 
+                                
+                                
+                                if (cost > stored) 
                                 {
-                                    let stored = 0;
-                                    let cost = CONSTRUCTION_COST[wantedstruct]
-                                    if (room.storage) 
-                                    {
-                                        stored = room.storage.store.getUsedCapacity(RESOURCE_ENERGY)
-                                    }
-                                    
-                                    
-                                    if (cost > stored) 
-                                    {
-                                        console.log("waiting to build " + wantedstruct + " until enough is stored")
-                                        colony.at++;
-                                        return;
-                                    }
-                                    console.log("started building " + wantedstruct + " at " + pos.x + " " + pos.y + " " + pos.roomName);
-                                    console.log("cost: " + cost)
-                                    console.log("stored: " +  stored)
-                                    new RoomPosition(pos.x,pos.y,pos.roomName).createConstructionSite(wantedstruct)
+                                    console.log("waiting to build " + wantedstruct + " until enough is stored")
+                                    colony.at++;
+                                    return;
                                 }
+                                console.log("started building " + wantedstruct + " at " + pos.x + " " + pos.y + " " + pos.roomName);
+                                console.log("cost: " + cost)
+                                console.log("stored: " +  stored)
+                                new RoomPosition(pos.x,pos.y,pos.roomName).createConstructionSite(wantedstruct)
                             }
-                        }
-                        if (struct instanceof Structure) //repair if road build if construction
-                        {
-                            creep.do("repair",struct)
-                            if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
-                            {    
-                                colony.at += 1
-                            }
-                        }
-                        else
-                        {
-                            creep.do("build",struct)
                         }
                     }
+                    if (struct instanceof Structure) //repair if road build if construction
+                    {
+                        creep.do("repair",struct)
+                        if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
+                        {    
+                            colony.at += 1
+                        }
+                    }
+                    else
+                    {
+                        creep.do("build",struct)
+                    }
                 }
-                creep.updateHarvestState()
+            }
+            creep.updateHarvestState()
+        }
+        else
+        {
+            colony.worker = false
+        }
+    }
+}
+
+MaintainColonydynamic=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName]
+    if(!room) 
+    {
+        Game.notify("No vision on colony " + colony.pos.roomName); 
+        return
+    }
+    if(!colony.at) { colony.at = 0 } //if 'at' doesn't resolve start at 0
+    if(!colony.worker) { colony.worker = colony.workerpool.shift() } //if no worker take one from the worker pool
+    if(colony.worker) // state can change, cant use an else
+    {
+        let creep = Game.creeps[colony.worker]
+        if(creep)
+        {
+            if (creep.memory.harvesting) 
+            {
+                creep.dumbHarvest()
             }
             else
             {
-                colony.worker = false
+                if(colony.at >= colony.layout.length/3) //if one past the last reset and reset maintain timer 
+                {
+                    colony.at = false
+                    colony.workerpool.push(colony.worker)
+                    colony.worker = false
+                    colony.lastmaintained = Game.time
+                    return;
+                }
+                let building = colony.layout.charAt(colony.at*3);
+                let x = colony.layout.charAt(colony.at*3+1);
+                let y = colony.layout.charAt(colony.at*3+2);
+
+                let pos = new RoomPosition(BAKED_COORD["Decode"][x], BAKED_COORD["Decode"][y], colony.pos.roomName);
+                let wantedstruct = CHAR_STRUCTURE[building]
+
+                if (creep.pos.roomName != pos.roomName || creep.pos.getRangeTo(pos.x,pos.y) > 2) // path to current structure
+                {
+                    creep.travelTo(pos)
+                }
+                let struct = false
+                if (room) {
+                    let structures = pos.lookFor(LOOK_STRUCTURES) //look for structure object
+                    for (let s of structures)
+                    {
+                        if (s.structureType == wantedstruct) 
+                        {
+                            struct = s;
+                            break;
+                        }
+                    }
+                    if (!struct) 
+                    {
+                        let constructions = pos.lookFor(LOOK_CONSTRUCTION_SITES) //look for constructionssite
+                        for(let c of constructions)
+                        {
+                            if (c instanceof ConstructionSite) 
+                            {
+                                struct = c
+                            }
+                        }
+                        if (!struct) 
+                        {
+                            let stored = 0;
+                            let cost = CONSTRUCTION_COST[wantedstruct]
+                            if (room.storage) 
+                            {
+                                stored = room.storage.store.getUsedCapacity(RESOURCE_ENERGY)
+                            }
+                            
+                            
+                            if (cost > stored) 
+                            {
+                                console.log("waiting to build " + wantedstruct + " until enough is stored")
+                                colony.at += 1;
+                                return;
+                            }
+                            console.log("started building " + wantedstruct + "(" + building + ") at " + pos.x + " " + pos.y + " " + pos.roomName);
+                            console.log("cost: " + cost)
+                            console.log("stored: " +  stored)
+                            pos.createConstructionSite(wantedstruct)
+                        }
+                    }
+                }
+                if (struct instanceof Structure) //repair if road build if construction
+                {
+                    creep.do("repair",struct)
+                    if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
+                    {    
+                        colony.at += 1;
+                    }
+                }
+                else
+                {
+                    creep.do("build",struct)
+                }
             }
+            creep.updateHarvestState()
+        }
+        else
+        {
+            colony.worker = false
         }
     }
 }

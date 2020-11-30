@@ -1,3 +1,19 @@
+/**
+ * Returns a number whose value is limited to the given range.
+ *
+ * Example: limit the output of this computation to between 0 and 255
+ * (x * 255).clamp(0, 255)
+ *
+ * @param {Number} min The lower boundary of the output range
+ * @param {Number} max The upper boundary of the output range
+ * @returns A number in the range [min, max]
+ * @type Number
+ */
+Number.prototype.clamp = function(min, max) 
+{
+    return Math.min(Math.max(this, min), max);
+};
+
 Creep.prototype.do=function(action,target)
 {
     if (typeof(target) === "string") 
@@ -610,6 +626,19 @@ RoomVisual.prototype.plan=function(_x,_y,plan,opt = {})
     }
     return this
 }
+
+RoomVisual.prototype.DrawMatrix=function(matrix)
+{
+    for(let y = 0;y < 50; y++)
+    {
+        for(let x = 0;x < 50; x++)
+        {
+            this.rect(x-0.5,y-0.5,1,1,{fill:"#" + lerpColor(0x00FF00, 0xff0000, (matrix.get(x,y)/255).clamp(0,1))})
+        }
+    }
+    return this
+}
+
 
 RoomVisual.prototype.fluid=function(x,y,type,opt = {})
 {

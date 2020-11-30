@@ -1,4 +1,3 @@
-
 applyFlags=function()
 {
     if (Game.time % 7 != 0) 
@@ -6,6 +5,30 @@ applyFlags=function()
         return;
     }
     let flags = Game.flags;
+
+    if(flags["Unplan"])
+    {
+        let pos = flags["Unplan"].pos;
+        for (let colony of Memory.colonies) 
+        {
+            if(colony.pos.roomName == pos.roomName && colony.layout)
+            {
+                let buildings = DeserializeLayout(colony.layout,pos.roomName);
+                for(let i = 0;i < buildings.length;i++)
+                {
+                    if(buildings[i].pos.x == pos.x && buildings[i].pos.y == pos.y)
+                    {
+                        buildings.splice(i,1);
+                        break;
+                    }
+                }
+                colony.layout = SerializeLayout(buildings);
+                flags["Unplan"].remove();
+                break;
+            }
+        }
+    }
+
     if (flags["HaltWars"]) 
     {
         if (Memory.wars) 

@@ -5,7 +5,7 @@ colonyRetargetFactory=function(room,colony)
 
 ColonyWorkerBehaviour=function(colony)
 {
-    if(!colony.constructionsite || Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < 1000)
+    if(!colony.constructionsite || Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
     {
         ColonyIdleWorkers(colony)
         ColonyFindBuildingWork(colony)
@@ -42,7 +42,7 @@ ColonyRespawnWorkers=function(colony)
     deleteDead(colony.workersensus);
     
     let target = TARGET_WORKER_COUNT[colony.level];
-    let count = colony.workersensus.length;
+    let count = Math.min(colony.workersensus.length,colony.workerpool.length);
 
     let vis = new RoomVisual(colony.pos.roomName);
     vis.text(count + " / " + target,25,3);
@@ -55,7 +55,13 @@ ColonyRespawnWorkers=function(colony)
             let closest = FindClosestColony(colony.pos.roomName);
             if (closest && closest.workerpool.length > 1) 
             {
-                colony.workerpool.push(closest.workerpool.shift())
+                let stolen = closest.workerpool.shift();
+                colony.workerpool.push(stolen);
+                colony.workersensus.push(stolen);
+                closest.workersensus = _.remove(closest.workersensus, function(c) {
+                    return c == stolen;
+                });
+
                 console.log(colony.pos.roomName + " stole a worker from " + closest.pos.roomName)
             }
             else
@@ -155,8 +161,29 @@ ColonyFindMisplaced=function(colony,structureType,layout)
 
 ColonyFindBuildingWork=function(colony)
 {
+    if(Game.time != COLONY_CHECK_BUILDINGS_INTERVAL)
+    {
+        //return;
+    }
+
+    if(Memory.mainColony == colony.pos.roomName)
+    {
+        let room = Game.rooms[colony.pos.roomName];
+        if(room)
+        {
+            ColonyBuildStatic(colony,layout.structures[room.controller.level])
+        }
+    }
+    else
+    {
+        ColonyBuildDynamic(colony);
+    }
+}
+
+ColonyBuildStatic=function(colony,plan)
+{
     let room = Game.rooms[colony.pos.roomName];
-    var missing = findMissing(colony.pos.x,colony.pos.y,colony.pos.roomName,layout.structures[room.controller.level])
+    var missing = findMissing(colony.pos.x,colony.pos.y,colony.pos.roomName,plan)
     var prio = Priorotized(colony.pos.x,colony.pos.y,colony.pos.roomName,missing)
     if (prio) 
     {
@@ -174,7 +201,7 @@ ColonyFindBuildingWork=function(colony)
         {
             if(colony.disTargets.length == 0)
             {
-                let wrong = ColonyFindMisplaced(colony,prio.struct,layout.structures[room.controller.level]);
+                let wrong = ColonyFindMisplaced(colony,prio.struct,plan);
                 if(wrong) 
                 {
                     colony.disTargets.push(wrong.id);
@@ -202,6 +229,285 @@ ColonyFindBuildingWork=function(colony)
         }
     }
 }
+
+DeserializeLayout=function(layoutString,roomName)
+{
+    let layout = [];
+    for(let i = 0; i < layoutString.length - 2; i += 3)
+    {
+        let building = layoutString.charAt(i);
+        let x = layoutString.charAt(i+1);
+        let y = layoutString.charAt(i+2);
+
+        layout.push({structure:CHAR_STRUCTURE[building],pos:new RoomPosition(BAKED_COORD["Decode"][x], BAKED_COORD["Decode"][y], roomName)});
+    }
+    return layout;
+}
+
+SerializeLayout=function(layout)
+{
+    let result = "";
+    layout.forEach((b) =>
+    {
+        result += STRUCTURE_CHAR[b.structure] + BAKED_COORD["Encode"][b.pos.x] + BAKED_COORD["Encode"][b.pos.y];
+    })
+    return result;
+}
+
+ColonyBuildDynamic=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    if(!colony.layout) { colony.layout = ""; }
+
+    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    let unplaced = JSON.parse(JSON.stringify(colonyBuildingsPerLevel[colony.level]))
+
+    let done = false;
+    buildings.forEach((b) =>
+    {
+        if(done)
+        {
+            return;
+        }
+
+        if(unplaced[b.structure]) { unplaced[b.structure] -= 1; } 
+        let structsAt = b.pos.lookFor(LOOK_STRUCTURES);
+        let isThere = false;
+        structsAt.forEach((s) =>
+        {
+            if(s.structureType==b.structure)
+            {
+                isThere = true;
+            }
+        })
+        if(!isThere)
+        {
+            StartBuilding(colony,room,b);
+            done = true;
+            return;
+        }
+    });
+
+    Object.keys(unplaced).forEach((k) =>
+    {
+        if(done)
+        {
+            return;
+        }
+        
+        if(unplaced[k] > 0)
+        {
+            SetupMatrix(buildings)
+            let building = PlanBuilding(buildings,k,colony.pos);
+            if(building)
+            {
+                console.log("Planning a " + building.structure + " at x: " + building.pos.x + " y: " + building.pos.y + " in " + building.pos.roomName)
+                buildings.push(building);
+            }
+            else
+            {
+                Game.notify("Colony in " + colony.pos.roomName + "Cant find a place to place it's next building");
+            }
+            colony.layout = SerializeLayout(buildings);
+            done = true;
+            return;
+        }
+    });
+}
+
+PlanBuilding=function(alreadyPresent, type, centerPos)
+{
+    let TURN_MAP =
+    {
+        [RIGHT]: TOP,
+        [TOP]: LEFT,
+        [LEFT]: BOTTOM,
+        [BOTTOM]: RIGHT
+    }
+    
+    let terrain = new Room.Terrain(centerPos.roomName);  
+
+    let left = 1;
+    let depth = 1;
+    let direction = RIGHT;
+
+    let x = centerPos.x;
+    let y = centerPos.y;
+
+    while(depth < 25)
+    {
+        if(x > 0 || x < 49)
+        {
+            if(y > 0 || y < 49)
+            {
+                if(!IsTaken(alreadyPresent,x,y,true))
+                {
+                    let dx = Math.abs(x - centerPos.x);
+                    let dy = Math.abs(y - centerPos.y);
+                    if(dx != dy)
+                    {
+                        if(IsValidSpot(terrain,alreadyPresent,x,y,centerPos))
+                        {
+                            return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
+                        }
+                    }
+                    if(terrain.get(x,y) != TERRAIN_MASK_WALL)
+                    {
+                        return {structure:STRUCTURE_ROAD,pos:new RoomPosition(x, y, centerPos.roomName)};
+                    }
+                }
+            }
+        }
+
+        x += offsets.x[direction];
+        y += offsets.y[direction];
+        left -= 1;
+        if(left <= 0)
+        {
+            direction = TURN_MAP[direction];
+            left = depth;
+            if(direction == TOP || direction == BOTTOM)
+            {
+                depth += 1;
+            }
+        }
+    }
+    return false;
+}
+
+let BuildingPlannerPathingMatrix = false;
+SetupMatrix=function(buildings)
+{
+    BuildingPlannerPathingMatrix = new PathFinder.CostMatrix();
+
+    for(let y = 0; y < 50;y++)
+    {
+        for(let x = 0; x < 50;x++)
+        {
+            BuildingPlannerPathingMatrix.set(x,y,1000);
+        }
+    }
+
+    buildings.forEach((b) => 
+    {
+        if (b.structure == STRUCTURE_ROAD)
+        {
+            BuildingPlannerPathingMatrix.set(b.pos.x,b.pos.y,1);
+        }
+    })
+}
+
+BuildingPathingMap=function(roomName)
+{
+    if(BuildingPlannerPathingMatrix)
+    {
+        return BuildingPlannerPathingMatrix;
+    }
+    
+    var matrix = new PathFinder.CostMatrix();
+    for(let y = 0; y < 50;y++)
+    {
+        for(let x = 0; x < 50;x++)
+        {
+            matrix.set(x,y,1000);
+        }
+    }
+    return matrix
+}
+
+IsTaken=function(buildings,x,y,countRoads)
+{
+    let isTaken = false;
+    buildings.forEach((b) =>
+    {
+        if((countRoads || b.structure != STRUCTURE_ROAD) && b.pos.x == x && b.pos.y == y)
+        {
+            isTaken = true;
+        }
+    })
+    return isTaken;
+}
+
+IsValidSpot=function(terrain,buildings,x,y,centerPos)
+{
+    var pathToCore = PathFinder.search(centerPos,[{pos:new RoomPosition(x,y,centerPos.roomName),range:1}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+    if (pathToCore.incomplete) 
+    {
+        console.log("position would be inaccessible x:" + x + " y:" + y)
+        return false;
+    }
+
+    if(terrain.get(x,y) == TERRAIN_MASK_WALL)
+    {
+        return false;
+    }
+
+    let blocks = false;
+
+    ALL_DIRECTIONS.forEach((d) =>
+    {
+        if (blocks)
+        {
+            return;
+        }
+
+        let _x = x + offsets.x[d];
+        let _y = y + offsets.y[d];
+        if(IsTaken(buildings,_x,_y,true))
+        {
+            var pathToCore2 = PathFinder.search(centerPos,[{pos:new RoomPosition(_x,_y,centerPos.roomName),range:1}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+            if (pathToCore2.incomplete) 
+            {
+                console.log("would block building at x:" + _x + " y:" + _y)
+                blocks = true;
+            }
+        }
+    })
+
+    console.log("x: " + x + " y: " + y + " blocks: " + blocks);
+    return !blocks;
+}
+
+StartBuilding=function(colony,room,building)
+{
+    if (room.controller && room.controller.level > 5 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < CONSTRUCTION_COST[prio.struct] && Prioroties[prio.struct] > 5) 
+    {
+        return;
+    }
+    let err = building.pos.createConstructionSite(building.structure);
+    if (err == OK)
+    {
+        console.log("Starting work on " + building.structure + " at " + building.pos.x + " " + building.pos.y + " " + building.pos.roomName)
+        colony.constructionsite = building.pos
+    }
+    else if(err == ERR_RCL_NOT_ENOUGH)
+    {
+        if(colony.disTargets.length == 0)
+        {
+            Game.notify("Need to implement finding for wrongly placed buildings with revamped building code");
+        }
+    }
+    else if (err == ERR_INVALID_TARGET)
+    {
+        building.pos.look().forEach((thing) =>
+        {
+            if(thing.type == 'structure')
+            {
+                colony.disTargets.push(thing.structure.id);
+            }
+        });
+    }
+    else
+    {
+        console.log("Could not create constructionsite got unkown error: " + err);
+    }
+}
+
 
 ColonyRetargetSelling=function(colony)
 {

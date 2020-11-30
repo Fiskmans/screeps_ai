@@ -21,6 +21,7 @@ colonyLogic=
         BasicHaulersAndMiners(colony)
         digAllMines(colony);
         colonyDismantle(colony)
+        maintainColony(colony)
     },
     //level 3
     3:function(colony)
@@ -80,6 +81,7 @@ colonyLogic=
         ColonyRetargetFactory(colony);
         ColonyCrafting(colony);
         maintainall(colony)
+        maintainColony(colony)
         ColonyDismantleAll(colony);
         ColonyLookForPower(colony);
         ColonyCollectPower(colony);

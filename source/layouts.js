@@ -85,9 +85,9 @@ Priorotized=function(_x,_y,roomName,plan)
             }
         }
     }
-    if (lowestprio < 10000000) {
-    return ret
-        
+    if (lowestprio < 10000000) 
+    {
+        return ret
     }
 }
 
@@ -108,6 +108,101 @@ Prioroties =
     [STRUCTURE_ROAD]:       13,
     [STRUCTURE_WALL]:       14,
     [STRUCTURE_RAMPART]:    15
+}
+
+STRUCTURE_CHAR = 
+{
+    [STRUCTURE_SPAWN]: "a",
+    [STRUCTURE_EXTENSION]: "b",
+    [STRUCTURE_ROAD]: "c",
+    [STRUCTURE_WALL]: "d",
+    [STRUCTURE_RAMPART]: "e",
+    [STRUCTURE_LINK]: "f",
+    [STRUCTURE_STORAGE]: "g",
+    [STRUCTURE_TOWER]: "h",
+    [STRUCTURE_OBSERVER]: "i",
+    [STRUCTURE_POWER_SPAWN]: "j",
+    [STRUCTURE_LAB]: "k",
+    [STRUCTURE_TERMINAL]: "l",
+    [STRUCTURE_CONTAINER]: "m",
+    [STRUCTURE_NUKER]: "n",
+    [STRUCTURE_FACTORY]: "o"
+}
+
+CHAR_STRUCTURE = 
+{
+    "a": STRUCTURE_SPAWN,
+    "b": STRUCTURE_EXTENSION,
+    "c": STRUCTURE_ROAD,
+    "d": STRUCTURE_WALL,
+    "e": STRUCTURE_RAMPART,
+    "f": STRUCTURE_LINK,
+    "g": STRUCTURE_STORAGE,
+    "h": STRUCTURE_TOWER,
+    "i": STRUCTURE_OBSERVER,
+    "j": STRUCTURE_POWER_SPAWN,
+    "k": STRUCTURE_LAB,
+    "l": STRUCTURE_TERMINAL,
+    "m": STRUCTURE_CONTAINER,
+    "n": STRUCTURE_NUKER,
+    "o": STRUCTURE_FACTORY         
+}
+
+colonyBuildingsPerLevel =
+{
+    0: {},
+    1: {
+        [STRUCTURE_SPAWN]: 1
+    },
+    2: {
+        [STRUCTURE_SPAWN]: 1,
+        [STRUCTURE_EXTENSION]: 5
+    },
+    3: {
+        [STRUCTURE_SPAWN]: 1,
+        [STRUCTURE_TOWER]: 1,
+        [STRUCTURE_EXTENSION]: 10
+    },
+    4: {
+        [STRUCTURE_SPAWN]: 1,
+        [STRUCTURE_TOWER]: 1,
+        [STRUCTURE_EXTENSION]: 20,
+        [STRUCTURE_STORAGE]: 1
+    },
+    5: {
+        [STRUCTURE_SPAWN]: 1,
+        [STRUCTURE_TOWER]: 2,
+        [STRUCTURE_EXTENSION]: 30,
+        [STRUCTURE_STORAGE]: 1,
+        [STRUCTURE_LINK]: 1
+    },
+    6: {
+        [STRUCTURE_SPAWN]: 1,
+        [STRUCTURE_TOWER]: 2,
+        [STRUCTURE_EXTENSION]: 40,
+        [STRUCTURE_STORAGE]: 1,
+        [STRUCTURE_TERMINAL]: 1,
+        [STRUCTURE_LINK]: 1
+    },
+    7: {
+        [STRUCTURE_SPAWN]: 2,
+        [STRUCTURE_TOWER]: 3,
+        [STRUCTURE_EXTENSION]: 50,
+        [STRUCTURE_STORAGE]: 1,
+        [STRUCTURE_TERMINAL]: 1,
+        [STRUCTURE_FACTORY]: 1,
+        [STRUCTURE_LINK]: 1
+    },
+    8: {
+        [STRUCTURE_SPAWN]: 3,
+        [STRUCTURE_TOWER]: 6,
+        [STRUCTURE_EXTENSION]: 60,
+        [STRUCTURE_STORAGE]: 1,
+        [STRUCTURE_TERMINAL]: 1,
+        [STRUCTURE_FACTORY]: 1,
+        [STRUCTURE_POWER_SPAWN]: 1,
+        [STRUCTURE_LINK]: 1
+    }
 }
 
 offsets = 

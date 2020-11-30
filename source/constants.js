@@ -9,6 +9,7 @@ MAX_ACTIVE_SCOUTS = 2
 MINE_STATUS_REFRESHRATE = 11
 MINE_LINK_TRANSFERRATE = 40
 DATA_POINTS_PER_SEGMENT = 128
+COLONY_CHECK_BUILDINGS_INTERVAL = 23
 COLONY_RETARGET_SELLING_INTERVAL = 13
 COLONY_RETARGET_FACTORY_INTERVAL = 17
 MARKETING_STOCK_ENERGY = 30000
@@ -18,6 +19,7 @@ FACTORY_NUMBER_OF_CRAFTS_TO_STOCK = 6
 FACTORY_ENERGY_TO_LEAVE_IN_STORAGE = 200000
 SVG_DRAWER_CPU_LIMIT = Game.cpu.limit * 0.95;
 SVG_DRAWER_BUCKET_LIMIT = 3000
+CONTROLLER_MIN_DOWNGRADE = 5000
 
 MARKETING_ENERGY_LOWER_LIMIT = 100000
 POWER_PROCESS_ENERGY_LIMIT = 150000
@@ -182,6 +184,17 @@ DIRECTION_OFFSET = {
     [BOTTOM_LEFT]:[-1,1],
     [LEFT]:[-1,0],
     [TOP_LEFT]:[-1,-1]
+}
+
+REVERSE_DIRECTIONS = {
+    [TOP]:BOTTOM,
+    [TOP_RIGHT]:BOTTOM_LEFT,
+    [RIGHT]:LEFT,
+    [BOTTOM_RIGHT]:TOP_LEFT,
+    [BOTTOM]:TOP,
+    [BOTTOM_LEFT]:TOP_RIGHT,
+    [LEFT]:RIGHT,
+    [TOP_LEFT]:BOTTOM_RIGHT
 }
 
 REVERSED_REACTIONS = {};
@@ -404,4 +417,117 @@ RESOURCE_UNIQUE_ICONS=
     [RESOURCE_COMPOSITE]:"RESOURCE_COMPOSITE_SVG",
     [RESOURCE_CRYSTAL]:"RESOURCE_CRYSTAL_SVG",
     [RESOURCE_LIQUID]:"RESOURCE_LIQUID_SVG"
+}
+
+
+
+
+BAKED_COORD=
+{
+    "Encode": 
+    {
+        [ 0]: "a",
+        [ 1]: "b",
+        [ 2]: "c",
+        [ 3]: "d",
+        [ 4]: "e",
+        [ 5]: "f",
+        [ 6]: "g",
+        [ 7]: "h",
+        [ 8]: "i",
+        [ 9]: "j",
+        [10]: "k",
+        [11]: "l",
+        [12]: "m",
+        [13]: "n",
+        [14]: "o",
+        [15]: "p",
+        [16]: "q",
+        [17]: "r",
+        [18]: "s",
+        [19]: "t",
+        [20]: "u",
+        [21]: "v",
+        [22]: "w",
+        [23]: "x",
+        [24]: "y",
+        [25]: "z",
+        [26]: "A",
+        [27]: "B",
+        [28]: "C",
+        [29]: "D",
+        [30]: "E",
+        [31]: "F",
+        [32]: "G",
+        [33]: "H",
+        [34]: "I",
+        [35]: "J",
+        [36]: "K",
+        [37]: "L",
+        [38]: "M",
+        [39]: "N",
+        [40]: "O",
+        [41]: "P",
+        [42]: "Q",
+        [43]: "R",
+        [44]: "S",
+        [45]: "T",
+        [46]: "U",
+        [47]: "V",
+        [48]: "W",
+        [49]: "X"
+    },
+    "Decode":
+    {
+        "a":  0,
+        "b":  1,
+        "c":  2,
+        "d":  3,
+        "e":  4,
+        "f":  5,
+        "g":  6,
+        "h":  7,
+        "i":  8,
+        "j":  9,
+        "k": 10,
+        "l": 11,
+        "m": 12,
+        "n": 13,
+        "o": 14,
+        "p": 15,
+        "q": 16,
+        "r": 17,
+        "s": 18,
+        "t": 19,
+        "u": 20,
+        "v": 21,
+        "w": 22,
+        "x": 23,
+        "y": 24,
+        "z": 25,
+        "A": 26,
+        "B": 27,
+        "C": 28,
+        "D": 29,
+        "E": 30,
+        "F": 31,
+        "G": 32,
+        "H": 33,
+        "I": 34,
+        "J": 35,
+        "K": 36,
+        "L": 37,
+        "M": 38,
+        "N": 39,
+        "O": 40,
+        "P": 41,
+        "Q": 42,
+        "R": 43,
+        "S": 44,
+        "T": 45,
+        "U": 46,
+        "V": 47,
+        "W": 48,
+        "X": 49
+    }
 }
