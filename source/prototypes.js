@@ -23,7 +23,7 @@ Creep.prototype.do=function(action,target)
     let err = this[action](target);
     if(err == ERR_NOT_IN_RANGE)
     {
-        //this.travelTo(target)
+        this.travelTo(target)
     }
     return err;
 }
@@ -229,9 +229,16 @@ Creep.prototype.updateHarvestState=function()
 
 Creep.prototype.Retire = function(roomName)
 {
+    let spawn = false;
     let room = Game.rooms[roomName];
-    room.PopulateShorthands();
-    let spawn = room.spawns[0];
+    if(room)
+    {
+        room.PopulateShorthands();
+        if(room.spawns.length > 0)
+        {
+            spawn = room.spawns[0];
+        }
+    }
     if(spawn)
     {
         let res = spawn.recycleCreep(this);
@@ -242,7 +249,7 @@ Creep.prototype.Retire = function(roomName)
     }
     else
     {
-        this.say("bad retirement");
+        this.say("bad retirement: " + roomName);
     }
 }
 
@@ -291,12 +298,19 @@ Room.prototype.hostiles=function()
     if(!this._hostiles)
     {
         this._hostiles = [];
-        this._hostiles = _.filter(this.find(FIND_HOSTILE_CREEPS),(c) => {
-            return true;
-        })
+        this._hostiles = this.find(FIND_HOSTILE_CREEPS);
         if(this.controller && !this.controller.my)
         {
-            this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,{filter:(s) => {return !s.my && s.structureType != STRUCTURE_CONTROLLER}}))
+            this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,
+                {   filter:(s) => 
+                    {
+                        return !s.my && 
+                        s.structureType != STRUCTURE_CONTROLLER && 
+                        s.structureType != STRUCTURE_ROAD && 
+                        s.structureType != STRUCTURE_CONTAINER &&
+                        s.hits > 0
+                    }
+                }));
         }
     }
     return this._hostiles;

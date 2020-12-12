@@ -232,7 +232,6 @@ Scouting=function()
     }
     for(let roomname in Memory.scouting)
     {
-        
         if (!Memory.scouting[roomname]) 
         {
             if (Memory.scouts.length < 1) 
@@ -372,14 +371,14 @@ Scan=function(room)
         SetMapData(room.name,"floodfill",'X');
     }
     let exits = Game.map.describeExits(room.name);
-    ALL_DIRECTIONS.forEach((d) => 
-    {
-        if (exits[d] && GetMapData(exits[d],"floodfill") == ' ' && GetMapData(exits[d],"nogo") == ' ') 
-        {
-            Memory.scouting[exits[d]] = false;
-            SetMapData(exits[d],"floodfill",'X');
-        }
-    })
+    //ALL_DIRECTIONS.forEach((d) => 
+    //{
+    //    if (exits[d] && GetMapData(exits[d],"floodfill") == ' ' && GetMapData(exits[d],"nogo") == ' ') 
+    //    {
+    //        Memory.scouting[exits[d]] = false;
+    //        SetMapData(exits[d],"floodfill",'X');
+    //    }
+    //})
     SetMapData(room.name,"sources",room.find(FIND_SOURCES).length);
     let minerals = room.find(FIND_MINERALS);
     if (minerals.length > 0) 
@@ -658,6 +657,15 @@ colonize=function(colony)
     if (!colony.claimer) {
         colony.claimer = [];
     }
+    deleteDead(colony.claimer);
+    if(colony.colonizeWaitUntil > Game.time)
+    {
+        colony.claimer.forEach((c) => 
+        {
+            Game.creeps[c].Retire(Memory.creeps[c].home);
+        })
+        return;
+    }
     if (colony.claimer[0]) {
         let creep = Game.creeps[colony.claimer[0]]
         if (creep) 
@@ -665,15 +673,16 @@ colonize=function(colony)
             let room = Game.rooms[colony.pos.roomName]
             if (room) 
             {
-                switch(creep.do('claimController',room.controller))
+                if(room.controller.level == 0)
                 {
-                    case ERR_NOT_IN_RANGE:
-                        creep.do('travelTo',room.controller);
-                        break;
-                    default:
-                        creep.do('reserveController',room.controller)
-                        creep.say('error: ' + creep.do('claimController',room.controller))
-                        break;
+                    creep.do('claimController',room.controller);
+                }
+                else if (!room.controller.my)
+                {
+                    if(creep.do('attackController',room.controller) == OK)
+                    {
+                        colony.colonizeWaitUntil = Game.time + 1000 - creep.body.length*3;
+                    }
                 }
             }
             else
@@ -694,8 +703,10 @@ colonize=function(colony)
             let room = Game.rooms[closest.pos.roomName];
             if (room) 
             {
-                console.log(room.name + " is seeding colony " + colony.pos.roomName);
-                spawnRoleIntoList(room,colony.claimer,ROLE_CLAIMER);
+                if(spawnRoleIntoList(room,colony.claimer,ROLE_CLAIMER) == OK)
+                {
+                    console.log(room.name + " is seeding colony " + colony.pos.roomName);
+                }
             }
             else
             {
@@ -709,6 +720,7 @@ FindClosestColony=function(roomName,includeSelf,atleastLevel)
 {
 	if(!atleastLevel) {atleastLevel = 0}
     closest = false;
+    let val = 200;
     Memory.colonies.forEach((c) =>
     {
         if (includeSelf || c.pos.roomName != roomName && c.level >= atleastLevel) 
@@ -719,8 +731,10 @@ FindClosestColony=function(roomName,includeSelf,atleastLevel)
             }
             else
             {
-                if (Game.map.getRoomLinearDistance(c.pos.roomName,roomName) < Game.map.getRoomLinearDistance(closest.pos.roomName,roomName)) {
+                let val2 = Game.map.getRoomLinearDistance(c.pos.roomName,roomName);
+                if (val2 < val) {
                     closest = c;
+                    val = val2;
                 }
             }
         }
@@ -1263,7 +1277,7 @@ spawnUsingFirst=function(spawns,list,body,name,options={})
     return ERR_BUSY
 }
 
-dopath=function(Highway,blocked)
+dopath=function(Highway)
 {
     if (Highway.start && Highway.end) 
     {
@@ -1295,14 +1309,32 @@ makeTerrainMap=function(roomName)
     var matrix = new PathFinder.CostMatrix();
     for(var key in Memory.colonies)
     {
-        var pos = Memory.colonies[key].pos
+        let col = Memory.colonies[key];
+        var pos = col.pos
         if (pos.roomName == roomName) 
         {
-            var blocked = getBlocked(pos.x,pos.y,roomName,layout.structures[8])
-            for(var b in blocked)
+            if(roomName == Memory.mainColony)
             {
-                var bpos = blocked[b]
-                matrix.set(bpos.x,bpos.y,255);
+                var blocked = getBlocked(pos.x,pos.y,roomName,layout.structures[8])
+                for(var b in blocked)
+                {
+                    var bpos = blocked[b]
+                    matrix.set(bpos.x,bpos.y,512);
+                }
+            }
+            else
+            {
+                if(col.layout)
+                {
+                    let buildings = DeserializeLayout(col.layout,roomName);
+                    buildings.forEach((b) =>
+                    {
+                        if(b.structure != STRUCTURE_ROAD && b.structure != STRUCTURE_RAMPART)
+                        {
+                            matrix.set(b.pos.x,b.pos.y,512);
+                        }
+                    })
+                }
             }
         }
     }
@@ -1819,9 +1851,11 @@ AddMiningSpot=function(colony,miningspot)
     if (miningspot) 
     {
         console.log(colony.pos.roommName + " started mining at: " + miningspot.myPosition.roomName);
+        if(!colony.miningSpots) { colony.miningSpots = []}
         colony.miningSpots.push(miningspot);
-        let center = new RoomPosition(colony.pos.x+5,colony.pos.y+5,colony.pos.roomName);
+        let center = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
         let way = new Highway(center, miningspot.myPosition);
+        if(!colony.highways) { colony.highways = [] }
         colony.highways.push(way);
     }
 }

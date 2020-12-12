@@ -1,7 +1,7 @@
 drawColony=function(colony,vis)
 {
     let room = Game.rooms[colony.pos.roomName];
-    if (true) 
+    if (false) 
     {
         if(!vis) {vis = new RoomVisual(colony.pos.roomName)}
 

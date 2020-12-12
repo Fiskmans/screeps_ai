@@ -22,13 +22,14 @@ colonyStart=function(colony)
         deleteDead(colony.haulerpool)
     }
     let room = Game.rooms[colony.pos.roomName]
-    if (room && room.controller.level != 0) 
+    if (room && room.controller.my && room.controller.level != 0) 
     {
         colony.level = room.controller.level
         colonyLogic[room.controller.level](colony);
     }
     else
     {
+        colony.level = 0;
         colonyLogic[0](colony);
         return;
     }
@@ -342,13 +343,20 @@ GuardSpawningColony=function(colony)
                 let targets = creep.room.hostiles();
                 if (targets.length > 0) 
                 {
-                    if (creep.do('rangedAttack',targets[0])) 
+                    creep.do('attack',targets[0]);
+                    if (creep.hits < creep.hitsMax)
                     {
-                        creep.travelTo(targets[0]);
+                        creep.heal(creep);
                     }
                 }
                 else
                 {
+                    let heal = _.filter(creep.room.find(FIND_CREEPS), (c) => { return c.hits < c.hitsmax});
+                    if(heal.length > 0)
+                    {
+                        creep.do("heal",heal[0]);
+                    }
+
                     creep.travelTo(new RoomPosition(colony.pos.x-1,colony.pos.y-1,colony.pos.roomName),{movingTarget:true})
                 }
             }

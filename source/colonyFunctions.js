@@ -5,14 +5,22 @@ colonyRetargetFactory=function(room,colony)
 
 ColonyWorkerBehaviour=function(colony)
 {
-    if(!colony.constructionsite || Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
+    if(!colony.constructionsite || colony.refreshDowngrade)
     {
         ColonyIdleWorkers(colony)
         ColonyFindBuildingWork(colony)
+        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
+        {
+            delete colony.refreshDowngrade
+        }
     }
     else
     {
         colonyConstruct(colony)
+        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
+        {
+            colony.refreshDowngrade = true
+        }
     }
 }
 
@@ -42,7 +50,7 @@ ColonyRespawnWorkers=function(colony)
     deleteDead(colony.workersensus);
     
     let target = TARGET_WORKER_COUNT[colony.level];
-    let count = Math.min(colony.workersensus.length,colony.workerpool.length);
+    let count = colony.workersensus.length;
 
     let vis = new RoomVisual(colony.pos.roomName);
     vis.text(count + " / " + target,25,3);
@@ -349,16 +357,19 @@ PlanBuilding=function(alreadyPresent, type, centerPos)
                 {
                     let dx = Math.abs(x - centerPos.x);
                     let dy = Math.abs(y - centerPos.y);
-                    if(dx != dy)
+                    if(IsAllowedByReservation(dx,dy,type))
                     {
-                        if(IsValidSpot(terrain,alreadyPresent,x,y,centerPos))
+                        if(Math.abs(dx-dy) != 2)
                         {
-                            return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
+                            if(IsValidSpot(terrain,alreadyPresent,x,y,centerPos))
+                            {
+                                return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
+                            }
                         }
-                    }
-                    if(terrain.get(x,y) != TERRAIN_MASK_WALL)
-                    {
-                        return {structure:STRUCTURE_ROAD,pos:new RoomPosition(x, y, centerPos.roomName)};
+                        else if(terrain.get(x,y) != TERRAIN_MASK_WALL)
+                        {
+                            return {structure:STRUCTURE_ROAD,pos:new RoomPosition(x, y, centerPos.roomName)};
+                        }
                     }
                 }
             }
@@ -377,6 +388,23 @@ PlanBuilding=function(alreadyPresent, type, centerPos)
             }
         }
     }
+    return false;
+}
+
+IsAllowedByReservation=function(x,y,structure)
+{
+    at = (reservedDynamicLayout[x] || {})[y];
+    if(!at)
+    {
+        console.log(x + " " + y + " is free");
+        return true;
+    }
+    if(at == structure)
+    {
+        console.log(x + " " + y + " is allowed for: " + at);
+        return true;
+    }
+    console.log(x + " " + y + " is reserved for: " + at);
     return false;
 }
 
@@ -435,11 +463,14 @@ IsTaken=function(buildings,x,y,countRoads)
 
 IsValidSpot=function(terrain,buildings,x,y,centerPos)
 {
-    var pathToCore = PathFinder.search(centerPos,[{pos:new RoomPosition(x,y,centerPos.roomName),range:1}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
-    if (pathToCore.incomplete) 
+    if(buildings.length > 0)
     {
-        console.log("position would be inaccessible x:" + x + " y:" + y)
-        return false;
+        var pathToCore = PathFinder.search(centerPos,[{pos:new RoomPosition(x,y,centerPos.roomName),range:1}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+        if (pathToCore.incomplete)
+        {
+            console.log("position would be inaccessible x:" + x + " y:" + y)
+            return false;
+        }
     }
 
     if(terrain.get(x,y) == TERRAIN_MASK_WALL)
@@ -532,7 +563,8 @@ ColonyRetargetSelling=function(colony)
     if(!prices) { return; }
     colony.selling = _.filter(has,(r) =>
     {
-        if(r != RESOURCE_ENERGY || storage.store.getUsedCapacity(RESOURCE_ENERGY) > ENERGY_SELLING_ENERGY_LIMIT)
+        if( (r != RESOURCE_ENERGY && storage.store.getUsedCapacity(r) > RESOURCE_SELLING_LIMIT) || 
+            (r == RESOURCE_ENERGY && storage.store.getUsedCapacity(RESOURCE_ENERGY) > ENERGY_SELLING_ENERGY_LIMIT))
         {
 
             if(prices[ORDER_BUY][r]) 
@@ -621,10 +653,16 @@ ColonyRestock=function(colony,stockto,target,rolename,source)
                 else
                 {
                     let res = Object.keys(missing)[0];
-                    creep.say("⬇️ "+ res + " ⬇️");
-                    if(creep.withdraw(source, res,Math.max(creep.store.getFreeCapacity(res),store.getFreeCapacity(res))) == ERR_NOT_IN_RANGE)
+                    let amount = Math.min(creep.store.getFreeCapacity(res),store.getUsedCapacity(res));
+                    let result = creep.withdraw(source, res, amount);
+                    if(result == ERR_NOT_IN_RANGE)
                     {
+                        creep.say("⬇️ "+ res + " ⬇️");
                         creep.travelTo(source)
+                    }
+                    else if (result == ERR_FULL)
+                    {
+                        console.log("failed to withdraw " + amount + " " + res + " from " + source + " Err: " + result);
                     }
                 }
             }

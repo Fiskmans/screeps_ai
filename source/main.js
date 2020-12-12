@@ -19,12 +19,11 @@ PowerCreeps = profiler.registerFN(PowerCreeps);
 profiler.enable();
 module.exports.loop = function()
 {
-//test 5
   profiler.wrap(function() {
 
 
     DeSerializeMemory();
-    defaultMemory()
+    defaultMemory();
     applyFlags();
     
     colonyMain();
@@ -32,12 +31,13 @@ module.exports.loop = function()
     
     DoWars();
     
-    worldVisuals()
+    worldVisuals();
+    ConsoleHelperUpdate();
     
     TrackCPU(Game.cpu.getUsed() / Game.cpu.limit);
     if (Game.cpu.bucket > 1000 && Game.cpu.getUsed() < Game.cpu.limit) 
     {
-      //Scouting();
+      Scouting();
       deleteAllDead()
       checkSomePlanned(500)
       analyzeQueue()

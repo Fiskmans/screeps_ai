@@ -231,6 +231,25 @@ offsets =
     }
 }
 
+reservedDynamicLayout = 
+{
+    [-1]: 
+    {
+        [ 0]:STRUCTURE_LINK
+    },
+    [ 0]:
+    {
+        [-1]:STRUCTURE_TERMINAL,
+        [ 0]:STRUCTURE_STORAGE,
+        [ 1]:STRUCTURE_FACTORY
+    },
+    [ 1]: 
+    {
+        [ 0]:STRUCTURE_SPAWN
+    }
+}
+
+
 layout = {
     structures:{
     1:[   

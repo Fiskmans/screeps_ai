@@ -8,9 +8,9 @@ Highway = function(start,end)
     this.path = []
     this.lastmaintained = 0;
 }
-Highway.prototype.dopath=function(blocked)
+Highway.prototype.dopath=function()
 {
-    doPath(this,blocked)
+    doPath(this)
 }
 Highway.prototype.maintain=function(colony)
 {

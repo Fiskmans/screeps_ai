@@ -27,3 +27,4 @@ require('warVisuals')
 require('grafana')
 
 require('flags')
+require('consolehelpers')
