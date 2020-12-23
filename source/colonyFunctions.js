@@ -1,3 +1,4 @@
+
 colonyRetargetFactory=function(room,colony)
 {
     
@@ -9,7 +10,7 @@ ColonyWorkerBehaviour=function(colony)
     {
         ColonyIdleWorkers(colony)
         ColonyFindBuildingWork(colony)
-        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
+        if (Cache.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
         {
             delete colony.refreshDowngrade
         }
@@ -17,14 +18,28 @@ ColonyWorkerBehaviour=function(colony)
     else
     {
         colonyConstruct(colony)
-        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
+        if (Cache.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
         {
             colony.refreshDowngrade = true
         }
     }
 }
 
+
+
 ColonyIdleWorkers=function(colony)
+{
+    if(colony.sendLink && colony.upgradeLink)
+    {
+        ColonyUpgradeLinked(colony);
+    }
+    else
+    {
+        ColonyIdleWorkersDumb(colony);
+    }
+}
+
+ColonyIdleWorkersDumb=function(colony)
 {
     for(var key in colony.workerpool)
     {
@@ -38,6 +53,52 @@ ColonyIdleWorkers=function(colony)
             else
             {
                 creep.dumbUpgradeLoop()
+            }
+        }
+    }
+}
+
+ColonyUpgradeLinked=function(colony)
+{
+    if(!colony.upgradeLink)
+    {
+        return;
+    }
+
+    let link = Game.getObjectById(colony.upgradeLink)
+    if(!link || !(link instanceof StructureLink))
+    {
+        delete colony.upgradeLink;
+        return;
+    }
+
+    let sendLink = Game.getObjectById(colony.sendLink);
+    if(!sendLink)
+    {
+        delete colony.sendLink;
+        return;
+    }
+
+    RequestResource(colony,colony.sendLink,RESOURCE_ENERGY,600);
+
+    if(link.store.getUsedCapacity(RESOURCE_ENERGY) < 200)
+    {
+        sendLink.transferEnergy(link);
+    }
+
+
+    for(var key in colony.workerpool)
+    {
+        let creep = Game.creeps[colony.workerpool[key]];
+        if(creep)
+        {
+            if (creep.pos.roomName != colony.pos.roomName) 
+            {
+                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
+            }
+            else
+            {
+                creep.smarterUpgradeLoop(link);
             }
         }
     }
@@ -57,20 +118,23 @@ ColonyRespawnWorkers=function(colony)
 
     if (count < target)
     {
-        spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER,{},colony.workersensus);
-        if (Game.rooms[colony.pos.roomName].spawns.length == 0) 
+        spawnRoleIntoList(Cache.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER,{},colony.workersensus);
+        if (Cache.rooms[colony.pos.roomName].spawns.length == 0) 
         {
             let closest = FindClosestColony(colony.pos.roomName);
             if (closest && closest.workerpool.length > 1) 
             {
                 let stolen = closest.workerpool.shift();
-                colony.workerpool.push(stolen);
-                colony.workersensus.push(stolen);
-                closest.workersensus = _.remove(closest.workersensus, function(c) {
-                    return c == stolen;
-                });
-
-                console.log(colony.pos.roomName + " stole a worker from " + closest.pos.roomName)
+                if(stolen)
+                {
+                    colony.workerpool.push(stolen);
+                    colony.workersensus.push(stolen);
+                    closest.workersensus = _.remove(closest.workersensus, function(c) {
+                        return c == stolen;
+                    });
+                    
+                    console.log(colony.pos.roomName + " stole a worker from " + closest.pos.roomName)
+                }
             }
             else
             {
@@ -80,9 +144,9 @@ ColonyRespawnWorkers=function(colony)
     }
 }
 
-BasicHaulersAndMiners=function(colony)
+ColonyMining=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName]
+    let room = Cache.rooms[colony.pos.roomName]
     if (room && room.storage) 
     {
         if(!colony.haulerpool) {colony.haulerpool = []}
@@ -96,26 +160,76 @@ BasicHaulersAndMiners=function(colony)
         }
         if (colony.haulersensus.length < limit) 
         {
-            spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER,{},colony.haulersensus)
+            spawnRoleIntoList(Cache.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER,{},colony.haulersensus)
         }
-        Scavange(colony)
         MaintainMiningSpots(colony)
     }
 }
 
-FindRecLink=function(colony)
+FindLinkInColonyLayout=function(colony,blackList)
 {
-    if (!colony.recievelink) 
+    let room = Cache.rooms[colony.pos.roomName]
+    if(colony.layout)
     {
-        let room = Game.rooms[colony.pos.roomName]
+        let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+        for(let b of buildings)
+        {
+            if(b.structure == STRUCTURE_LINK)
+            {
+                for(let s of b.pos.lookFor(LOOK_STRUCTURES))
+                {
+                    if(s.structureType == STRUCTURE_LINK && !blackList.includes(s.id))
+                    {
+                        console.log("found link: " + s);
+                        return s.id;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
         let result = room.lookAt(colony.pos.x + 6,colony.pos.y + 5)
-        result.forEach((r) => {
+        for(let r of result)
+        {
             if (r.type == 'structure' && r.structure instanceof StructureLink) 
             {
-                console.log("colony found rec link with id: " +  r.structure.id);
-                colony.recievelink = r.structure.id;
+                return r.structure.id;
             }
-        })
+        }
+    }
+    return false;
+}
+
+FindColonyLinks=function(colony)
+{
+    let blacklist = [];
+    if(colony.sendLink)
+    {
+        blacklist.push(colony.sendLink);
+    }
+    if(colony.recievelink)
+    {
+        blacklist.push(colony.recievelink);
+    }
+
+    if (!colony.sendLink) 
+    {
+        let id = FindLinkInColonyLayout(colony,blacklist);
+        if(id)
+        {
+            colony.sendLink = id;
+            console.log("colony " + colony.pos.roomName + " found rec link with id: " + id);
+        }
+    }
+    if (!colony.recievelink) 
+    {
+        let id = FindLinkInColonyLayout(colony,blacklist);
+        if(id)
+        {
+            colony.recievelink = id;
+            console.log("colony " + colony.pos.roomName + " found rec link with id: " + id);
+        }
     }
 }
 
@@ -123,7 +237,7 @@ StartMining=function(colony)
 {
     if (colony.miningSpots && colony.miningSpots.length == 0) 
     {
-        let room = Game.rooms[colony.pos.roomName];
+        let room = Cache.rooms[colony.pos.roomName];
         if (room) 
         {
             let sources = room.find(FIND_SOURCES).concat(room.find(FIND_MINERALS))
@@ -137,7 +251,7 @@ StartMining=function(colony)
 
 ColonyFindMisplaced=function(colony,structureType,layout)
 {
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(room)
     {
         let all = room.find(FIND_STRUCTURES,{filter:(s) =>
@@ -176,7 +290,7 @@ ColonyFindBuildingWork=function(colony)
 
     if(Memory.mainColony == colony.pos.roomName)
     {
-        let room = Game.rooms[colony.pos.roomName];
+        let room = Cache.rooms[colony.pos.roomName];
         if(room)
         {
             ColonyBuildStatic(colony,layout.structures[room.controller.level])
@@ -190,7 +304,7 @@ ColonyFindBuildingWork=function(colony)
 
 ColonyBuildStatic=function(colony,plan)
 {
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     var missing = findMissing(colony.pos.x,colony.pos.y,colony.pos.roomName,plan)
     var prio = Priorotized(colony.pos.x,colony.pos.y,colony.pos.roomName,missing)
     if (prio) 
@@ -262,7 +376,7 @@ SerializeLayout=function(layout)
     return result;
 }
 
-ColonyBuildDynamic=function(colony)
+BuildMissing=function(colony,buildings,tracker)
 {
     let room = Game.rooms[colony.pos.roomName];
     if(!room)
@@ -270,20 +384,9 @@ ColonyBuildDynamic=function(colony)
         return;
     }
 
-    if(!colony.layout) { colony.layout = ""; }
-
-    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
-    let unplaced = JSON.parse(JSON.stringify(colonyBuildingsPerLevel[colony.level]))
-
-    let done = false;
-    buildings.forEach((b) =>
+    for(let b of buildings)
     {
-        if(done)
-        {
-            return;
-        }
-
-        if(unplaced[b.structure]) { unplaced[b.structure] -= 1; } 
+        if(tracker && tracker[b.structure]) { tracker[b.structure] -= 1; } 
         let structsAt = b.pos.lookFor(LOOK_STRUCTURES);
         let isThere = false;
         structsAt.forEach((s) =>
@@ -296,22 +399,37 @@ ColonyBuildDynamic=function(colony)
         if(!isThere)
         {
             StartBuilding(colony,room,b);
-            done = true;
-            return;
+            return true;
         }
-    });
+    };
 
-    Object.keys(unplaced).forEach((k) =>
+    return false;
+}
+
+ColonyBuildDynamic=function(colony)
+{
+    let room = Cache.rooms[colony.pos.roomName];
+    if(!room)
     {
-        if(done)
-        {
-            return;
-        }
-        
+        return;
+    }
+
+    if(!colony.layout) { colony.layout = ""; }
+
+    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    let unplaced = JSON.parse(JSON.stringify(colonyBuildingsPerLevel[colony.level]))
+
+    if(BuildMissing(colony,buildings,unplaced))
+    {
+        return;
+    }
+
+    for(let k in unplaced)
+    {        
         if(unplaced[k] > 0)
         {
             SetupMatrix(buildings)
-            let building = PlanBuilding(buildings,k,colony.pos);
+            let building = PlanBuilding(colony,buildings,k,colony.pos);
             if(building)
             {
                 console.log("Planning a " + building.structure + " at x: " + building.pos.x + " y: " + building.pos.y + " in " + building.pos.roomName)
@@ -321,14 +439,27 @@ ColonyBuildDynamic=function(colony)
             {
                 Game.notify("Colony in " + colony.pos.roomName + "Cant find a place to place it's next building");
             }
+
             colony.layout = SerializeLayout(buildings);
-            done = true;
             return;
         }
-    });
+    };
+
+    if(colony.subLayouts)
+    {
+
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            let buildings2 = DeserializeLayout(layout,colony.pos.roomName);
+            if(BuildMissing(colony,buildings2))
+            {
+                return;
+            }
+        }
+    }
 }
 
-PlanBuilding=function(alreadyPresent, type, centerPos)
+PlanBuilding=function(colony,alreadyPresent, type, centerPos)
 {
     let TURN_MAP =
     {
@@ -357,11 +488,12 @@ PlanBuilding=function(alreadyPresent, type, centerPos)
                 {
                     let dx = Math.abs(x - centerPos.x);
                     let dy = Math.abs(y - centerPos.y);
-                    if(IsAllowedByReservation(dx,dy,type))
+                    if(IsAllowedByReservation(x - centerPos.x,y - centerPos.y,type))
                     {
-                        if(Math.abs(dx-dy) != 2)
+                        if(Math.abs(dx - dy) != 2 && dx + dy != 2)
                         {
-                            if(IsValidSpot(terrain,alreadyPresent,x,y,centerPos))
+                            console.log("tesing d: " + dx + " " + dy);
+                            if(IsValidSpot(colony,terrain,alreadyPresent,x,y,centerPos))
                             {
                                 return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
                             }
@@ -461,7 +593,7 @@ IsTaken=function(buildings,x,y,countRoads)
     return isTaken;
 }
 
-IsValidSpot=function(terrain,buildings,x,y,centerPos)
+IsValidSpot=function(colony,terrain,buildings,x,y,centerPos)
 {
     if(buildings.length > 0)
     {
@@ -499,18 +631,76 @@ IsValidSpot=function(terrain,buildings,x,y,centerPos)
             }
         }
     })
+    
+    for(let highway of colony.highways)
+    {
+        if(highway.path)
+        {
+            for(let p of highway.path)
+            {
+                if(p.x == x && p.y == y && p.roomName == centerPos.roomName)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+
 
     console.log("x: " + x + " y: " + y + " blocks: " + blocks);
     return !blocks;
 }
 
+FindMissplaced=function(colony,room,type)
+{
+    if(!colony.layout)
+    {
+        return;
+    }
+
+    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    if(colony.subLayouts)
+    {
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName))
+        }
+    }
+
+    buildings = _.filter(buildings,(s) => { return s.structure == type});
+
+    let ofType = room.Structures(type);
+
+    for(let b of ofType)
+    {
+        let allowed = false;
+        for(let s of buildings)
+        {
+            if(s.pos.x == b.pos.x && s.pos.y == b.pos.y)
+            {
+                allowed = true;
+                break;
+            }
+        }
+        if(!allowed && !colony.disTargets.includes(b.id))
+        {
+            colony.disTargets.push(b.id);
+            break;
+        }
+    }
+
+}
+
 StartBuilding=function(colony,room,building)
 {
-    if (room.controller && room.controller.level > 5 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < CONSTRUCTION_COST[prio.struct] && Prioroties[prio.struct] > 5) 
+    if (room.controller && room.controller.level > 5 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < CONSTRUCTION_COST[building]) 
     {
         return;
     }
     let err = building.pos.createConstructionSite(building.structure);
+
+    
     if (err == OK)
     {
         console.log("Starting work on " + building.structure + " at " + building.pos.x + " " + building.pos.y + " " + building.pos.roomName)
@@ -518,18 +708,15 @@ StartBuilding=function(colony,room,building)
     }
     else if(err == ERR_RCL_NOT_ENOUGH)
     {
-        if(colony.disTargets.length == 0)
-        {
-            Game.notify("Need to implement finding for wrongly placed buildings with revamped building code");
-        }
+        FindMissplaced(colony,room,building.structure);
     }
     else if (err == ERR_INVALID_TARGET)
     {
-        building.pos.look().forEach((thing) =>
+        building.pos.lookFor(LOOK_STRUCTURES).forEach((s) =>
         {
-            if(thing.type == 'structure')
+            if(OBSTACLE_OBJECT_TYPES.includes(s.structureType) && !colony.disTargets.includes(s.id))
             {
-                colony.disTargets.push(thing.structure.id);
+                colony.disTargets.push(s.id);
             }
         });
     }
@@ -544,7 +731,7 @@ ColonyRetargetSelling=function(colony)
 {
     if(Game.time % COLONY_RETARGET_SELLING_INTERVAL != 0) { return; }
     if(!colony.selling) {colony.selling = []};
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(!room) { return; }
     let terminal = room.terminal;
     if(!terminal) { return; }
@@ -590,7 +777,7 @@ ColonyRetargetSelling=function(colony)
 ColonyRetargetFactory=function(colony)
 {
     if(Game.time % COLONY_RETARGET_FACTORY_INTERVAL != 0) { return; }
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(!room || !room.factory) { return; }
     let level = room.factory.level || 0;
     let possabilities = FindWorthWhileCommodities();
@@ -727,7 +914,7 @@ ColonySelling=function(colony,terminal)
 
 ColonyMerchant=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName]
+    let room = Cache.rooms[colony.pos.roomName]
     if(!room) { return; }
     if(!colony.selling) { return; }
     let target = {};
@@ -754,7 +941,7 @@ ColonyDismantleAll=function(colony)
     {
         return;
     }
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(!room || !room.storage || room.storage.structureType != STRUCTURE_STORAGE) { return; }
     let all = room.find(FIND_HOSTILE_STRUCTURES);
     all.forEach((s) =>
@@ -816,7 +1003,7 @@ ColonyCollect=function(colony,source,target,type,rolename)
 
 ColonyCrafting=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(!room || !room.factory) { return; }
     if(room.storage)
     {
@@ -871,8 +1058,8 @@ ColonyCollectPower=function(colony)
             deleteDead(exp.haulers);
             
             let target = Game.getObjectById(exp.target);
-            let room = Game.rooms[exp.targetRoom];
-            let origRoom = Game.rooms[colony.pos.roomName];
+            let room = Cache.rooms[exp.targetRoom];
+            let origRoom = Cache.rooms[colony.pos.roomName];
             if(origRoom && origRoom.observer)
             {
                 origRoom.observer.observeRoom(exp.targetRoom);
@@ -1003,11 +1190,11 @@ ColonyCollectPower=function(colony)
 
             if(exp.healers.length < Math.min(exp.attackers.length,limit))
             {
-                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.healers,ROLE_BANK_HEALER);
+                spawnRoleIntoList(Cache.rooms[colony.pos.roomName],exp.healers,ROLE_BANK_HEALER);
             }
             if(exp.attackers.length < limit && exp.attackers.length <= exp.healers.length)
             {
-                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.attackers,ROLE_BANK_ATTACKER);
+                spawnRoleIntoList(Cache.rooms[colony.pos.roomName],exp.attackers,ROLE_BANK_ATTACKER);
             }
             if(((target && target.hits < 200000) ||ruin ||pickup) && carryCapacity < exp.amount)
             {
@@ -1021,7 +1208,7 @@ ColonyCollectPower=function(colony)
                         colony.haulerpool.splice(i,1);
                     }
                 }
-                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER,{},colony.haulersensus);
+                spawnRoleIntoList(Cache.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER,{},colony.haulersensus);
             }
             let threatend = false;
             room.find(FIND_TOMBSTONES).forEach((t) => {
@@ -1076,7 +1263,7 @@ ColonyCollectPower=function(colony)
 
 ColonyProcessPower=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(!room) { return; }
     if(!room.powerSpawn) { return; }
     if(!room.storage) { return; }
@@ -1089,4 +1276,457 @@ ColonyProcessPower=function(colony)
     if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < POWER_PROCESS_ENERGY_LIMIT) { return; }
     room.powerSpawn.processPower();
 
+}
+
+ColonyBuildRamparts=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    if(!room.storage)
+    {
+        return;
+    }
+        
+    let store = room.storage.store;
+
+    let hasBetterThingsToDo = colony.constructionsite || false;
+    if(!hasBetterThingsToDo && colony.refreshDowngrade)
+    {
+        hasBetterThingsToDo = true;
+    }
+
+    if(!colony.rampartbuilders) { colony.rampartbuilders = []; }
+
+    if(colony.buildRamparts && !hasBetterThingsToDo)
+    {
+        if(!colony.rampartbuilders) {colony.rampartbuilders = []}
+        if(store.getUsedCapacity(RESOURCE_ENERGY) < RAMPART_DEACTIVATE_LIMIT)
+        {
+            colony.workerpool.concat(colony.rampartbuilders);
+            colony.rampartbuilders = [];
+            delete colony.buildRamparts;
+        }
+        if(colony.rapartTarget && colony.workerpool.length > 1 && colony.workerpool[0])
+        {
+            colony.rampartbuilders.push(colony.workerpool.shift());
+        }
+        if(colony.workerpool.length == 0 && colony.rampartbuilders.length > 0)
+        {
+            colony.workerpool.push(colony.rampartbuilders.shift());
+        }
+        if(!colony.rapartTarget)
+        {
+            colony.rapartTarget = ColonyFindMostDamagedRampart(colony,room);
+        }
+        deleteDead(colony.rampartbuilders);
+
+        let target = Game.getObjectById(colony.rapartTarget);
+
+        colony.rampartbuilders.forEach((c) =>
+        {
+            let creep = Game.creeps[c];
+
+            creep.updateHarvestState()
+            if (creep.memory.harvesting) 
+            {
+                creep.dumbHarvest()
+            }
+            else
+            {
+                if(target)
+                {
+                    if(target instanceof StructureRampart)
+                    {
+                        creep.do('repair',target);
+                    }
+                    else
+                    {
+                        creep.do('build',target);
+                    }
+                }
+            }
+        })
+
+        if(!target || Game.time % RAMPART_RETARGET_INTERVAL == 0)
+        {
+            delete colony.rapartTarget;
+        }
+    }
+    else
+    {
+        if(store.getUsedCapacity(RESOURCE_ENERGY) > RAMPART_ACTIVATE_LIMIT)
+        {
+            colony.rampartbuilders = [];
+            colony.buildRamparts = 1;
+        }
+        if(colony.workerpool.length == 0 && colony.rampartbuilders.length > 0)
+        {
+            colony.workerpool.push(colony.rampartbuilders.shift());
+        }
+    }
+}
+
+ColonyFindMostDamagedRampart=function(colony,room)
+{
+    let cramparts = room.find(FIND_MY_CONSTRUCTION_SITES,{filter:((o) => { return o.structureType == STRUCTURE_RAMPART; })});
+    if(cramparts.length > 0)
+    {
+        return cramparts[0].id;
+    }
+
+    let ramparts = room.find(FIND_MY_STRUCTURES,{filter:((o) => { return o.structureType == STRUCTURE_RAMPART; })});
+    let minhits = RAMPARTS_HITS_TO_IGNORE[colony.level];
+    let lowest = false; 
+    ramparts.forEach((o) =>
+    {
+        if(o.hits < minhits)
+        {
+            minhits = o.hits;
+            lowest = o.id;
+        }
+    })
+    if(lowest && minhits < RAMPART_HITS_BEFORE_NEXT_CONSTRUCTION)
+    {
+        return lowest;
+    }
+
+    if(colony.layout)
+    {
+        let buildings = DeserializeLayout(colony.layout,room.name);
+        for(let i in buildings)
+        {
+            let b = buildings[i];
+            let hasRampart = false;
+            b.pos.lookFor(LOOK_STRUCTURES).forEach((s) =>
+            {
+                if(s.structureType == STRUCTURE_RAMPART)
+                {
+                    hasRampart = true;
+                }
+            })
+            if(!hasRampart)
+            {
+                b.pos.createConstructionSite(STRUCTURE_RAMPART);
+                break;
+            }
+        }
+    }
+    else
+    {
+        let done = false;
+        for(let x = 0; x < 11; x++)
+        {
+            if(done)
+            {
+                break;
+            }
+            for(let y = 0; y < 12; y++)
+            {
+                if(done)
+                {
+                    break;
+                }
+                if(layout.structures[colony.level][y][x])
+                {
+                    let pos = new RoomPosition(x+colony.pos.x,y+colony.pos.y,colony.pos.roomName);
+                    let hasRampart = false;
+                    pos.lookFor(LOOK_STRUCTURES).forEach((s) =>
+                    {
+                        if(s.structureType == STRUCTURE_RAMPART)
+                        {
+                            hasRampart = true;
+                        }
+                    })
+                    if(!hasRampart)
+                    {
+                        pos.createConstructionSite(STRUCTURE_RAMPART);
+                        done = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return lowest;
+}
+
+FindUpgradePosition=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    let vis = new RoomVisual(colony.pos.roomName);
+
+    let start = new RoomPosition(colony.pos.x + guaranteedEmpty.x,colony.pos.y + guaranteedEmpty.y,colony.pos.roomName);
+    let target = room.controller.pos;
+
+    vis.circle(start,{radius:0.4,fill:"#FF5555",opacity:1})
+    vis.rect(target.x-3.5,target.y-3.5,7,7,{opacity:0.3,fill:"#AAAAAA"});
+
+    let path = PathFinder.search(
+        start,
+        [{pos:target,range:3}],
+        {roomCallback:avoidColonyLayout})
+
+    if(path.incomplete)
+    {
+       return; 
+    }
+
+    let pos = _.last(path.path);
+    vis.poly(path.path,{stroke:"#AAFFAA"});
+    vis.circle(pos,{radius:0.4,fill:"#AAFFAA"})
+
+    return pos;
+}
+
+FincUpgradeLink=function(buildings)
+{
+    for(let b of buildings)
+    {
+        if(b.structure == STRUCTURE_LINK)
+        {
+            return b.pos;
+        }
+    }
+    return false;
+}
+
+FindOrCreateUpgradeLink=function(colony)
+{
+    if(!colony.upgradePos)
+    {
+        return;
+    }
+
+    if(!colony.subLayouts) 
+    { 
+        return; 
+    }
+
+    if(typeof colony.subLayouts["upgradeSite"] === 'undefined') 
+    { 
+        return; 
+    }
+
+    let buildings = DeserializeLayout(colony.subLayouts["upgradeSite"],colony.pos.roomName);
+
+    let expectedPos = FincUpgradeLink(buildings);
+    if(expectedPos)
+    {
+        for(let o of expectedPos.lookFor(LOOK_STRUCTURES))
+        {
+            if(o.structureType == STRUCTURE_LINK)
+            {
+                colony.upgradeLink = o.id;
+                return;
+            }
+        }
+        return;
+    }
+
+    let vis = new RoomVisual(colony.pos.roomName);
+
+    let center = new RoomPosition(colony.upgradePos.x,colony.upgradePos.y,colony.upgradePos.roomName);
+    let target = new RoomPosition(colony.pos.x + guaranteedEmpty.x,colony.pos.y + guaranteedEmpty.y,colony.pos.roomName);
+
+    vis.circle(target,{radius:0.4,fill:"#AAFFAA"})
+
+    let terrain = new Room.Terrain(colony.pos.roomName);
+
+    for(let dir of ALL_DIRECTIONS)
+    {
+        let start = new RoomPosition(center.x + DIRECTION_OFFSET[dir][0],center.y + DIRECTION_OFFSET[dir][1],center.roomName)
+        if(start.x < 2 || start.x > 47)
+        {
+            vis.circle(start,{fill:"#FFFF00"})
+            continue;
+        }
+        if(start.y < 2 || start.y > 47)
+        {
+            vis.circle(start,{fill:"#FFFF00"})
+            continue;
+        }
+        if(terrain.get(start.x,start.y) == TERRAIN_MASK_WALL)
+        {
+            vis.circle(start,{fill:"#FF0000"})
+            continue;
+        }
+
+        vis.circle(start,{fill:"#00FF00"})
+
+        buildings.push({structure:STRUCTURE_LINK,pos:start});
+
+        colony.subLayouts["upgradeSite"] = SerializeLayout(buildings);
+
+        break;
+    }
+
+
+}
+
+ColonyMaintainUpgradeSite=function(colony)
+{
+    if(colony.level < 5)
+    {
+        return;
+    }
+
+    if(!colony.upgradePos)
+    {
+        colony.upgradePos = FindUpgradePosition(colony);
+    }
+
+    if(!colony.subLayouts) { colony.subLayouts = {}}
+    if(!colony.subLayouts["upgradeSite"]) { colony.subLayouts["upgradeSite"] = "" }
+    
+    if(!colony.upgradeLink)
+    {
+        FindOrCreateUpgradeLink(colony);
+    }
+}
+
+ColonyHauling=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room || !room.storage)
+    {
+        return;
+    }
+    Scavange(colony);
+    ColonyFulfillRequests(colony);
+}
+
+ColonyFulfillRequests=function(colony)
+{    
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    if(!colony.requests)
+    {
+        return;
+    }
+    
+    RemoveDoneRequests(colony);
+
+    if(colony.requests.to.length == 0)
+    {
+        if(colony.requestFillers && colony.requestFillers.length > 0)
+        {
+            colony.haulerpool = colony.haulerpool.concat(colony.requestFillers);
+            colony.requestFillers = [];
+        }
+        return;
+    }
+
+    if(!colony.requestFillers) { colony.requestFillers = [] } 
+    if(colony.requestFillers.length < 1 && colony.haulerpool.length > 0)
+    {
+        colony.requestFillers.push(colony.haulerpool.shift());
+    }
+    deleteDead(colony.requestFillers);
+
+    let predicted = {};
+    
+    for(let creepName of colony.requestFillers)
+    {
+        let creep = Game.creeps[creepName];
+        predicted[creep.id] = new FakeStore(creep.store);
+    }
+    for(let req of colony.requests.to)
+    {
+        let obj = Game.getObjectById(req.id);
+        predicted[req.id] = new FakeStore(obj.store);
+    }
+    if(room.storage)
+    {
+        predicted[room.storage.id] = new FakeStore(room.storage.store);
+    }
+
+    for(let creepName of colony.requestFillers)
+    {
+        Game.creeps[creepName].SimulateWork(predicted);
+    }
+
+    for(let creepName of colony.requestFillers)
+    {
+        let creep = Game.creeps[creepName];
+        if(creep.HasWork())
+        {
+            creep.DoWork();
+        }
+        else
+        {
+            let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos);
+            if(req)
+            {
+                if(predicted[creep.id].total > predicted[creep.id][req.resource])
+                {
+                    for(let r of RESOURCES_ALL)
+                    {
+                        let work = {action:CREEP_TRANSFER,target:creep.room.storage.id,arg1:r};
+                        creep.EnqueueWork(work);
+                        creep.SimulateWorkUnit(work,predicted);
+                    }
+                }
+                if(predicted[creep.id][req.resource] < req.targetAmount - predicted[req.id][req.resource])
+                {
+                    if(predicted[creep.id].capacity[req.resource] - predicted[creep.id][req.resource] > 49)
+                    {
+                        if(predicted[room.storage.id][req.resource] > 0)
+                        {
+                            let work = {action:CREEP_WITHDRAW,target:creep.room.storage.id,arg1:req.resource};
+                            creep.EnqueueWork(work);
+                            creep.SimulateWorkUnit(work,predicted);
+                        }
+                    }
+                }
+                let work = {action:CREEP_TRANSFER,target:req.id,arg1:req.resource};
+                creep.EnqueueWork(work);
+                creep.SimulateWorkUnit(work,predicted);
+
+                let lastTarget = Game.getObjectById(req.id);
+                let req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,req.resource);
+
+                while(req2 && predicted[creep.id][req.resource] > 0)
+                {
+                    let work = {action:CREEP_TRANSFER,target:req2.id,arg1:req2.resource};
+                    creep.EnqueueWork(work);
+                    creep.SimulateWorkUnit(work,predicted);
+
+                    lastTarget = Game.getObjectById(req2.id);
+                    req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,req2.resource);
+                }
+            }
+        }
+    }
+}
+    
+ColonyRequestRefill=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    let perExt = colony.level < 7 ? 50 : (colony.level == 7 ? 100 : 200);
+    for(let ext of room.Structures(STRUCTURE_EXTENSION))
+    {
+        RequestResource(colony,ext.id,RESOURCE_ENERGY,perExt);
+    }
+    for(let tower of room.Structures(STRUCTURE_TOWER))
+    {
+        RequestResource(colony,tower.id,RESOURCE_ENERGY,TOWER_REFILL_THRESHOLD);
+    }
+    for(let tower of room.Structures(STRUCTURE_SPAWN))
+    {
+        RequestResource(colony,tower.id,RESOURCE_ENERGY,300);
+    }
 }

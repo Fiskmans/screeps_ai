@@ -1,5 +1,7 @@
 require('Globals')
 
+require('Cache')
+
 require('traveler')
 
 require('prototypes')
@@ -13,6 +15,7 @@ require("layouts")
 require('colony')
 require('colonylogics')
 require('colonyFunctions')
+require('colonyhelpers')
 
 require('roomvisuals')
 require('worldvisuals')

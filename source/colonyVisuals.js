@@ -1,30 +1,52 @@
+
 drawColony=function(colony,vis)
 {
-    let room = Game.rooms[colony.pos.roomName];
-    if (false) 
+    let room = Cache.rooms[colony.pos.roomName];
+    if (Memory.lastViewed && Memory.lastViewed.room == room.name && Game.time - Memory.lastViewed.at < 5 && Game.cpu.bucket > 500) 
     {
         if(!vis) {vis = new RoomVisual(colony.pos.roomName)}
 
         let pos = colony.pos;
         let center = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
 
-        //if(colony.layout)
-        //{
-        //    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
-        //    SetupMatrix(buildings);
-//
-        //    let mat = BuildingPathingMap(colony.pos.roomName);
-        //    if(mat)
-        //    {
-        //        vis.DrawMatrix(mat);
-        //        
-        //        var pathToCore = PathFinder.search(new RoomPosition(11,32,center.roomName),[{pos:center,range:0}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
-        //        
-        //        vis.poly(pathToCore.path,{fill:"#00000000",stroke:"#FF0000"})
-        //    }
-        //}
+        if(colony.layout)
+        {
+            let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+            
+            let minx = 50;
+            let miny = 50;
+            
+            for(let b of buildings)
+            {
+                minx = Math.min(b.pos.x, minx);
+                miny = Math.min(b.pos.y, miny);
+            }
+            pos = new RoomPosition(minx,miny,colony.pos.roomName);
+            
+            if(colony.subLayouts)
+            {
+                for(let layout of Object.values(colony.subLayouts))
+                {
+                    buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
+                }
+            }
+            
+            vis.layout(buildings);
+        }
         
         
+        {
+            let index = Memory.colonies.indexOf(colony);
+            vis.text("Nr." + index,49,49,{font:2,align:"right"});
+        }
+        
+        if(colony.requestFillers)
+        {
+            for(let cname of colony.requestFillers)
+            {
+                Game.creeps[cname].DrawWork(vis);
+            }
+        }
         
         for(let miningSpot in colony.miningSpots)
         {
@@ -63,7 +85,7 @@ drawColony=function(colony,vis)
                         roadPanels[h] = [pos.x,pos.y];
                     }
                 }
-                let roadroom = Game.rooms[pos.roomName];
+                let roadroom = Cache.rooms[pos.roomName];
                 let road = false;
                 if (roadroom) 
                 {
@@ -185,21 +207,6 @@ drawColony=function(colony,vis)
                             }
                         }
                     })
-                }
-            }
-            else
-            {
-                if(spot.link)
-                {
-                    let l = Game.getObjectById(spot.link)
-                    if(l.id != colony.recievelink && spot.time)
-                    {
-                        vis.Timer(l.pos.x,l.pos.y,spot.time%MINE_LINK_TRANSFERRATE,MINE_LINK_TRANSFERRATE,{color:"#00ff88",scale:0.5});
-                        if(recievelink)
-                        {
-                            vis.line(l.pos.x,l.pos.y,recievelink.pos.x,recievelink.pos.y,{color:"#00ff00"});
-                        }
-                    }
                 }
             }
         })

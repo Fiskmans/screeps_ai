@@ -18,6 +18,44 @@ Highway.prototype.maintain=function(colony)
 }
 
 
+FakeStore = function(store)
+{
+    this.total = 0;
+    this.capacity = {};
+    for(let r of RESOURCES_ALL)
+    {
+        this[r] = store[r] || 0;
+        this.total += this[r];
+        this.capacity[r] = store.getCapacity(r) || 0;
+    }
+}
+
+FakeStore.prototype.Withdraw=function(other,type,amount)
+{
+    if(!other)
+    {
+        return;
+    }
+    let am = amount || Math.min(other[type],this.capacity[type]-this.total);
+    this.total += am;
+    this[type] += am;
+    other.total -= am;
+    other[type] -= am;
+}
+
+FakeStore.prototype.Transfer=function(other,type,amount)
+{
+    if(!other)
+    {
+        return;
+    }
+    let am = amount || Math.min(this[type],other.capacity[type]-other.total);
+    other.total += am;
+    other[type] += am;
+    this.total -= am;
+    this[type] -= am;
+}
+
 MiningSpot = function(position)
 {
     if (position instanceof RoomPosition) 

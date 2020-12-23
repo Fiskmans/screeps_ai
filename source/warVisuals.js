@@ -20,7 +20,7 @@ DrawWar=function(war)
 }
 DrawBattlefront=function(roomname,battlefront)
 {
-    let room = Game.rooms[roomname];
+    let room = Cache.rooms[roomname];
     let vis = false;
     if (room) 
     {

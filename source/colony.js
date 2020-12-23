@@ -3,7 +3,7 @@ colonyMain=function()
     if(!Memory.colonies) {Memory.colonies = []}
     for(let key in Memory.colonies)
     {
-        let room = Game.rooms[Memory.colonies[key].pos.roomName];
+        let room = Cache.rooms[Memory.colonies[key].pos.roomName];
         if(room)
         {
             room.PopulateShorthands();
@@ -21,7 +21,7 @@ colonyStart=function(colony)
     if (colony.haulerpool) {
         deleteDead(colony.haulerpool)
     }
-    let room = Game.rooms[colony.pos.roomName]
+    let room = Cache.rooms[colony.pos.roomName]
     if (room && room.controller.my && room.controller.level != 0) 
     {
         colony.level = room.controller.level
@@ -47,24 +47,31 @@ colonyHighways=function(colony)
 }
 colonyDumbRefill=function(colony)
 {
+    
     if(!colony.refillers) {colony.refillers = []}
     if(!colony.crefillers) {colony.crefillers = []}
     deleteDead(colony.refillers)
     deleteDead(colony.crefillers)
     let room = Game.rooms[colony.pos.roomName];
-    let limit = room.find(FIND_MY_STRUCTURES,{filter: (s) => {return (s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}}).length / 10;
-    room.towers.forEach((t) => 
+    
+    let limit = 0;
+    if(colony.level < 4 || !room.storage)
     {
-        if(t.store.getFreeCapacity(RESOURCE_ENERGY) > 400) 
+        limit = room.find(FIND_MY_STRUCTURES,{filter: (s) => {return (s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}}).length / 10;
+        room.towers.forEach((t) => 
+        {
+            if(t.store.getFreeCapacity(RESOURCE_ENERGY) > 400) 
+            {
+                limit++;
+            }
+            
+        })
+        if(room.powerSpawn && room.powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000)
         {
             limit++;
         }
-        
-    })
-    if(room.powerSpawn && room.powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000)
-    {
-        limit++;
     }
+    
 
     if (limit > 0 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 1000) 
     {
@@ -89,7 +96,7 @@ colonyDumbRefill=function(colony)
             {
                 if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0 || limit == 0) 
                 {
-                    colony.haulerpool.push(colony.crefillers.splice(i,1))   
+                    colony.haulerpool.push(colony.crefillers.splice(i,1)[0])   
                 }
             }
             else
@@ -147,8 +154,7 @@ colonyDismantle=function(colony)
     if(!colony.dimantlers) {colony.dimantlers = []}
     if(!colony.disTargets) {colony.disTargets = []}
     deleteDead(colony.dimantlers)
-    let room = Game.rooms[colony.pos.roomName];
-    
+
     if (colony.disTargets.length > 0) 
     {
         if (colony.dimantlers.length < 1 && colony.workerpool.length > 0) 
@@ -158,7 +164,10 @@ colonyDismantle=function(colony)
     }
     else
     {
-        colony.workerpool.push(colony.dimantlers.shift())
+        if(colony.dimantlers.length > 0)
+        {
+            colony.workerpool.push(colony.dimantlers.shift())
+        }
     }
     for(let index in colony.dimantlers)
     {
@@ -166,6 +175,11 @@ colonyDismantle=function(colony)
         let target = Game.getObjectById(colony.disTargets[0])
         if (target) 
         {
+            if(target.my && target instanceof Structure)
+            {
+                target.destroy();
+            }
+
             if (creep) 
             {
                 creep.dismantleLoop(target)
@@ -226,7 +240,7 @@ colonyConstruct=function(colony)
     }
     else
     {
-        let sites = Game.rooms[colony.constructionsite.roomName].lookForAt(LOOK_CONSTRUCTION_SITES,colony.constructionsite.x,colony.constructionsite.y)
+        let sites = Cache.rooms[colony.constructionsite.roomName].lookForAt(LOOK_CONSTRUCTION_SITES,colony.constructionsite.x,colony.constructionsite.y)
         colony.constructionsite = sites[0].id
     }
 }
@@ -236,7 +250,7 @@ colonyMiningSpots=function(colony)
     for(let i in colony.miningSpots)
     {
         let spot = colony.miningSpots[i];
-        let room = Game.rooms[spot.myPosition.roomName];
+        let room = Cache.rooms[spot.myPosition.roomName];
         if (!spot.layout) 
         {
             if (room) 
@@ -256,7 +270,7 @@ colonyMiningSpots=function(colony)
                     spot.layout[1][1] = STRUCTURE_EXTRACTOR;
                 }
                 
-                let pathToColony = PathFinder.search(new RoomPosition(spot.myPosition.x,spot.myPosition.y,spot.myPosition.roomName),new RoomPosition(colony.pos.x+5,colony.pos.y+5,colony.pos.roomName))
+                let pathToColony = PathFinder.search(new RoomPosition(spot.myPosition.x,spot.myPosition.y,spot.myPosition.roomName),new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
                 if(!pathToColony.incomplete)
                 {
                     spot.digPos = pathToColony.path[0];
@@ -366,7 +380,7 @@ GuardSpawningColony=function(colony)
 
 ColonyLookForPower = function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if(!room) { return; }
     if(!room.observer) { return; }
     if(colony.expedition) { return; }
@@ -385,7 +399,7 @@ ColonyLookForPower = function(colony)
     let list = PowerPatrols[colony.pos.roomName];
     if(!list || list.length < 1) { return; }
     colony.corridorIndex = colony.corridorIndex % list.length;
-    let vRoom = Game.rooms[list[colony.corridorIndex]];
+    let vRoom = Cache.rooms[list[colony.corridorIndex]];
     if(vRoom)
     {
         vRoom.PopulateShorthands();

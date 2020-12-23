@@ -14,13 +14,13 @@ Number.prototype.clamp = function(min, max)
     return Math.min(Math.max(this, min), max);
 };
 
-Creep.prototype.do=function(action,target)
+Creep.prototype.do=function(action,target,arg1,arg2,arg3)
 {
     if (typeof(target) === "string") 
     {
         target = Game.getObjectById(target);
     }
-    let err = this[action](target);
+    let err = this[action](target,arg1,arg2,arg3);
     if(err == ERR_NOT_IN_RANGE)
     {
         this.travelTo(target)
@@ -113,6 +113,125 @@ REFILLPRIORITY =
     [STRUCTURE_STORAGE]:450
 }
 
+Creep.prototype.HasWork=function()
+{
+    return this.memory._workQueue && this.memory._workQueue.length > 0;
+}
+
+Creep.prototype.EnqueueWork=function(work)
+{
+    if(!this.memory._workQueue) { this.memory._workQueue = [] };
+    this.memory._workQueue.push(work);
+}
+
+Creep.prototype._execWork=function(work)
+{
+    return this.do(work.action,work.target,work.arg1,work.arg2);
+}
+
+Creep.prototype.DoWork=function()
+{
+    if(!this.HasWork())
+    {
+        return;
+    }
+
+    let res = this._execWork(this.memory._workQueue[0]);
+    let dequeu = false;
+    switch(res)
+    {
+        case OK:
+        default:
+            dequeu = true;
+            break;
+
+        case ERR_NOT_IN_RANGE:
+            break;
+    }
+    if(dequeu)
+    {
+        this.memory._workQueue.shift();
+        if(this.HasWork())
+        {
+            let nextTarget = Game.getObjectById(this.memory._workQueue[0].target);
+            if(nextTarget.pos.getRangeTo(this.pos) > 1)
+            {
+                this.travelTo(nextTarget);
+            }
+        }
+    }
+}
+
+Creep.prototype.DrawWork=function(vis,opt)
+{
+    let options = opt || {};
+    _.defaults(options,{radius:0.4,stroke:"#AAAAAA"});
+    if(!this.HasWork())
+    {
+        return;
+    }
+
+    let lastPos = this.pos;
+    vis.circle(lastPos,{radius:options.radius,fill:"#00000000",stroke:options.stroke,strokewidth:0.2});
+
+    for(let work of this.memory._workQueue)
+    {
+        let obj = Game.getObjectById(work.target)
+        vis.circle(obj.pos,{radius:options.radius,fill:"#00000000",stroke:options.stroke,strokewidth:0.2});
+
+        let dx = lastPos.x - obj.pos.x;
+        let dy = lastPos.y - obj.pos.y;
+
+        let len = Math.sqrt(dx*dx+dy*dy);
+
+        dx /= len;
+        dy /= len;
+
+        vis.line(   lastPos.x - dx * options.radius,lastPos.y - dy * options.radius,
+                    obj.pos.x + dx * options.radius,obj.pos.y + dy * options.radius,
+                    {dolor:options.stroke,width:0.1});
+
+        vis.text(CREEP_ACTION_ICON[work.action],   obj.pos.x , obj.pos.y + 0.1,{align:'right',font:0.27})
+        
+        switch(work.action)
+        {
+            case CREEP_WITHDRAW:
+            case CREEP_TRANSFER:
+                vis.symbol(obj.pos.x+0.2,obj.pos.y,work.arg1);
+                break;
+        }
+
+        lastPos = obj.pos;
+    }
+
+}
+
+Creep.prototype.SimulateWorkUnit=function(workUnit,fakeStores)
+{
+    switch(workUnit.action)
+    {
+    case CREEP_WITHDRAW:
+        fakeStores[this.id].Withdraw(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
+        break;
+    case CREEP_TRANSFER:
+        fakeStores[this.id].Transfer(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
+        break;
+    }
+}
+
+Creep.prototype.SimulateWork=function(fakeStores)
+{
+    if(!this.HasWork())
+    {
+        return;
+    }
+
+    for(let work of this.memory._workQueue)
+    {
+        this.SimulateWorkUnit(work,fakeStores);
+    }
+}
+
 Creep.prototype.dumbRefill=function()
 {
     let target = false
@@ -144,6 +263,19 @@ Creep.prototype.dumbUpgradeLoop=function()
         this.dumbUpgrade()
     }
 }
+
+Creep.prototype.smarterUpgradeLoop=function(link)
+{
+    this.updateHarvestState()
+    if (this.memory.harvesting) {
+        this.do('withdraw',link,RESOURCE_ENERGY);
+    }
+    else
+    {
+        this.dumbUpgrade()
+    }
+}
+
 Creep.prototype.dumbRefillLoop=function()
 {
     this.updateHarvestState()
@@ -230,7 +362,7 @@ Creep.prototype.updateHarvestState=function()
 Creep.prototype.Retire = function(roomName)
 {
     let spawn = false;
-    let room = Game.rooms[roomName];
+    let room = Cache.rooms[roomName];
     if(room)
     {
         room.PopulateShorthands();
@@ -291,6 +423,12 @@ Room.prototype.findAllStructures=function()
                 this._structures[s.structureType].push(s)
         })
     }
+}
+
+Room.prototype.Structures=function(type)
+{
+    this.findAllStructures();
+    return this._structures[type];
 }
 
 Room.prototype.hostiles=function()
@@ -639,6 +777,28 @@ RoomVisual.prototype.plan=function(_x,_y,plan,opt = {})
         console.log("plan:" + plan)
     }
     return this
+}
+
+
+RoomVisual.prototype.layout=function(buildings,opt = {})
+{
+    _.defaults(opt,{scale:1,alpha:0.5});
+    for(let b of buildings)
+    {
+        let isThere = false;
+        for(let s of b.pos.lookFor(LOOK_STRUCTURES))
+        {
+            if(s.structureType == b.structure)
+            {
+                isThere = true;
+                break;
+            }
+        } 
+        if(!isThere)
+        {
+            this.symbol(b.pos.x,b.pos.y, b.structure ,opt);
+        }
+    }
 }
 
 RoomVisual.prototype.DrawMatrix=function(matrix)

@@ -2,6 +2,18 @@ let LastTickBucket = 0;
 
 worldVisuals=function()
 {
+    if(Memory.lastViewed)
+    {
+        if(Memory.lastViewed.room && Memory.lastViewed.at)
+        {
+            let vis = new RoomVisual(Memory.lastViewed.room);
+            let delta = Game.time - Memory.lastViewed.at;
+
+            vis.text("lastViewed",0,0,{align:"left"});
+            vis.text(delta + " ticks ago",0,1,{align:"left"});
+
+        }
+    }
     if (Game.flags["Colony"])
     {
         var vis = new RoomVisual(Game.flags["Colony"].pos.roomName)
@@ -32,7 +44,7 @@ worldVisuals=function()
     if (Game.flags["LocalCluster"] && Game.flags["LocalCluster"].color != COLOR_RED && Memory.rooms[Game.flags["LocalCluster"].pos.roomName] && (Game.time - Memory.rooms[Game.flags["LocalCluster"].pos.roomName].lastViewed < 10))
     {
         let pos = Game.flags["LocalCluster"].pos;
-        let room = Game.rooms[pos.roomName];
+        let room = Cache.rooms[pos.roomName];
         if (room) 
         {
             let vis = room.visual;

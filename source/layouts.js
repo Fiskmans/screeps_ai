@@ -32,7 +32,7 @@ getRoads=function(_x,_y,roomName,plan)
 
 findMissing=function(_x,_y,roomName,plan)
 {
-    var room = Game.rooms[roomName];
+    var room = Cache.rooms[roomName];
     if (room) 
     {
         var contains = false
@@ -182,7 +182,7 @@ colonyBuildingsPerLevel =
         [STRUCTURE_EXTENSION]: 40,
         [STRUCTURE_STORAGE]: 1,
         [STRUCTURE_TERMINAL]: 1,
-        [STRUCTURE_LINK]: 1
+        [STRUCTURE_LINK]: 2
     },
     7: {
         [STRUCTURE_SPAWN]: 2,
@@ -191,7 +191,7 @@ colonyBuildingsPerLevel =
         [STRUCTURE_STORAGE]: 1,
         [STRUCTURE_TERMINAL]: 1,
         [STRUCTURE_FACTORY]: 1,
-        [STRUCTURE_LINK]: 1
+        [STRUCTURE_LINK]: 2
     },
     8: {
         [STRUCTURE_SPAWN]: 3,
@@ -201,7 +201,7 @@ colonyBuildingsPerLevel =
         [STRUCTURE_TERMINAL]: 1,
         [STRUCTURE_FACTORY]: 1,
         [STRUCTURE_POWER_SPAWN]: 1,
-        [STRUCTURE_LINK]: 1
+        [STRUCTURE_LINK]: 2
     }
 }
 
@@ -233,6 +233,10 @@ offsets =
 
 reservedDynamicLayout = 
 {
+    [-2]:
+    {
+        [-1]:STRUCTURE_LINK
+    },
     [-1]: 
     {
         [ 0]:STRUCTURE_LINK
@@ -248,6 +252,8 @@ reservedDynamicLayout =
         [ 0]:STRUCTURE_SPAWN
     }
 }
+
+guaranteedEmpty = {x:0,y:2};
 
 
 layout = {
@@ -323,8 +329,8 @@ layout = {
         [                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ]
     ],
     6:[   
-        [                   ,                   ,                   ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
-        [                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ],
+        [                   ,                   ,                   ,                   ,STRUCTURE_ROAD     ,                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
+        [                   ,STRUCTURE_ROAD     ,                   ,                   ,                   ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,                   ,                   ,STRUCTURE_ROAD     ,                   ],
         [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,                   ,                   ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,                   ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
         [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,STRUCTURE_STORAGE  ,                   ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_TERMINAL ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
@@ -340,7 +346,7 @@ layout = {
         [                   ,                   ,                   ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,                   ,                   ,                   ,                   ],
         [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,                   ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,                   ,STRUCTURE_TOWER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,                   ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
-        [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,STRUCTURE_STORAGE  ,STRUCTURE_FACTORY      ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
+        [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,STRUCTURE_STORAGE  ,STRUCTURE_FACTORY  ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_TERMINAL ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
         [STRUCTURE_TOWER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_SPAWN    ,STRUCTURE_LINK     ,STRUCTURE_ROAD     ,STRUCTURE_LINK     ,STRUCTURE_SPAWN    ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,                   ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
@@ -354,7 +360,7 @@ layout = {
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,                   ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_POWER_SPAWN,                 ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_TOWER    ,STRUCTURE_LAB      ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_LAB      ,STRUCTURE_TOWER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
         [STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ],
-        [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_STORAGE  ,STRUCTURE_FACTORY      ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION],
+        [STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_LAB      ,STRUCTURE_STORAGE  ,STRUCTURE_FACTORY  ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD ,STRUCTURE_EXTENSION],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_TERMINAL ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
         [STRUCTURE_TOWER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_SPAWN    ,STRUCTURE_LINK     ,STRUCTURE_ROAD     ,STRUCTURE_LINK     ,STRUCTURE_SPAWN    ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_TOWER    ],
         [STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_NUKER    ,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION],
@@ -364,6 +370,16 @@ layout = {
         [                   ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_OBSERVER ],
         [                   ,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,STRUCTURE_EXTENSION,STRUCTURE_ROAD     ,STRUCTURE_EXTENSION,                   ]
     ]
+    },
+    rampartCount:{
+        1:1,
+        2:12,
+        3:24,
+        4:40,
+        5:74,
+        6:89,
+        7:106,
+        8:127
     }
     
 };

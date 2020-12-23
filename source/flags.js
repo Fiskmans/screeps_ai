@@ -222,7 +222,7 @@ Abandon=function(flag)
         let roomname = Memory.colonies[i].pos.roomName
         if (roomname == flag.pos.roomName) 
         {
-            let room = Game.rooms[roomname];
+            let room = Cache.rooms[roomname];
             if(room)
             {
                 let buildings = room.find(FIND_MY_STRUCTURES,{filter: (s) => s.structureType != STRUCTURE_CONTROLLER});
@@ -274,7 +274,7 @@ Abandon=function(flag)
 
 Disassemble=function(flag)
 {
-    let room = Game.rooms[flag.pos.roomName];
+    let room = Cache.rooms[flag.pos.roomName];
     if(room)
     {
         let colony = FindClosestColony(flag.pos.roomName,true,0);

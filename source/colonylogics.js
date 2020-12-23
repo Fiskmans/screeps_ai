@@ -18,7 +18,8 @@ colonyLogic=
     {
         this[1](colony)
         StartMining(colony)
-        BasicHaulersAndMiners(colony)
+        ColonyMining(colony)
+        ColonyHauling(colony)
         digAllMines(colony);
         colonyDismantle(colony)
         maintainColony(colony)
@@ -35,17 +36,20 @@ colonyLogic=
     {
         this[3](colony)
         ColonyDismantleAll(colony);
+        ColonyBuildRamparts(colony);
+        ColonyRequestRefill(colony);
     },
     //level 5
     5:function(colony)
     {
         this[4](colony)
+        FindColonyLinks(colony)
+        ColonyMaintainUpgradeSite(colony)
     },
     //level 6
     6:function(colony)
     {
         this[5](colony)
-        FindRecLink(colony)
         let worth = FindWorthWhileReselling();
         if(worth.length > 0)
         {
@@ -71,11 +75,12 @@ colonyLogic=
         ColonyWorkerBehaviour(colony);
         PerformAttacks(colony);
         StartMining(colony)
-        BasicHaulersAndMiners(colony)
+        ColonyMining(colony)
+        ColonyHauling(colony)
         digAllMines(colony);
         colonyDismantle(colony)
-        FindRecLink(colony)
-        FindRecLink(colony)
+        FindColonyLinks(colony)
+        ColonyMaintainUpgradeSite(colony)
         ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
         ColonyRetargetFactory(colony);
@@ -83,6 +88,7 @@ colonyLogic=
         maintainall(colony)
         maintainColony(colony)
         ColonyDismantleAll(colony);
+        ColonyBuildRamparts(colony);
         ColonyLookForPower(colony);
         ColonyCollectPower(colony);
         ColonyProcessPower(colony);

@@ -146,7 +146,7 @@ RestartScouting=function()
 {
     console.log("Restarting scouting efforts");
     Memory.colonies.forEach((c) => {
-        let room = Game.rooms[c.pos.roomName];
+        let room = Cache.rooms[c.pos.roomName];
         if (room) {
             Scan(room)
         }
@@ -193,7 +193,7 @@ Scouting=function()
             if (creep) 
             {
                 creep.notifyWhenAttacked(false);
-                let room = Game.rooms[roomname];
+                let room = Cache.rooms[roomname];
                 if(GetMapData(creep.room.name,"lastseen") != 9)
                 {
                     Scan(creep.room);
@@ -239,7 +239,7 @@ Scouting=function()
                 if (currentlyActiveScouts < MAX_ACTIVE_SCOUTS) 
                 {
                     let closest = FindClosestColony(roomname);
-                    let room = Game.rooms[closest.pos.roomName];
+                    let room = Cache.rooms[closest.pos.roomName];
                     if(room)
                     {
                         spawnRoleIntoList(room,Memory.scouts,ROLE_SCOUT);
@@ -489,7 +489,7 @@ Digest=function()
 digestColony=function(colony)
 {
     let out = "";
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if (room) 
     {
         let storage = room.storage;
@@ -530,7 +530,7 @@ GetRoomDiamondDistance=function(roomName1,roomName2)
 
 DefendColony=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName]
+    let room = Cache.rooms[colony.pos.roomName]
     if (room) {
         let targets = room.hostiles();
 
@@ -642,7 +642,7 @@ marketTracking=function()
 
 fireAllTurrets=function()
 {
-    _(Game.rooms).filter(r => _.get(r, ['controller', 'my'])
+    _(Cache.rooms).filter(r => _.get(r, ['controller', 'my'])
     .forEach(r => {_(r.find(FIND_MY_STRUCTURES))
     .filter('structureType', STRUCTURE_TOWER)
     .shuffle()
@@ -670,7 +670,7 @@ colonize=function(colony)
         let creep = Game.creeps[colony.claimer[0]]
         if (creep) 
         {
-            let room = Game.rooms[colony.pos.roomName]
+            let room = Cache.rooms[colony.pos.roomName]
             if (room) 
             {
                 if(room.controller.level == 0)
@@ -700,7 +700,7 @@ colonize=function(colony)
         let closest = FindClosestColony(colony.pos.roomName);
         
         if (closest) {
-            let room = Game.rooms[closest.pos.roomName];
+            let room = Cache.rooms[closest.pos.roomName];
             if (room) 
             {
                 if(spawnRoleIntoList(room,colony.claimer,ROLE_CLAIMER) == OK)
@@ -756,7 +756,7 @@ PerformAttacks=function(colony)
             if (creep) 
             {
                 creep.say("Attacking")
-                let room = Game.rooms[colony.attacking];
+                let room = Cache.rooms[colony.attacking];
                 if(room)
                 {
                     let targets = room.hostiles();
@@ -799,7 +799,7 @@ PerformAttacks=function(colony)
         })
         if (colony.attackers.length < 3) 
         {
-            let room = Game.rooms[colony.pos.roomName];
+            let room = Cache.rooms[colony.pos.roomName];
             if (room) {
                 spawnRoleIntoList(room,colony.attackers,ROLE_ATTACKER);
             }
@@ -814,7 +814,7 @@ PerformAttacks=function(colony)
 
 pointat=function(roomName,target)
 {
-    let room = Game.rooms[roomName];
+    let room = Cache.rooms[roomName];
     let vis;
     if(room)
     {
@@ -851,7 +851,7 @@ digMine=function(colony,miningSpot)
     {
         if (miningSpot.type == 'mineral') 
         {
-            let room = Game.rooms[miningSpot.myPosition.roomName];
+            let room = Cache.rooms[miningSpot.myPosition.roomName];
             if (room)
             {
                 if(room.controller.level < 6) 
@@ -920,36 +920,26 @@ digMine=function(colony,miningSpot)
                 {
                     if ((creep.pos.x != miningSpot.digPos.x || creep.pos.y != miningSpot.digPos.y || creep.pos.roomName != miningSpot.digPos.roomName)) 
                     {
-                        creep.do('travelTo',new RoomPosition(miningSpot.digPos.x,miningSpot.digPos.y,miningSpot.digPos.roomName))
+                        creep.travelTo(new RoomPosition(miningSpot.digPos.x,miningSpot.digPos.y,miningSpot.digPos.roomName));
+                        return;
                     }
                 }
                 else
                 {
-                    creep.do('travelTo',new RoomPosition(25,25,miningSpot.myPosition.roomName))
+                    creep.travelTo(new RoomPosition(25,25,miningSpot.myPosition.roomName))
+                    return;
                 }
                 
                 creep.say("⛏️");
-                let result = creep.do('harvest',miningSpot.target);
-                switch(result)
+                let target = Game.getObjectById(miningSpot.target);
+                if(!target)
                 {
-                    case ERR_NOT_IN_RANGE:
-                        delete miningSpot.target;
-                        break;
-                    case ERR_INVALID_TARGET:
-                        let room = Game.rooms[miningSpot.myPosition.roomName];
-                        if (room || miningSpot.target == 'invalid') 
-                        {
-                            creep.say("forgot");
-                            delete miningSpot.target;
-                        }
-                        break;
+                    delete miningSpot.target;
                 }
+                creep.harvest(target);
                 if (miningSpot.link) 
                 {
-                    if(!miningSpot.time) {miningSpot.time = Math.abs(miningSpot.link.hashCode())}
-                    if(miningSpot.time < 0 ) {miningSpot.time = 0}
-                    miningSpot.time = miningSpot.time + 1;
-                    if (miningSpot.time % MINE_LINK_TRANSFERRATE == 0) 
+                    if (creep.store.getUsedCapacity(RESOURCE_ENERGY) > MINE_LINK_TRANSFERLIMIT) 
                     {
                         let link = Game.getObjectById(miningSpot.link)
                         if (link)
@@ -963,26 +953,25 @@ digMine=function(colony,miningSpot)
                     }
                     if (colony.recievelink) 
                     {
-                        if (miningSpot.time % MINE_LINK_TRANSFERRATE == 2) 
+                        let link = Game.getObjectById(miningSpot.link)
+                        if (link) 
                         {
-                            let target =  Game.getObjectById(colony.recievelink)
-                            if (target) 
+                            if (link.store.getUsedCapacity(RESOURCE_ENERGY) >= MINE_LINK_TRANSFERLIMIT) 
                             {
-                                let link = Game.getObjectById(miningSpot.link)
-                                if (link) 
+                                let target = Game.getObjectById(colony.recievelink)
+                                if (target) 
                                 {
-                                    let max = Math.min(link.store.getUsedCapacity(RESOURCE_ENERGY),target.store.getFreeCapacity(RESOURCE_ENERGY))
-                                    link.transferEnergy(target,max);
+                                    link.transferEnergy(target);
                                 }
                                 else
                                 {
-                                    delete miningSpot.link
+                                    delete colony.recievelink
                                 }
                             }
-                            else
-                            {
-                                delete colony.recievelink
-                            }
+                        }
+                        else
+                        {
+                            delete miningSpot.link
                         }
                     }
                 }
@@ -995,12 +984,11 @@ digMine=function(colony,miningSpot)
                         }
                     })
                 }
-                
             }
         })
         if (needReplacement) 
         {
-            let room = Game.rooms[colony.pos.roomName]
+            let room = Cache.rooms[colony.pos.roomName]
             if (room) 
             {
                 if (miningSpot.type == 'source') 
@@ -1048,7 +1036,7 @@ digMine=function(colony,miningSpot)
     }
     else
     {
-        let room = Game.rooms[miningSpot.myPosition.roomName];
+        let room = Cache.rooms[miningSpot.myPosition.roomName];
         if (room) 
         {
             let results = room.lookAt(miningSpot.myPosition.x,miningSpot.myPosition.y);
@@ -1142,7 +1130,7 @@ analyzeRegion=function(_x,_y,w,h)
     
 }
 
-PrettySerialize=function(obj,depth)
+PrettySerialize=function(obj,ignoreFalse,depth)
 {
     if(!depth){depth = 0}
     message = ""
@@ -1151,26 +1139,33 @@ PrettySerialize=function(obj,depth)
         if(obj[key] instanceof Array)
         {
             message += ("| ".repeat(depth) + key + ":[\n")
-            message += PrettySerialize(obj[key],depth+1)
+            message += PrettySerialize(obj[key],ignoreFalse,depth+1)
             message += ("| ".repeat(depth) + "]\n")
         }
         else if(obj[key] instanceof Object)
         {
             message += ("| ".repeat(depth) + key + ":{\n")
-            message += PrettySerialize(obj[key],depth+1)
+            message += PrettySerialize(obj[key],ignoreFalse,depth+1)
             message += ("| ".repeat(depth) + "}\n")
+        }
+        else if(obj[key] instanceof Function)
+        {
+            //noop
         }
         else
         {
-            message += ("| ".repeat(depth) + key + ": " + obj[key] + "\n")
+            if(!ignoreFalse || obj[key])
+            {
+                message += ("| ".repeat(depth) + key + ": " + obj[key] + "\n")
+            }
         }
     }
     return message
 }
 
-logObject=function(obj,depth)
+logObject=function(obj,ignoreFalse)
 {
-    console.log(PrettySerialize(obj,0))
+    console.log(PrettySerialize(obj,ignoreFalse,0))
 }
 
 deleteDead=function(list)
@@ -1198,7 +1193,7 @@ deleteAllDead=function()
 spawnRoleIntoList=function(room,list,role,options={},additionalList)
 {
     if (typeof(room) == 'string') {
-        room = Game.rooms[room];
+        room = Cache.rooms[room];
         if (!room) {
             return;
         }
@@ -1284,10 +1279,10 @@ dopath=function(Highway)
         var start = new RoomPosition(Highway.start.x,Highway.start.y,Highway.start.roomName)
         var end = new RoomPosition(Highway.end.x,Highway.end.y,Highway.end.roomName)
         
-        var room = Game.rooms[start.roomName]
+        var room = Cache.rooms[start.roomName]
         if (room) 
         {
-            var ret = PathFinder.search(start,[{pos:end,range:1}],{roomCallback:makeTerrainMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+            var ret = PathFinder.search(start,[{pos:end,range:1}],{roomCallback:avoidColonyLayout,swampCost:1,plainCost:1,ignoreCreeps:true})
             if (!ret.incomplete) {
                 Highway.path = Highway.path.concat(ret.path)
                 delete Highway.start
@@ -1304,7 +1299,7 @@ dopath=function(Highway)
     }
 }
 
-makeTerrainMap=function(roomName)
+avoidColonyLayout=function(roomName)
 {
     var matrix = new PathFinder.CostMatrix();
     for(var key in Memory.colonies)
@@ -1400,7 +1395,7 @@ maintainColony=function(colony)
 
 MaintainColonystatic=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName]
+    let room = Cache.rooms[colony.pos.roomName]
     if(!room) 
     {
         Game.notify("No vision on colony " + colony.pos.roomName); 
@@ -1453,50 +1448,21 @@ MaintainColonystatic=function(colony)
                                 break;
                             }
                         }
-                        if (!struct) 
+                    }
+                    if (struct)
+                    {
+                        if (struct instanceof Structure) //repair if road build if construction
                         {
-                            let constructions = room.lookForAt(LOOK_CONSTRUCTION_SITES,pos.x,pos.y) //look for constructionssite
-                            for(let c of constructions)
-                            {
-                                if (c instanceof ConstructionSite) 
-                                {
-                                    struct = c
-                                }
-                            }
-                            if (!struct) 
-                            {
-                                let stored = 0;
-                                let cost = CONSTRUCTION_COST[wantedstruct]
-                                if (room.storage) 
-                                {
-                                    stored = room.storage.store.getUsedCapacity(RESOURCE_ENERGY)
-                                }
-                                
-                                
-                                if (cost > stored) 
-                                {
-                                    console.log("waiting to build " + wantedstruct + " until enough is stored")
-                                    colony.at++;
-                                    return;
-                                }
-                                console.log("started building " + wantedstruct + " at " + pos.x + " " + pos.y + " " + pos.roomName);
-                                console.log("cost: " + cost)
-                                console.log("stored: " +  stored)
-                                new RoomPosition(pos.x,pos.y,pos.roomName).createConstructionSite(wantedstruct)
+                            creep.do("repair",struct)
+                            if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
+                            {    
+                                colony.at += 1
                             }
                         }
-                    }
-                    if (struct instanceof Structure) //repair if road build if construction
-                    {
-                        creep.do("repair",struct)
-                        if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
-                        {    
-                            colony.at += 1
+                        else
+                        {
+                            creep.do("build",struct)
                         }
-                    }
-                    else
-                    {
-                        creep.do("build",struct)
                     }
                 }
             }
@@ -1511,7 +1477,7 @@ MaintainColonystatic=function(colony)
 
 MaintainColonydynamic=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName]
+    let room = Cache.rooms[colony.pos.roomName]
     if(!room) 
     {
         Game.notify("No vision on colony " + colony.pos.roomName); 
@@ -1570,40 +1536,22 @@ MaintainColonydynamic=function(colony)
                                 struct = c
                             }
                         }
-                        if (!struct) 
-                        {
-                            let stored = 0;
-                            let cost = CONSTRUCTION_COST[wantedstruct]
-                            if (room.storage) 
-                            {
-                                stored = room.storage.store.getUsedCapacity(RESOURCE_ENERGY)
-                            }
-                            
-                            
-                            if (cost > stored) 
-                            {
-                                console.log("waiting to build " + wantedstruct + " until enough is stored")
-                                colony.at += 1;
-                                return;
-                            }
-                            console.log("started building " + wantedstruct + "(" + building + ") at " + pos.x + " " + pos.y + " " + pos.roomName);
-                            console.log("cost: " + cost)
-                            console.log("stored: " +  stored)
-                            pos.createConstructionSite(wantedstruct)
+                    }
+                }
+                if (struct)
+                {
+                    if (struct instanceof Structure) //repair if road build if construction
+                    {
+                        creep.do("repair",struct)
+                        if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
+                        {    
+                            colony.at += 1;
                         }
                     }
-                }
-                if (struct instanceof Structure) //repair if road build if construction
-                {
-                    creep.do("repair",struct)
-                    if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
-                    {    
-                        colony.at += 1;
+                    else
+                    {
+                        creep.do("build",struct)
                     }
-                }
-                else
-                {
-                    creep.do("build",struct)
                 }
             }
             creep.updateHarvestState()
@@ -1624,7 +1572,7 @@ MaintainMiningSpot=function(colony,miningSpot)
 {
     if (!miningSpot.lastmaintained || Game.time - miningSpot.lastmaintained > COLONY_MAINTAIN_INTERVAL) 
     {
-        let room = Game.rooms[miningSpot.myPosition.roomName]
+        let room = Cache.rooms[miningSpot.myPosition.roomName]
         if(!room || !miningSpot.layout)
         {
             return
@@ -1791,7 +1739,7 @@ maintain=function(Highway,colony)
                     {
                         creep.travelTo(new RoomPosition(pos.x,pos.y,pos.roomName))
                     }
-                    let room = Game.rooms[pos.roomName]
+                    let room = Cache.rooms[pos.roomName]
                     let road = false
                     if (room) {
                         let structures = room.lookForAt(LOOK_STRUCTURES,pos.x,pos.y) //look for road object
@@ -1862,7 +1810,7 @@ AddMiningSpot=function(colony,miningspot)
 
 Scavange=function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if (room) {
         let storage = room.storage;
         
@@ -1873,7 +1821,7 @@ Scavange=function(colony)
             {
                 if (m.status > 500 && m.digPos) 
                 {
-                    let room = Game.rooms[m.digPos.roomName];
+                    let room = Cache.rooms[m.digPos.roomName];
                     if (room) 
                     {
                         room.lookAt(m.digPos.x,m.digPos.y).forEach((t) => {
@@ -1901,9 +1849,16 @@ Scavange=function(colony)
                 let link = Game.getObjectById(colony.recievelink);
                 if (link) 
                 {
-                    if (link.store.getUsedCapacity(RESOURCE_ENERGY) > 100) 
+                    if(!(link instanceof StructureLink))
                     {
-                        things.unshift(link);
+                        console.log(link)
+                    }
+                    else
+                    {
+                        if (link.store.getUsedCapacity(RESOURCE_ENERGY) > 100) 
+                        {
+                            things.unshift(link);
+                        }
                     }
                 }
                 else
@@ -2065,7 +2020,7 @@ TrackDelta=function(colony)
         }
     }
     
-    let room = Game.rooms[colony.pos.roomName];
+    let room = Cache.rooms[colony.pos.roomName];
     if (room) {
         delta += room.find(FIND_SOURCES).length * 10;
     }
@@ -2159,111 +2114,130 @@ BezierFragment=function(numberOfFragments,points)
     return out;
 }
 
-PowerCreeps=function()
+Power_Matilda=function(matilda)
 {
-    let matilda = Game.powerCreeps["Matilda"];
-    if(matilda && matilda.shard == Game.shard.name) // dont execute if on another shard ;)
+    if(Game.time % 50 == 0)
     {
-        if(Game.time % 50 == 0)
+        matilda.usePower(PWR_GENERATE_OPS);
+    }
+    if(matilda.store.getFreeCapacity(RESOURCE_OPS) < 50)
+    {
+        let targetRoom = Cache.rooms[Memory.colonies[0].pos.roomName];
+        if(targetRoom && targetRoom.controller && targetRoom.controller.my)
         {
-            matilda.usePower(PWR_GENERATE_OPS);
-        }
-        if(matilda.store.getFreeCapacity(RESOURCE_OPS) < 50)
-        {
-            let targetRoom = Game.rooms[Memory.colonies[0].pos.roomName];
-            if(targetRoom && targetRoom.controller && targetRoom.controller.my)
+            let storage = targetRoom.storage;
+            if(storage)
             {
-                let storage = targetRoom.storage;
-                if(storage)
+                let res = matilda.transfer(storage,ExtractContentOfStore(matilda.store)[0]);
+                if(res == ERR_NOT_IN_RANGE)
                 {
-                    let res = matilda.transfer(storage,ExtractContentOfStore(matilda.store)[0]);
-                    if(res == ERR_NOT_IN_RANGE)
-                    {
-                        matilda.travelTo(storage);
-                    }
+                    matilda.travelTo(storage);
                 }
+            }
+        }
+    }
+    else
+    {
+        if(matilda.ticksToLive < 1000)
+        {
+            let err = matilda.renew(matilda.room.powerSpawn);
+            if(err == ERR_NOT_IN_RANGE)
+            {
+                matilda.travelTo(matilda.room.powerSpawn);
             }
         }
         else
         {
-            if(matilda.ticksToLive < 1000)
+            let didSomething = false;
+            if(matilda.room.controller && matilda.room.controller.my)
             {
-                let err = matilda.renew(matilda.room.powerSpawn);
-                if(err == ERR_NOT_IN_RANGE)
+                if(matilda.room.controller.isPowerEnabled)
                 {
-                    matilda.travelTo(matilda.room.powerSpawn);
-                }
-            }
-            else
-            {
-                let didSomething = false;
-                if(matilda.room.controller && matilda.room.controller.my)
-                {
-                    if(matilda.room.controller.isPowerEnabled)
+                    let sources = matilda.room.find(FIND_SOURCES);
+                    sources.forEach((s) =>
                     {
-                        let sources = matilda.room.find(FIND_SOURCES);
-                        sources.forEach((s) =>
+                        if(!didSomething)
                         {
-                            if(!didSomething)
+                            let has = false;
+                            let timeLeft = 0;
+                            if(s.effects)
                             {
-                                let has = false;
-                                let timeLeft = 0;
-                                if(s.effects)
+                                s.effects.forEach((e) =>
                                 {
-                                    s.effects.forEach((e) =>
+                                    if (e.effect == PWR_REGEN_SOURCE)
                                     {
-                                        if (e.effect == PWR_REGEN_SOURCE)
-                                        {
-                                            has = true;
-                                            timeLeft = e.ticksRemaining;
-                                        }
-                                    });
-                                }
-                                if(!has || timeLeft < 15)
-                                {
-                                    didSomething = true;
-                                    matilda.say("Boosting");
-                                    let err = matilda.usePower(PWR_REGEN_SOURCE,s);
-                                    switch(err)
-                                    {
-                                        case OK:
-                                            if(!Memory.boostedSource) { Memory.boostedSource = {}}
-                                            Memory.boostedSource[s.id] = matilda.powers[PWR_REGEN_SOURCE].level;
-                                            break;
-                                        case ERR_TIRED:
-                                            matilda.say("Out of sync");
-                                            break;
-                                        case ERR_NOT_IN_RANGE:
-                                            matilda.say("Moving");
-                                            matilda.travelTo(s);
-                                            break;
+                                        has = true;
+                                        timeLeft = e.ticksRemaining;
                                     }
+                                });
+                            }
+                            if(!has || timeLeft < 15)
+                            {
+                                didSomething = true;
+                                matilda.say("Boosting");
+                                let err = matilda.usePower(PWR_REGEN_SOURCE,s);
+                                switch(err)
+                                {
+                                    case OK:
+                                        if(!Memory.boostedSource) { Memory.boostedSource = {}}
+                                        Memory.boostedSource[s.id] = matilda.powers[PWR_REGEN_SOURCE].level;
+                                        break;
+                                    case ERR_TIRED:
+                                        matilda.say("Out of sync");
+                                        break;
+                                    case ERR_NOT_IN_RANGE:
+                                        matilda.say("Moving");
+                                        matilda.travelTo(s);
+                                        break;
                                 }
                             }
-                        })
-                    }
-                    else
-                    {
-                        matilda.travelTo(matilda.room.controller);
-                        matilda.enableRoom(matilda.room.controller);
-                        didSomething = true;
-                    }
+                        }
+                    })
                 }
-                if(!didSomething)
+                else
                 {
-                    matilda.say("Idle");
-
-                    let target = matilda.room.controller;
-                    if (Game.flags["Matilda_Idle"])
-                    {
-                        target = Game.flags["Matilda_Idle"];
-                    }
-                    if(!matilda.pos.isNearTo(target))
-                    {
-                        matilda.travelTo(target);
-                    }
+                    matilda.travelTo(matilda.room.controller);
+                    matilda.enableRoom(matilda.room.controller);
+                    didSomething = true;
                 }
             }
+            if(!didSomething)
+            {
+                matilda.say("Idle");
+
+                let target = matilda.room.controller;
+                if (Game.flags["Matilda_Idle"])
+                {
+                    target = Game.flags["Matilda_Idle"];
+                }
+                if(!matilda.pos.isNearTo(target))
+                {
+                    matilda.travelTo(target);
+                }
+            }
+        }
+    }
+}
+
+PowerCreeps=function()
+{
+    let matilda = Game.powerCreeps["Matilda"];
+    if(matilda)
+    {
+        if(!matilda.shard && Game.flags["Matilda_Idle"])
+        {
+            if(Memory.mainColony)
+            {
+                let room = Cache.rooms[Memory.mainColony];
+                if(room && room.powerSpawn)
+                {
+                    matilda.spawn(room.powerSpawn);
+                }
+            }
+        }
+        if (matilda.shard == Game.shard.name) // dont execute if on another shard ;)
+        {
+            Power_Matilda(matilda);
         }
     }
 }

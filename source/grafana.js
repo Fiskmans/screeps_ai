@@ -19,9 +19,17 @@ UpdateGrafanaStats=function()
     Memory.stats['scouting.targets'] = Object.keys(Memory.scouting).length;
     
     Memory.stats['store'] = {};
-    _.forEach(Object.keys(Game.rooms), function(roomName){
-      let room = Game.rooms[roomName]
+    _.forEach(Memory.colonies, function(colony){
+
+      let roomName = colony.pos.roomName;
+      let room = Cache.rooms[roomName]
       
+      if(!room)
+      {
+        return;
+      }
+
+
       if(room.controller && room.controller.my)
       {
         Memory.stats['rooms.' + roomName + '.rcl.level'] = room.controller.level
@@ -50,6 +58,28 @@ UpdateGrafanaStats=function()
             }
           })
         }
+        {
+          let hits = 0;
+          let maxHits = 0;
+          room.find(FIND_MY_STRUCTURES,{filter:(s) => {return s.structureType == STRUCTURE_RAMPART}}).forEach(
+            (s) =>
+            {
+              hits += s.hits;
+            }
+          )
+          if(colony.layout)
+          {
+            maxHits = colony.layout.length / 3 * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
+          }
+          else
+          {
+            maxHits = layout.rampartCount[colony.level] * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
+          }
+
+          Memory.stats['rooms.' + roomName + '.rampartshits'] = hits;
+          Memory.stats['rooms.' + roomName + '.rampartshitsmax'] = maxHits;
+        }
+          
       }
     })
     Memory.stats['cpu.getUsed'] = Game.cpu.getUsed()

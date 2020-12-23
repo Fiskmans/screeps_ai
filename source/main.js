@@ -21,6 +21,7 @@ module.exports.loop = function()
 {
   profiler.wrap(function() {
 
+    CacheTick();
 
     DeSerializeMemory();
     defaultMemory();
