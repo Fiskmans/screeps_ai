@@ -851,7 +851,7 @@ digMine=function(colony,miningSpot)
     {
         if (miningSpot.type == 'mineral') 
         {
-            let room = Cache.rooms[miningSpot.myPosition.roomName];
+            let room = Game.rooms[miningSpot.myPosition.roomName];
             if (room)
             {
                 if(room.controller.level < 6) 
@@ -2034,14 +2034,7 @@ TrackDelta=function(colony)
 
 ExtractContentOfStore=function(store)
 {
-    let out = [];
-    RESOURCES_ALL.forEach(r => {
-        if(store.getUsedCapacity(r) > 0)
-        {
-            out.push(r);
-        }
-    });
-    return out;
+    return Object.keys(store);
 }
 
 ImportResources=function(terminal,items)

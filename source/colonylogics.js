@@ -16,13 +16,14 @@ colonyLogic=
     //level 2
     2:function(colony)
     {
-        this[1](colony)
-        StartMining(colony)
-        ColonyMining(colony)
-        ColonyHauling(colony)
+        this[1](colony);
+        StartMining(colony);
+        ColonyMining(colony);
+        ColonyHauling(colony);
         digAllMines(colony);
-        colonyDismantle(colony)
-        maintainColony(colony)
+        ColonyEmptyMines(colony);
+        colonyDismantle(colony);
+        maintainColony(colony);
     },
     //level 3
     3:function(colony)

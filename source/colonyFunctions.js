@@ -79,7 +79,7 @@ ColonyUpgradeLinked=function(colony)
         return;
     }
 
-    RequestResource(colony,colony.sendLink,RESOURCE_ENERGY,600);
+    RequestResource(colony,colony.sendLink,RESOURCE_ENERGY,600,REQUEST_PRIORITY_PROGRESS);
 
     if(link.store.getUsedCapacity(RESOURCE_ENERGY) < 200)
     {
@@ -283,9 +283,9 @@ ColonyFindMisplaced=function(colony,structureType,layout)
 
 ColonyFindBuildingWork=function(colony)
 {
-    if(Game.time != COLONY_CHECK_BUILDINGS_INTERVAL)
+    if(Game.time % COLONY_CHECK_BUILDINGS_INTERVAL != 0)
     {
-        //return;
+        return;
     }
 
     if(Memory.mainColony == colony.pos.roomName)
@@ -1613,6 +1613,7 @@ ColonyFulfillRequests=function(colony)
         return;
     }
 
+
     if(!colony.requests)
     {
         return;
@@ -1639,20 +1640,7 @@ ColonyFulfillRequests=function(colony)
 
     let predicted = {};
     
-    for(let creepName of colony.requestFillers)
-    {
-        let creep = Game.creeps[creepName];
-        predicted[creep.id] = new FakeStore(creep.store);
-    }
-    for(let req of colony.requests.to)
-    {
-        let obj = Game.getObjectById(req.id);
-        predicted[req.id] = new FakeStore(obj.store);
-    }
-    if(room.storage)
-    {
-        predicted[room.storage.id] = new FakeStore(room.storage.store);
-    }
+    MakeFakeStores(colony,predicted);
 
     for(let creepName of colony.requestFillers)
     {
@@ -1662,71 +1650,100 @@ ColonyFulfillRequests=function(colony)
     for(let creepName of colony.requestFillers)
     {
         let creep = Game.creeps[creepName];
+        if(!creep.HasAtleast1TickWorthOfWork())
+        {
+            EnqueueToRequests(colony,room.storage.id,creep,predicted);
+        }
+        if(!creep.HasAtleast1TickWorthOfWork())
+        {
+            EnqueueFromRequests(colony,room.storage.id,creep,predicted);
+        }
+
+        if(creep.memory._workQueue && creep.memory._workQueue.length > 200)
+        {
+            console.log("infloop detected");
+            delete creep.memory._workQueue;
+        }
+
         if(creep.HasWork())
         {
             creep.DoWork();
         }
-        else
-        {
-            let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos);
-            if(req)
-            {
-                if(predicted[creep.id].total > predicted[creep.id][req.resource])
-                {
-                    for(let r of RESOURCES_ALL)
-                    {
-                        let work = {action:CREEP_TRANSFER,target:creep.room.storage.id,arg1:r};
-                        creep.EnqueueWork(work);
-                        creep.SimulateWorkUnit(work,predicted);
-                    }
-                }
-                if(predicted[creep.id][req.resource] < req.targetAmount - predicted[req.id][req.resource])
-                {
-                    if(predicted[creep.id].capacity[req.resource] - predicted[creep.id][req.resource] > 49)
-                    {
-                        if(predicted[room.storage.id][req.resource] > 0)
-                        {
-                            let work = {action:CREEP_WITHDRAW,target:creep.room.storage.id,arg1:req.resource};
-                            creep.EnqueueWork(work);
-                            creep.SimulateWorkUnit(work,predicted);
-                        }
-                    }
-                }
-                let work = {action:CREEP_TRANSFER,target:req.id,arg1:req.resource};
-                creep.EnqueueWork(work);
-                creep.SimulateWorkUnit(work,predicted);
-
-                let lastTarget = Game.getObjectById(req.id);
-                let req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,req.resource);
-
-                while(req2 && predicted[creep.id][req.resource] > 0)
-                {
-                    let work = {action:CREEP_TRANSFER,target:req2.id,arg1:req2.resource};
-                    creep.EnqueueWork(work);
-                    creep.SimulateWorkUnit(work,predicted);
-
-                    lastTarget = Game.getObjectById(req2.id);
-                    req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,req2.resource);
-                }
-            }
-        }
+        
     }
 }
     
 ColonyRequestRefill=function(colony)
 {
+    if(Game.time % REFILL_CHECK_INTERVAL == 0)
+    {
+        return;
+    }
+
     let room = Game.rooms[colony.pos.roomName];
     let perExt = colony.level < 7 ? 50 : (colony.level == 7 ? 100 : 200);
     for(let ext of room.Structures(STRUCTURE_EXTENSION))
     {
-        RequestResource(colony,ext.id,RESOURCE_ENERGY,perExt);
+        RequestResource(colony,ext.id,RESOURCE_ENERGY,perExt,REQUEST_PRIORITY_FUNCTION);
     }
     for(let tower of room.Structures(STRUCTURE_TOWER))
     {
-        RequestResource(colony,tower.id,RESOURCE_ENERGY,TOWER_REFILL_THRESHOLD);
+        RequestResource(colony,tower.id,RESOURCE_ENERGY,TOWER_REFILL_THRESHOLD,REQUEST_PRIORITY_FUNCTION);
     }
     for(let tower of room.Structures(STRUCTURE_SPAWN))
     {
-        RequestResource(colony,tower.id,RESOURCE_ENERGY,300);
+        RequestResource(colony,tower.id,RESOURCE_ENERGY,300,REQUEST_PRIORITY_FUNCTION);
+    }
+}
+
+
+ColonyEmptyMines=function(colony)
+{
+    if(colony.recievelink)
+    {
+        RequestEmptying(colony,colony.recievelink,RESOURCE_ENERGY,100,REQUEST_PRIORITY_FUNCTION);
+    }
+
+    for(let spot of colony.miningSpots)
+    {
+        if(!spot.container)
+        {
+            for(let t of new RoomPosition(spot.digPos.x,spot.digPos.y,spot.digPos.roomName).lookFor(LOOK_STRUCTURES))
+            {
+                if(t.structureType == STRUCTURE_CONTAINER)
+                {
+                    spot.container = t.id;
+                    break;
+                }
+            }
+        }
+        
+        if(spot.container)
+        {
+            let obj = Game.getObjectById(spot.container);
+            if(obj)
+            {
+                let resources = ExtractContentOfStore(obj.store);
+                if(resources.length == 0)
+                {
+                    //Noop
+                } 
+                else if(resources.length == 1)
+                {
+                    RequestEmptying(colony,spot.container,resources[0],MINING_CONTAINER_EMPTY_THRESHOLD,REQUEST_PRIORITY_FUNCTION);
+                }   
+                else
+                {
+                    for(let r of resources)
+                    {
+                        RequestEmptying(colony,spot.container,r,1,REQUEST_PRIORITY_PROGRESS);
+                    }
+                }
+            }
+            else
+            {
+                delete spot.container;
+            }
+        }
     }
 }

@@ -22,38 +22,54 @@ FakeStore = function(store)
 {
     this.total = 0;
     this.capacity = {};
-    for(let r of RESOURCES_ALL)
+    this.content = {};
+    for(let r of Object.keys(store))
     {
-        this[r] = store[r] || 0;
-        this.total += this[r];
+        this.content[r] = store[r] || 0;
+        this.total += this.content[r];
         this.capacity[r] = store.getCapacity(r) || 0;
     }
+    this.original = store;
+}
+
+FakeStore.prototype.Get=function(type)
+{
+    return this.content[type] || 0;
+}
+
+FakeStore.prototype.GetCapacity=function(type)
+{
+    return this.capacity[type] || this.original.getCapacity(type) || 0;
 }
 
 FakeStore.prototype.Withdraw=function(other,type,amount)
 {
     if(!other)
     {
+        console.log("invalid other");
         return;
     }
-    let am = amount || Math.min(other[type],this.capacity[type]-this.total);
+    let am = amount || Math.min(other.Get(type),this.GetCapacity(type)-this.total);
     this.total += am;
-    this[type] += am;
+    if(!this.content[type]) { this.content[type] = 0; }
+    this.content[type] += am;
     other.total -= am;
-    other[type] -= am;
+    other.content[type] -= am;
 }
 
 FakeStore.prototype.Transfer=function(other,type,amount)
 {
     if(!other)
     {
+        console.log("invalid other");
         return;
     }
-    let am = amount || Math.min(this[type],other.capacity[type]-other.total);
+    let am = amount || Math.min(this.Get(type),other.GetCapacity(type)-other.total);
     other.total += am;
-    other[type] += am;
+    if(!other.content[type]) { other.content[type] = 0; }
+    other.content[type] += am;
     this.total -= am;
-    this[type] -= am;
+    this.content[type] -= am;
 }
 
 MiningSpot = function(position)
