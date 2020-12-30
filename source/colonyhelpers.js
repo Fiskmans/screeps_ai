@@ -113,6 +113,42 @@ RemoveDoneRequests=function(colony)
             colony.requests.to.splice(i,1);
         }
     }
+    for(let i = colony.requests.from.length-1;i >= 0; i--)
+    {
+        let active = true;
+        let req = colony.requests.from[i];
+        if(Game.time - req.at > STALE_REQUEST_THRESHOLD)
+        {
+            active = false;
+        }
+        else
+        {
+            let obj = Game.getObjectById(req.id)
+            if(!obj)
+            {
+                active = false;
+            }
+            else
+            {
+                if(!obj.store)
+                {
+                    active = false;
+                }
+                else
+                {
+                    if(obj.store.getUsedCapacity(req.resource) <= req.targetAmount)
+                    {
+                        active = false;
+                    }
+                }
+            }
+        }
+
+        if(!active)
+        {
+            colony.requests.from.splice(i,1);
+        }
+    }
 }
 
 ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,ofType)
@@ -174,7 +210,7 @@ ColonyFindUnfilledFromRequest=function(colony,fakeStores,pos)
     let filtered = [];
     for(let req of colony.requests.from)
     {
-        if(fakeStores[req.id].Get(req.resource) >= req.targetAmount)
+        if(fakeStores[req.id] && fakeStores[req.id].Get(req.resource) >= req.targetAmount)
         {
             if(req.prio > highestPrio)
             {

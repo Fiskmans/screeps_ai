@@ -49,7 +49,7 @@ FakeStore.prototype.Withdraw=function(other,type,amount)
         console.log("invalid other");
         return;
     }
-    let am = amount || Math.min(other.Get(type),this.GetCapacity(type)-this.total);
+    let am = amount || Math.min(other.Get(type),Math.max(this.GetCapacity(type)-this.total,0));
     this.total += am;
     if(!this.content[type]) { this.content[type] = 0; }
     this.content[type] += am;
@@ -64,7 +64,7 @@ FakeStore.prototype.Transfer=function(other,type,amount)
         console.log("invalid other");
         return;
     }
-    let am = amount || Math.min(this.Get(type),other.GetCapacity(type)-other.total);
+    let am = amount || Math.min(this.Get(type),Math.max(other.GetCapacity(type)-other.total,0));
     other.total += am;
     if(!other.content[type]) { other.content[type] = 0; }
     other.content[type] += am;
