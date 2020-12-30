@@ -58,6 +58,7 @@ colonyLogic=
         } 
         ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
+        ColonyTerminalTraffic(colony);
     },
     //level 7
     7:function(colony)
@@ -79,11 +80,13 @@ colonyLogic=
         ColonyMining(colony)
         ColonyHauling(colony)
         digAllMines(colony);
+        ColonyEmptyMines(colony);
         colonyDismantle(colony)
         FindColonyLinks(colony)
         ColonyMaintainUpgradeSite(colony)
         ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
+        ColonyTerminalTraffic(colony);
         ColonyRetargetFactory(colony);
         ColonyCrafting(colony);
         maintainall(colony)

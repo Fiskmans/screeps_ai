@@ -796,83 +796,6 @@ ColonyRetargetFactory=function(colony)
     colony.crafting = best;
 }
 
-ColonyRestock=function(colony,stockto,target,rolename,source)
-{
-    if(!colony.restockers) {colony.restockers = {}};
-    let missing = {}
-    let store = target.store;
-    for(let res in stockto)
-    {
-        if(store.getUsedCapacity(res) < stockto[res] && source.store.getUsedCapacity(res) > 0)
-        {
-            missing[res] = stockto[res] - store.getUsedCapacity(res);
-        }
-    }
-    if(colony.restockers[rolename])
-    {
-        var creep = Game.creeps[colony.restockers[rolename]];
-    }
-    if(Object.keys(missing).length > 0 || (creep && creep.store.getUsedCapacity() > 0))
-    {
-        if(colony.restockers[rolename])
-        {
-            if(creep)
-            {
-                if(creep.store.getUsedCapacity() > 0)
-                {
-                    let res = ExtractContentOfStore(creep.store)[0];
-                    creep.say("⬆️ "+ res + " ⬆️");
-                    if(target.store.getFreeCapacity(res) < 10)
-                    {
-                        if(creep.transfer(source,res) == ERR_NOT_IN_RANGE)
-                        {
-                            creep.travelTo(source)
-                        }
-                    }
-                    else
-                    {
-                        if(creep.transfer(target,res) == ERR_NOT_IN_RANGE)
-                        {
-                            creep.travelTo(target)
-                        }
-                    }
-                }
-                else
-                {
-                    let res = Object.keys(missing)[0];
-                    let amount = Math.min(creep.store.getFreeCapacity(res),store.getUsedCapacity(res));
-                    let result = creep.withdraw(source, res, amount);
-                    if(result == ERR_NOT_IN_RANGE)
-                    {
-                        creep.say("⬇️ "+ res + " ⬇️");
-                        creep.travelTo(source)
-                    }
-                    else if (result == ERR_FULL)
-                    {
-                        console.log("failed to withdraw " + amount + " " + res + " from " + source + " Err: " + result);
-                    }
-                }
-            }
-            else
-            {
-                delete colony.restockers[rolename]
-            }
-        }
-        else
-        {
-            colony.restockers[rolename] = colony.haulerpool.shift();
-        }
-    }
-    else
-    {
-        if(colony.restockers[rolename])
-        {
-            colony.haulerpool.push(colony.restockers[rolename]);
-            delete colony.restockers[rolename];
-        }
-    }
-}
-
 ColonySelling=function(colony,terminal)
 {
     if(terminal.cooldown > 0) { return; }
@@ -931,7 +854,9 @@ ColonyMerchant=function(colony)
     if(!terminal) { return; }
     if(!storage) { return; }
     if(storage.store.getUsedCapacity(RESOURCE_ENERGY) < MARKETING_ENERGY_LOWER_LIMIT) { target = {} }
-    ColonyRestock(colony,target,terminal,"store->terminal",storage);
+
+    MultiRequestResource(colony,target,terminal.id,REQUEST_PRIORITY_AUXILIARY)
+
     ColonySelling(colony,terminal)
 }
 
@@ -950,66 +875,15 @@ ColonyDismantleAll=function(colony)
     })
     colony._discheck = 1;
 }
-ColonyCollect=function(colony,source,target,type,rolename)
-{
-    if(!colony.collecters) {colony.collecters = {}};
-    if(colony.collecters[rolename])
-    {
-        var creep = Game.creeps[colony.collecters[rolename]];
-    }
-    if(type && source.store.getUsedCapacity(type) > 0 || (creep && creep.store.getUsedCapacity() > 0))
-    {
-        if(colony.collecters[rolename])
-        {
-            if(creep)
-            {
-                if(creep.store.getUsedCapacity() > 0)
-                {
-                    let res = ExtractContentOfStore(creep.store)[0];
-                    creep.say("⬆️ "+ res + " ⬆️");
-                    if(creep.transfer(target,res) == ERR_NOT_IN_RANGE)
-                    {
-                        creep.travelTo(target)
-                    }
-                }
-                else
-                {
-                    creep.say("⬇️ " + type + " ⬇️");
-                    if(creep.withdraw(source, type) == ERR_NOT_IN_RANGE)
-                    {
-                        creep.travelTo(source)
-                    }
-                }
-            }
-            else
-            {
-                delete colony.collecters[rolename]
-            }
-        }
-        else
-        {
-            colony.collecters[rolename] = colony.haulerpool.shift();
-        }
-    }
-    else
-    {
-        if(colony.collecters[rolename])
-        {
-            colony.haulerpool.push(colony.collecters[rolename]);
-            delete colony.collecters[rolename];
-        }
-    }
-}
 
 ColonyCrafting=function(colony)
 {
     let room = Cache.rooms[colony.pos.roomName];
     if(!room || !room.factory) { return; }
-    if(room.storage)
-    {
-        ColonyCollect(colony,room.factory,room.storage,colony.crafting,"factory->store");
-    }
     if(!colony.crafting) { return; }
+
+    RequestEmptying(colony,room.factory.id,colony.crafting,1,REQUEST_PRIORITY_AUXILIARY);
+
     let wants = {};
     for(let res in COMMODITIES[colony.crafting].components)
     {
@@ -1017,23 +891,14 @@ ColonyCrafting=function(colony)
     }
     if(room.storage)
     {
-        if(wants[RESOURCE_ENERGY] && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < FACTORY_ENERGY_TO_LEAVE_IN_STORAGE)
+        if(wants[RESOURCE_ENERGY] && wants[RESOURCE_ENERGY] > 0 && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < FACTORY_ENERGY_TO_LEAVE_IN_STORAGE)
         {
             delete wants[RESOURCE_ENERGY];
         }
-        ColonyRestock(colony,wants,room.factory,"store->factory",room.storage);
-        ColonyCollect(colony,room.factory,room.storage,colony.crafting,"factory->store");
+        MultiRequestResource(colony,wants,room.factory.id,REQUEST_PRIORITY_AUXILIARY);
     }
-    if(room.terminal)
-    {
-        delete wants[RESOURCE_ENERGY];
-        ColonyRestock(colony,wants,room.factory,"terminal->factory",room.terminal);
-
-        ImportResources(room.terminal,Object.keys(wants));
-    }
-
-    let err = room.factory.produce(colony.crafting);
-
+    
+    room.factory.produce(colony.crafting);
 }
 
 ColonyCollectPower=function(colony)
@@ -1265,14 +1130,8 @@ ColonyProcessPower=function(colony)
 {
     let room = Cache.rooms[colony.pos.roomName];
     if(!room) { return; }
-    if(!room.powerSpawn) { return; }
     if(!room.storage) { return; }
-    let target = {[RESOURCE_POWER]:0};
-    if(room.powerSpawn.store.getFreeCapacity(RESOURCE_POWER) > 80)
-    {
-        target[RESOURCE_POWER] = 100;
-    }
-    ColonyRestock(colony,target,room.powerSpawn,"storage->powerSpawn",room.storage);
+
     if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < POWER_PROCESS_ENERGY_LIMIT) { return; }
     room.powerSpawn.processPower();
 
@@ -1621,33 +1480,24 @@ ColonyFulfillRequests=function(colony)
     
     RemoveDoneRequests(colony);
 
-    if(colony.requests.to.length == 0)
+    if(colony.requestFillers && colony.requestFillers.length > 0)
     {
-        if(colony.requestFillers && colony.requestFillers.length > 0)
-        {
-            colony.haulerpool = colony.haulerpool.concat(colony.requestFillers);
-            colony.requestFillers = [];
-        }
-        return;
+        colony.haulerpool = colony.haulerpool.concat(colony.requestFillers);
+        colony.requestFillers = [];
     }
 
-    if(!colony.requestFillers) { colony.requestFillers = [] } 
-    if(colony.requestFillers.length < 1 && colony.haulerpool.length > 0)
-    {
-        colony.requestFillers.push(colony.haulerpool.shift());
-    }
-    deleteDead(colony.requestFillers);
+    deleteDead(colony.haulerpool);
 
     let predicted = {};
     
     MakeFakeStores(colony,predicted);
 
-    for(let creepName of colony.requestFillers)
+    for(let creepName of colony.haulerpool)
     {
         Game.creeps[creepName].SimulateWork(predicted);
     }
 
-    for(let creepName of colony.requestFillers)
+    for(let creepName of colony.haulerpool)
     {
         let creep = Game.creeps[creepName];
         if(!creep.HasAtleast1TickWorthOfWork())
@@ -1694,6 +1544,12 @@ ColonyRequestRefill=function(colony)
     {
         RequestResource(colony,tower.id,RESOURCE_ENERGY,300,REQUEST_PRIORITY_FUNCTION);
     }
+    if(room.powerSpawn)
+    {
+        RequestResource(colony,room.powerSpawn.id,RESOURCE_ENERGY,4000,REQUEST_PRIORITY_AUXILIARY)
+        RequestResource(colony,room.powerSpawn.id,RESOURCE_POWER,80,REQUEST_PRIORITY_AUXILIARY)
+    }
+
 }
 
 
@@ -1743,6 +1599,43 @@ ColonyEmptyMines=function(colony)
             else
             {
                 delete spot.container;
+            }
+        }
+    }
+}
+
+ColonyTerminalTraffic=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room) { return; }
+    if(!room.storage) { return; }
+    if(!room.terminal) { return; }
+    
+    RequestEmptying(colony,room.terminal.id,RESOURCE_ENERGY,TERMINAL_ENERGY_MAX,REQUEST_PRIORITY_AUXILIARY);
+    RequestResource(colony,room.terminal.id,RESOURCE_ENERGY,TERMINAL_ENERGY_MIN,REQUEST_PRIORITY_AUXILIARY);
+
+    if(Memory.mainColony == colony.pos.roomName)
+    {
+        let resources = ExtractContentOfStore(room.terminal.store);
+        for(let res of resources)
+        {
+            if(res != RESOURCE_ENERGY)
+            {
+                if(!colony.selling || !colony.selling.includes(res))
+                {
+                    RequestEmptying(colony,room.terminal.id,res,1,REQUEST_PRIORITY_AUXILIARY);
+                }
+            }
+        }
+    }
+    else
+    {
+        let resources = ExtractContentOfStore(room.storage.store);
+        for(let res of resources)
+        {
+            if(res != RESOURCE_ENERGY)
+            {
+                RequestResource(colony,room.terminal.id,res,TEMRINAL_RESOURCE_MIN,REQUEST_PRIORITY_AUXILIARY);
             }
         }
     }

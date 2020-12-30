@@ -1811,164 +1811,28 @@ AddMiningSpot=function(colony,miningspot)
 Scavange=function(colony)
 {
     let room = Cache.rooms[colony.pos.roomName];
-    if (room) {
-        let storage = room.storage;
-        
-        if (storage && storage.store.getFreeCapacity() > 200) {
-            let things = room.find(FIND_TOMBSTONES).concat(room.find(FIND_RUINS)).concat(room.containers);
-            
-            colony.miningSpots.forEach((m) =>
-            {
-                if (m.status > 500 && m.digPos) 
-                {
-                    let room = Cache.rooms[m.digPos.roomName];
-                    if (room) 
-                    {
-                        room.lookAt(m.digPos.x,m.digPos.y).forEach((t) => {
-                            if (t.structure && t.structure.structureType == STRUCTURE_CONTAINER) 
-                            {
-                                things.push(t.structure);
-                            }
-                        })
-                    }
-                }
-            })
-            things = _.filter(things,(s) =>
-            {
-                if (s.id == storage.id) 
-                {
-                    return false;
-                }
-                return (((s instanceof Ruin) || (s instanceof Tombstone)) && s.store.getUsedCapacity() > 0) || s.store.getUsedCapacity() > 500;
-            })
-            
-            
-            things = things.concat(room.find(FIND_DROPPED_RESOURCES))
-            if (colony.recievelink) 
-            {
-                let link = Game.getObjectById(colony.recievelink);
-                if (link) 
-                {
-                    if(!(link instanceof StructureLink))
-                    {
-                        console.log(link)
-                    }
-                    else
-                    {
-                        if (link.store.getUsedCapacity(RESOURCE_ENERGY) > 100) 
-                        {
-                            things.unshift(link);
-                        }
-                    }
-                }
-                else
-                {
-                    delete colony.recievelink;
-                }
-            }
-            
-            if (things.length > 0) 
-            {
-                let thingLookup = {};
-                things.forEach((t) => {thingLookup[t.id] = t})
-                let thingIds = Object.keys(thingLookup);
+    if(!room)
+    {
+        return;
+    }
 
-                let number = 0;
-                for(let index in colony.haulerpool)
-                {
-                    creep = Game.creeps[colony.haulerpool[index]];
-                    number++;
-                    if(number > 5)
-                    {
-                        creep.Retire(colony.pos.roomName);
-                    }
-                    else
-                    {
-                        if (creep.store.getUsedCapacity() > 0) 
-                        {
-                            let err = creep.transfer(storage,ExtractContentOfStore(creep.store)[0]);
-                            if (err == ERR_NOT_IN_RANGE) {
-                                creep.travelTo(storage);
-                            }
-                            creep.say("🚮")
-                        }
-                        else
-                        {
-                            
-                            let target = false;
-                            if(index < things.length)
-                            {
-                                target = things[index]
-                            }
-                            else
-                            {
-                                target = things[0]
-                            }
-                            
-                            let err = false;
-                            if (target) 
-                            {
-                                let res = false;
-                                for(let i in RESOURCES_ALL)
-                                {
-                                    if (!target.store) 
-                                    {
-                                        res = RESOURCE_ENERGY;
-                                        break
-                                    }
-                                    if (target.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) 
-                                    {
-                                        res = RESOURCES_ALL[i];
-                                        break;
-                                    }
-                                }
-                                err = creep.withdraw(target,res);
-                                if (err == ERR_INVALID_TARGET) 
-                                {
-                                    err = creep.pickup(target);
-                                }
-                                if (err == ERR_NOT_IN_RANGE) {
-                                    creep.travelTo(target);
-                                }
-                            }
-                            creep.say("🏹")
-                        }
-                    }
-                }
-            }
-            else
+    let storage = room.storage;
+    
+    if (storage && storage.store.getFreeCapacity() > 200) {
+        let things = room.find(FIND_TOMBSTONES).concat(room.find(FIND_RUINS));
+        
+        for(let t of things)
+        {
+            let resources = ExtractContentOfStore(t.store);
+            for(let r of resources)
             {
-                for(let index in colony.haulerpool)
-                {
-                    let creep = Game.creeps[colony.haulerpool[index]];
-                    if (creep) 
-                    {
-                        if (creep.store.getUsedCapacity() > 0) 
-                        {
-                            let res = false;
-                            RESOURCES_ALL.forEach((r) =>
-                                {
-                                    if (creep.store.getUsedCapacity(r) > 0) 
-                                    {
-                                        res = r;
-                                    }
-                                })
-                            let err = creep.transfer(storage,res);
-                            if (err == ERR_NOT_IN_RANGE) {
-                                creep.travelTo(storage);
-                            }
-                            creep.say("🚮")
-                        }
-                        else
-                        {
-                            creep.say("🚶‍♂️")
-                            creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
-                        }
-                    }
-                }
+                RequestEmptying(colony,t.id,r,1,REQUEST_PRIORITY_TIMED);
             }
         }
+        
+        //things = things.concat(room.find(FIND_DROPPED_RESOURCES)) TODO: Add dropped resource pickup?
     }
+    
 }
 
 TrackAllDelta=function()

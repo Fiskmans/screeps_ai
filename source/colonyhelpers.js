@@ -1,16 +1,30 @@
+MultiRequestResource=function(colony,amounts,objId,priority)
+{
+    for(let r of Object.keys(amounts))
+    {
+        RequestResource(colony,objId,r,amounts[r],priority);
+    }
+}
 
 RequestResource=function(colony,objectId,type,wantedAmount,priority)
 {
     if(!wantedAmount || wantedAmount < 1)
     {
-        console.log("Bad call to RequestResource");
-        Game.notify("Bad call to RequestResource");
+        console.log("Bad call to RequestResource: " + wantedAmount + " " + type);
+        Game.notify("Bad call to RequestResource: " + wantedAmount + " " + type);
         return;
     }
 
     let pri = priority || 0;
 
-    let req = {id:objectId,resource:type,targetAmount:wantedAmount,at:Game.time,prio:pri};   
+    let req = {
+        id:objectId,
+        resource:type,
+        targetAmount:wantedAmount,
+        at:Game.time,
+        prio:pri,
+        action:REQUEST_ACTION_FILL
+    };   
 
     let obj = Game.getObjectById(objectId);
     if(!obj)
@@ -22,17 +36,17 @@ RequestResource=function(colony,objectId,type,wantedAmount,priority)
         return;
     }
 
-    if(!colony.requests) { colony.requests = {to:[],from:[]} };
-    for(let i in colony.requests.to)
+    if(!colony.requests) { colony.requests = [] };
+    for(let i in colony.requests)
     {
-        let r = colony.requests.to[i];
+        let r = colony.requests[i];
         if(r.id == req.id && r.resource == req.resource)
         {
-            colony.requests.to[i] = req;
+            colony.requests[i] = req;
             return;
         }
     }
-    colony.requests.to.push(req);
+    colony.requests.push(req);
 }
 
 RequestEmptying=function(colony,objectId,type,wantedAmount,priority)
@@ -45,7 +59,13 @@ RequestEmptying=function(colony,objectId,type,wantedAmount,priority)
     }
     let pri = priority || 0;
 
-    let req = {id:objectId,resource:type,targetAmount:wantedAmount,at:Game.time,prio:pri};   
+    let req = {
+        id:objectId,
+        resource:type,
+        targetAmount:wantedAmount,
+        at:Game.time,
+        prio:pri,
+        action:REQUEST_ACTION_EMPTY};   
 
     let obj = Game.getObjectById(objectId);
     if(!obj)
@@ -57,17 +77,17 @@ RequestEmptying=function(colony,objectId,type,wantedAmount,priority)
         return;
     }
 
-    if(!colony.requests) { colony.requests = {to:[],from:[]} };
-    for(let i in colony.requests.from)
+    if(!colony.requests) { colony.requests = [] };
+    for(let i in colony.requests)
     {
-        let r = colony.requests.from[i];
+        let r = colony.requests[i];
         if(r.id == req.id && r.resource == req.resource)
         {
-            colony.requests.from[i] = req;
+            colony.requests[i] = req;
             return;
         }
     }
-    colony.requests.from.push(req);
+    colony.requests.push(req);
 }
 
 RemoveDoneRequests=function(colony)
@@ -77,10 +97,10 @@ RemoveDoneRequests=function(colony)
         return;
     }
 
-    for(let i = colony.requests.to.length-1;i >= 0; i--)
+    for(let i = colony.requests.length-1;i >= 0; i--)
     {
         let active = true;
-        let req = colony.requests.to[i];
+        let req = colony.requests[i];
         if(Game.time - req.at > STALE_REQUEST_THRESHOLD)
         {
             active = false;
@@ -100,9 +120,19 @@ RemoveDoneRequests=function(colony)
                 }
                 else
                 {
-                    if(obj.store.getUsedCapacity(req.resource) > req.targetAmount)
+                    if(req.action == REQUEST_ACTION_EMPTY)
                     {
-                        active = false;
+                        if(obj.store.getUsedCapacity(req.resource) < req.targetAmount)
+                        {
+                            active = false;
+                        }
+                    }
+                    else
+                    {
+                        if(obj.store.getUsedCapacity(req.resource) > req.targetAmount)
+                        {
+                            active = false;
+                        }    
                     }
                 }
             }
@@ -110,43 +140,7 @@ RemoveDoneRequests=function(colony)
 
         if(!active)
         {
-            colony.requests.to.splice(i,1);
-        }
-    }
-    for(let i = colony.requests.from.length-1;i >= 0; i--)
-    {
-        let active = true;
-        let req = colony.requests.from[i];
-        if(Game.time - req.at > STALE_REQUEST_THRESHOLD)
-        {
-            active = false;
-        }
-        else
-        {
-            let obj = Game.getObjectById(req.id)
-            if(!obj)
-            {
-                active = false;
-            }
-            else
-            {
-                if(!obj.store)
-                {
-                    active = false;
-                }
-                else
-                {
-                    if(obj.store.getUsedCapacity(req.resource) <= req.targetAmount)
-                    {
-                        active = false;
-                    }
-                }
-            }
-        }
-
-        if(!active)
-        {
-            colony.requests.from.splice(i,1);
+            colony.requests.splice(i,1);
         }
     }
 }
@@ -160,18 +154,21 @@ ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,ofType)
 
     let highestPrio = 0;;
     let filtered = [];
-    for(let req of colony.requests.to)
+    for(let req of colony.requests)
     {
-        if(!ofType || req.resource == ofType)
+        if(req.action == REQUEST_ACTION_FILL)
         {
-            if(fakeStores[req.id].Get(req.resource) < req.targetAmount)
+            if(!ofType || req.resource == ofType)
             {
-                if(req.prio > highestPrio)
+                if(fakeStores[req.id].Get(req.resource) < req.targetAmount)
                 {
-                    filtered = [];
-                    highestPrio = req.prio;
+                    if(req.prio > highestPrio)
+                    {
+                        filtered = [];
+                        highestPrio = req.prio;
+                    }
+                    filtered.push(req);
                 }
-                filtered.push(req);
             }
         }
     }
@@ -208,16 +205,19 @@ ColonyFindUnfilledFromRequest=function(colony,fakeStores,pos)
 
     let highestPrio = 0;;
     let filtered = [];
-    for(let req of colony.requests.from)
+    for(let req of colony.requests)
     {
-        if(fakeStores[req.id] && fakeStores[req.id].Get(req.resource) >= req.targetAmount)
+        if(req.action == REQUEST_ACTION_EMPTY)
         {
-            if(req.prio > highestPrio)
+            if(fakeStores[req.id] && fakeStores[req.id].Get(req.resource) >= req.targetAmount)
             {
-                filtered = [];
-                highestPrio = req.prio;
+                if(req.prio > highestPrio)
+                {
+                    filtered = [];
+                    highestPrio = req.prio;
+                }
+                filtered.push(req);
             }
-            filtered.push(req);
         }
     }
     if(filtered.length == 0)
@@ -248,17 +248,12 @@ MakeFakeStores=function(colony,outObj)
 {
     let room = Game.rooms[colony.pos.roomName];
 
-    for(let creepName of colony.requestFillers)
+    for(let creepName of colony.haulerpool)
     {
         let creep = Game.creeps[creepName];
         outObj[creep.id] = new FakeStore(creep.store);
     }
-    for(let req of colony.requests.to)
-    {
-        let obj = Game.getObjectById(req.id);
-        outObj[req.id] = new FakeStore(obj.store);
-    }
-    for(let req of colony.requests.from)
+    for(let req of colony.requests)
     {
         let obj = Game.getObjectById(req.id);
         outObj[req.id] = new FakeStore(obj.store);
@@ -274,7 +269,7 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
     let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos);
     if(req)
     {
-        if(predicted[creep.id].total > predicted[creep.id].Get(req.resource))
+        if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < predicted[req.id].Get(req.resource))
         {
             for(let r of Object.keys(predicted[creep.id].content))
             {

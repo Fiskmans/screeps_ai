@@ -40,9 +40,9 @@ drawColony=function(colony,vis)
             vis.text("Nr." + index,49,49,{font:2,align:"right"});
         }
         
-        if(colony.requestFillers)
+        if(colony.haulerpool)
         {
-            for(let cname of colony.requestFillers)
+            for(let cname of colony.haulerpool)
             {
                 Game.creeps[cname].DrawWork(vis);
             }

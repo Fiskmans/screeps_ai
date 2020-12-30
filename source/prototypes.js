@@ -136,7 +136,7 @@ Creep.prototype._execWork=function(work)
 
 Creep.prototype.DoWork=function()
 {
-    if(!this.HasWork())
+    if(this.spawning || !this.HasWork())
     {
         return;
     }
@@ -146,7 +146,7 @@ Creep.prototype.DoWork=function()
     switch(res)
     {
         case OK:
-        default:
+        default: // any error
             dequeu = true;
             break;
 
@@ -159,7 +159,7 @@ Creep.prototype.DoWork=function()
         if(this.HasWork())
         {
             let nextTarget = Game.getObjectById(this.memory._workQueue[0].target);
-            if(nextTarget.pos.getRangeTo(this.pos) > 1)
+            if(nextTarget && nextTarget.pos.getRangeTo(this.pos) > 1)
             {
                 this.travelTo(nextTarget);
             }
@@ -170,19 +170,26 @@ Creep.prototype.DoWork=function()
 Creep.prototype.DrawWork=function(vis,opt)
 {
     let options = opt || {};
-    _.defaults(options,{radius:0.4,stroke:"#AAAAAA"});
+    _.defaults(options,{radius:0.4,strokeStart:0x77CC77,strokeEnd:0xCC7777});
     if(!this.HasWork())
     {
         return;
     }
 
     let lastPos = this.pos;
-    vis.circle(lastPos,{radius:options.radius,fill:"#00000000",stroke:options.stroke,strokewidth:0.2});
+    let stroke = "#" + options.strokeStart.toString(16);
 
-    for(let work of this.memory._workQueue)
+    vis.circle(lastPos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
+
+    for(let i in this.memory._workQueue)
     {
+        let work = this.memory._workQueue[i];
+        stroke = "#" + lerpColor(options.strokeStart,options.strokeEnd,(i - -1)/this.memory._workQueue.length).toString(16);
+
         let obj = Game.getObjectById(work.target)
-        vis.circle(obj.pos,{radius:options.radius,fill:"#00000000",stroke:options.stroke,strokewidth:0.2});
+        vis.circle(obj.pos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
+
+        //vis.text(stroke,obj.pos);
 
         let dx = lastPos.x - obj.pos.x;
         let dy = lastPos.y - obj.pos.y;
@@ -194,15 +201,15 @@ Creep.prototype.DrawWork=function(vis,opt)
 
         vis.line(   lastPos.x - dx * options.radius,lastPos.y - dy * options.radius,
                     obj.pos.x + dx * options.radius,obj.pos.y + dy * options.radius,
-                    {dolor:options.stroke,width:0.1});
+                    {color:stroke,width:0.05,opacity:0.9});
 
-        vis.text(CREEP_ACTION_ICON[work.action],   obj.pos.x , obj.pos.y + 0.1,{align:'right',font:0.27})
+        vis.text(CREEP_ACTION_ICON[work.action], obj.pos.x, obj.pos.y + 0.1, {align:'right',font:0.27})
         
         switch(work.action)
         {
             case CREEP_WITHDRAW:
             case CREEP_TRANSFER:
-                vis.symbol(obj.pos.x+0.2,obj.pos.y,work.arg1);
+                vis.symbol(obj.pos.x+0.2,obj.pos.y,work.arg1,{scale:0.4});
                 break;
         }
 
@@ -216,10 +223,16 @@ Creep.prototype.SimulateWorkUnit=function(workUnit,fakeStores)
     switch(workUnit.action)
     {
     case CREEP_WITHDRAW:
-        fakeStores[this.id].Withdraw(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
+        if(fakeStores[workUnit.target])
+        {
+            fakeStores[this.id].Withdraw(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
+        }
         break;
     case CREEP_TRANSFER:
-        fakeStores[this.id].Transfer(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
+        if(fakeStores[workUnit.target])
+        {
+            fakeStores[this.id].Transfer(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
+        }
         break;
     }
 }

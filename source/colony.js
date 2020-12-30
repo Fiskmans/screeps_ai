@@ -18,9 +18,11 @@ colonyMain=function()
 colonyStart=function(colony)
 {
     deleteDead(colony.workerpool)
-    if (colony.haulerpool) {
+    if (colony.haulerpool) 
+    {
         deleteDead(colony.haulerpool)
     }
+
     let room = Cache.rooms[colony.pos.roomName]
     if (room && room.controller.my && room.controller.level != 0) 
     {
