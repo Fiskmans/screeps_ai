@@ -1,7 +1,5 @@
 require('Globals')
 
-require('Cache')
-
 require('traveler')
 
 require('requirePrototypes')
