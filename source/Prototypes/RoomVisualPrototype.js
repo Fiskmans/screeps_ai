@@ -1,547 +1,3 @@
-/**
- * Returns a number whose value is limited to the given range.
- *
- * Example: limit the output of this computation to between 0 and 255
- * (x * 255).clamp(0, 255)
- *
- * @param {Number} min The lower boundary of the output range
- * @param {Number} max The upper boundary of the output range
- * @returns A number in the range [min, max]
- * @type Number
- */
-Number.prototype.clamp = function(min, max) 
-{
-    return Math.min(Math.max(this, min), max);
-};
-
-Creep.prototype.do=function(action,target,arg1,arg2,arg3)
-{
-    if (typeof(target) === "string") 
-    {
-        target = Game.getObjectById(target);
-    }
-    let err = this[action](target,arg1,arg2,arg3);
-    if(err == ERR_NOT_IN_RANGE)
-    {
-        this.travelTo(target)
-    }
-    return err;
-}
-Creep.prototype.LeaveEdge=function()
-{
-    if (this.pos.x < 2) { this.travelTo(new RoomPosition(25,25,this.room.name,{ignoreCreeps:false})); }
-    if (this.pos.x > 46) { this.travelTo(new RoomPosition(25,25,this.room.name,{ignoreCreeps:false})); }
-    if (this.pos.y < 2) { this.travelTo(new RoomPosition(25,25,this.room.name,{ignoreCreeps:false})); }
-    if (this.pos.y > 47) { this.travelTo(new RoomPosition(25,25,this.room.name,{ignoreCreeps:false})); }
-}
-
-Creep.prototype.dumbHarvest=function()
-{
-    if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > this.store.getCapacity(RESOURCE_ENERGY))
-    {
-        this.say("🧱")
-        let err = this.withdraw(this.room.storage,RESOURCE_ENERGY);
-        if (err == ERR_NOT_IN_RANGE) {
-            this.travelTo(this.room.storage);
-            return
-        }
-        else if(err == ERR_FULL)
-        {
-            if(this.store.getUsedCapacity(RESOURCE_ENERGY) < 50)
-            {
-                err = this.transfer(this.room.storage,ExtractContentOfStore(this.store)[0]);
-            }
-        }
-        else if(err == OK)
-        {
-            return
-        }
-    }
-    
-    let resourses = this.room.find(FIND_DROPPED_RESOURCES,{filter:(r) => {return r.resourceType == RESOURCE_ENERGY}});
-    if (resourses.length > 0) 
-    {
-        let target = this.pos.findClosestByPath(resourses);
-        if (this.pickup(target) == ERR_NOT_IN_RANGE)
-        {
-            this.travelTo(target)
-        }
-        return;
-    }
-    
-    this.say("🧱")
-    var source = this.pos.findClosestByPath(FIND_SOURCES_ACTIVE)
-    if(this.harvest(source) == ERR_NOT_IN_RANGE)
-    {
-        this.travelTo(source)
-    }
-}
-Creep.prototype.dumbUpgrade=function()
-{
-    this.say("🔧")
-    if(this.upgradeController(this.room.controller) == ERR_NOT_IN_RANGE)
-    {
-        this.travelTo(this.room.controller)
-    }
-}
-Creep.prototype.scavenge = function()
-{
-    
-}
-
-Creep.prototype.dumbBuild=function()
-{
-    this.say("🏗️")
-    if(this.build(this.room.find(FIND_MY_CONSTRUCTION_SITES)[0]) == ERR_NOT_IN_RANGE)
-    {
-        this.travelTo(this.room.find(FIND_MY_CONSTRUCTION_SITES)[0])
-    }
-}
-
-RoomPosition.prototype.offset=function(x,y)
-{
-    return new RoomPosition(this.x+x,this.y+y,this.roomName);
-}
-
-REFILLPRIORITY = 
-{
-    [STRUCTURE_TOWER]:0,
-    [STRUCTURE_SPAWN]:50,
-    [STRUCTURE_EXTENSION]:55,
-    [STRUCTURE_LAB]:100,
-    [STRUCTURE_TERMINAL]:150,
-    [STRUCTURE_STORAGE]:450
-}
-
-Creep.prototype.HasWork=function()
-{
-    return this.memory._workQueue && this.memory._workQueue.length > 0;
-}
-
-Creep.prototype.HasAtleast1TickWorthOfWork=function()
-{
-    return this.memory._workQueue && this.memory._workQueue.length > 1;
-}
-
-Creep.prototype.EnqueueWork=function(work)
-{
-    if(!this.memory._workQueue) { this.memory._workQueue = [] };
-    this.memory._workQueue.push(work);
-}
-
-Creep.prototype._execWork=function(work)
-{
-    return this.do(work.action,work.target,work.arg1,work.arg2);
-}
-
-Creep.prototype.DoWork=function()
-{
-    if(this.spawning || !this.HasWork())
-    {
-        return;
-    }
-
-    let res = this._execWork(this.memory._workQueue[0]);
-    let dequeu = false;
-    switch(res)
-    {
-        case OK:
-        default: // any error
-            dequeu = true;
-            break;
-
-        case ERR_NOT_IN_RANGE:
-            break;
-    }
-    if(dequeu)
-    {
-        this.memory._workQueue.shift();
-        if(this.HasWork())
-        {
-            let nextTarget = Game.getObjectById(this.memory._workQueue[0].target);
-            if(nextTarget && nextTarget.pos.getRangeTo(this.pos) > 1)
-            {
-                this.travelTo(nextTarget);
-            }
-        }
-    }
-}
-
-Creep.prototype.DrawWork=function(vis,opt)
-{
-    let options = opt || {};
-    _.defaults(options,{radius:0.4,strokeStart:0x77CC77,strokeEnd:0xCC7777});
-    if(!this.HasWork())
-    {
-        return;
-    }
-
-    let lastPos = this.pos;
-    let stroke = "#" + options.strokeStart.toString(16);
-
-    vis.circle(lastPos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
-
-    for(let i in this.memory._workQueue)
-    {
-        let work = this.memory._workQueue[i];
-        stroke = "#" + lerpColor(options.strokeStart,options.strokeEnd,(i - -1)/this.memory._workQueue.length).toString(16);
-
-        let obj = Game.getObjectById(work.target)
-        vis.circle(obj.pos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
-
-        //vis.text(stroke,obj.pos);
-
-        let dx = lastPos.x - obj.pos.x;
-        let dy = lastPos.y - obj.pos.y;
-
-        let len = Math.sqrt(dx*dx+dy*dy);
-
-        dx /= len;
-        dy /= len;
-
-        vis.line(   lastPos.x - dx * options.radius,lastPos.y - dy * options.radius,
-                    obj.pos.x + dx * options.radius,obj.pos.y + dy * options.radius,
-                    {color:stroke,width:0.05,opacity:0.9});
-
-        vis.text(CREEP_ACTION_ICON[work.action], obj.pos.x, obj.pos.y + 0.1, {align:'right',font:0.27})
-        
-        switch(work.action)
-        {
-            case CREEP_WITHDRAW:
-            case CREEP_TRANSFER:
-                vis.symbol(obj.pos.x+0.2,obj.pos.y,work.arg1,{scale:0.4});
-                break;
-        }
-
-        lastPos = obj.pos;
-    }
-
-}
-
-Creep.prototype.SimulateWorkUnit=function(workUnit,fakeStores)
-{
-    switch(workUnit.action)
-    {
-    case CREEP_WITHDRAW:
-        if(fakeStores[workUnit.target])
-        {
-            fakeStores[this.id].Withdraw(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
-        }
-        break;
-    case CREEP_TRANSFER:
-        if(fakeStores[workUnit.target])
-        {
-            fakeStores[this.id].Transfer(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
-        }
-        break;
-    }
-}
-
-Creep.prototype.SimulateWork=function(fakeStores)
-{
-    if(!this.HasWork())
-    {
-        return;
-    }
-
-    for(let work of this.memory._workQueue)
-    {
-        this.SimulateWorkUnit(work,fakeStores);
-    }
-}
-
-Creep.prototype.dumbRefill=function()
-{
-    let target = false
-    targets = _.sortBy( this.room.refillable(),(s) => { return this.pos.getRangeTo(s) + REFILLPRIORITY[s.structureType];});
-    
-    if (targets.length > 0) 
-    {
-        this.say(targets.length)
-        target = targets[0];
-    }
-    else
-    {
-        this.say("No target")
-    }
-    if(target && (this.transfer(target,RESOURCE_ENERGY) == ERR_NOT_IN_RANGE))
-    {
-        this.travelTo(target)
-    }
-}
-
-Creep.prototype.dumbUpgradeLoop=function()
-{
-    this.updateHarvestState()
-    if (this.memory.harvesting) {
-        this.dumbHarvest()
-    }
-    else
-    {
-        this.dumbUpgrade()
-    }
-}
-
-Creep.prototype.smarterUpgradeLoop=function(link)
-{
-    this.updateHarvestState()
-    if (this.memory.harvesting) {
-        this.do('withdraw',link,RESOURCE_ENERGY);
-    }
-    else
-    {
-        this.dumbUpgrade()
-    }
-}
-
-Creep.prototype.dumbRefillLoop=function()
-{
-    this.updateHarvestState()
-    if (this.memory.harvesting) {
-        this.dumbHarvest()
-    }
-    else
-    {
-        this.dumbRefill()
-    }
-}
-
-Creep.prototype.dismantleLoop=function(target)
-{
-    this.updateHarvestState()
-    if (this.memory.harvesting) 
-    {
-        this.dumbDismantle(target)
-    }
-    else
-    {
-        if(this.room.refillable.length == 0)
-        {
-            if(this.room.storage)
-            {
-                if(this.room.storage.store.getFreeCapacity() > 0)
-                {
-                    let err = this.transfer(this.room.storage,ExtractContentOfStore(this.store)[0]);
-                    if(err == ERR_NOT_IN_RANGE)
-                    {
-                        this.travelTo(this.room.storage);
-                    }
-                }
-                else
-                {
-                    this.drop(ExtractContentOfStore(this.store)[0]);
-                }
-            }
-            else
-            {
-                this.drop(ExtractContentOfStore(this.store)[0]);
-            }
-        }
-        else
-        {
-            this.dumbRefill();
-        }
-    }
-}
-
-Creep.prototype.dumbDismantle = function(target)
-{
-    this.say("dismant")
-    if (this.dismantle(target) == ERR_NOT_IN_RANGE) 
-    {
-        this.say("dismant m")
-        this.travelTo(target);
-    }
-}
-
-Creep.prototype.dumbBuildLoop=function()
-{
-    this.updateHarvestState()
-    if (this.memory.harvesting) {
-        this.dumbHarvest()
-    }
-    else
-    {
-        this.dumbBuild()
-    }
-}
-Creep.prototype.updateHarvestState=function()
-{
-    if(this.store.getFreeCapacity() == 0)
-    {
-        this.memory.harvesting = false
-    }
-    if(this.store.getUsedCapacity(RESOURCE_ENERGY) == 0)
-    {
-        this.memory.harvesting = true
-    }
-}
-
-Creep.prototype.Retire = function(roomName)
-{
-    let spawn = false;
-    let room = Cache.rooms[roomName];
-    if(room)
-    {
-        room.PopulateShorthands();
-        if(room.spawns.length > 0)
-        {
-            spawn = room.spawns[0];
-        }
-    }
-    if(spawn)
-    {
-        let res = spawn.recycleCreep(this);
-        if(res == ERR_NOT_IN_RANGE)
-        {
-            this.travelTo(spawn);
-        }
-    }
-    else
-    {
-        this.say("bad retirement: " + roomName);
-    }
-}
-
-Room.prototype.refillable=function()
-{
-    let all = [];
-    
-    this.findAllStructures();
-    all = _.filter(this._structures[STRUCTURE_EXTENSION].concat(this._structures[STRUCTURE_SPAWN].concat(this._structures[STRUCTURE_LAB])),
-    (s) => 
-    {
-        return s.store.getFreeCapacity(RESOURCE_ENERGY) > 0; 
-    });
-    all = all.concat(_.filter(this._structures[STRUCTURE_TOWER],(s)=>
-    {
-        return s.store.getFreeCapacity(RESOURCE_ENERGY) > 400;
-    }))
-    all = all.concat(_.filter(this._structures[STRUCTURE_POWER_SPAWN],(s)=>
-    {
-        return s.store.getFreeCapacity(RESOURCE_ENERGY) > 1000;
-    }))
-    
-    return all;
-}
-
-Room.prototype.findAllStructures=function()
-{
-    if(!this._structures)
-    {
-        this._structures = {};
-        Object.keys(CONSTRUCTION_COST).forEach((s) => this._structures[s] = [])
-        this._structures[STRUCTURE_CONTROLLER] = []
-        this._structures[STRUCTURE_INVADER_CORE] = []
-        this._structures[STRUCTURE_POWER_BANK] = []
-        this._structures[STRUCTURE_KEEPER_LAIR] = []
-        this._structures[STRUCTURE_PORTAL] = []
-        
-        this.find(FIND_STRUCTURES).forEach((s) => {
-                this._structures[s.structureType].push(s)
-        })
-    }
-}
-
-Room.prototype.Structures=function(type)
-{
-    this.findAllStructures();
-    return this._structures[type];
-}
-
-Room.prototype.hostiles=function()
-{
-    if(!this._hostiles)
-    {
-        this._hostiles = [];
-        this._hostiles = this.find(FIND_HOSTILE_CREEPS);
-        if(this.controller && !this.controller.my)
-        {
-            this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,
-                {   filter:(s) => 
-                    {
-                        return !s.my && 
-                        s.structureType != STRUCTURE_CONTROLLER && 
-                        s.structureType != STRUCTURE_ROAD && 
-                        s.structureType != STRUCTURE_CONTAINER &&
-                        s.hits > 0
-                    }
-                }));
-        }
-    }
-    return this._hostiles;
-}
-
-Room.prototype.PopulateShorthands=function()
-{
-    this.findAllStructures();
-    let ShorthandFirstOfType=function(type,room,alias) { if(room._structures[type] && room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
-    let ShorthandType=function(type,room,alias) { room[alias] = room._structures[type] }
-
-    ShorthandFirstOfType(STRUCTURE_FACTORY,this,"factory");
-    ShorthandFirstOfType(STRUCTURE_NUKER,this,"nuker");
-    ShorthandFirstOfType(STRUCTURE_OBSERVER,this,"observer");
-    ShorthandFirstOfType(STRUCTURE_EXTRACTOR,this,"extractor");
-    ShorthandFirstOfType(STRUCTURE_INVADER_CORE,this,"invaderCore");
-    ShorthandFirstOfType(STRUCTURE_POWER_BANK,this,"powerBank");
-    ShorthandFirstOfType(STRUCTURE_POWER_SPAWN,this,"powerSpawn");
-    if(!this.storage) { ShorthandFirstOfType(STRUCTURE_CONTAINER,this,"storage") }
-
-    ShorthandType(STRUCTURE_CONTAINER,this,"containers");
-    ShorthandType(STRUCTURE_ROAD,this,"roads");
-    ShorthandType(STRUCTURE_TOWER,this,"towers");
-    ShorthandType(STRUCTURE_SPAWN,this,"spawns");
-}
-
-Room.Terrain.prototype.isSpaceEmpty=function(_x,_y,w,h)
-{
-    for (var x = _x; x < w+_x; x++) {
-        for (var y = _y; y < h+_y; y++) {
-            if (this.get(x,y) == TERRAIN_MASK_WALL || x > 49 || y > 49) 
-            {
-                return false
-            }
-        }
-    }
-    return true
-}
-Room.Terrain.prototype.findExits=function(side,roomName)
-{
-    var exits = []
-    if (!side || side == FIND_EXIT_TOP) 
-    {
-        for (var i = 0; i < 50; i++) {
-            if (this.get(i,0) != TERRAIN_MASK_WALL) {
-                exits.push(new RoomPosition(i,0,roomName))
-            }
-        }
-    }
-    if (!side || side == FIND_EXIT_LEFT) 
-    {
-        for (var i = 0; i < 50; i++) {
-            if (this.get(49,i) != TERRAIN_MASK_WALL) {
-                exits.push(new RoomPosition(0,i,roomName))
-            }
-        }
-    }
-    if (!side || side == FIND_EXIT_BOTTOM) 
-    {
-        for (var i = 0; i < 50; i++) {
-            if (this.get(0,i) != TERRAIN_MASK_WALL) {
-                exits.push(new RoomPosition(49,i,roomName))
-            }
-        }
-    }
-    if (!side || side == FIND_EXIT_RIGHT) 
-    {
-        for (var i = 0; i < 50; i++) {
-            if (this.get(i,49) != TERRAIN_MASK_WALL) {
-                exits.push(new RoomPosition(i,49,roomName))
-            }
-        }
-    }
-    return exits
-}
 
 RoomVisual.prototype.blocked = function(list,options)
 {
@@ -980,113 +436,11 @@ function calculateFactoryLevelGapsPoly() {
 }
 const factoryLevelGaps = calculateFactoryLevelGapsPoly();
 
-RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
+RoomVisual.prototype.structure = function(x,y,type,opt)
 {
     _.defaults(opt,{scale:1,alpha:1})
-    switch(symbol)
+    switch(type)
     {
-        case RESOURCE_ENERGY:
-        case RESOURCE_POWER:
-            this.fluid(x,y,symbol,opt);
-            break
-        case RESOURCE_HYDROGEN:
-        case RESOURCE_OXYGEN:
-        case RESOURCE_UTRIUM:
-        case RESOURCE_LEMERGIUM:
-        case RESOURCE_KEANIUM:
-        case RESOURCE_CATALYST:
-        case RESOURCE_ZYNTHIUM:
-            this.mineral(x,y,symbol,opt)
-            break
-        case RESOURCE_GHODIUM:
-        case RESOURCE_HYDROXIDE:
-        case RESOURCE_ZYNTHIUM_KEANITE:
-        case RESOURCE_UTRIUM_LEMERGITE:
-        case RESOURCE_UTRIUM_HYDRIDE:
-        case RESOURCE_UTRIUM_OXIDE:
-        case RESOURCE_KEANIUM_HYDRIDE:
-        case RESOURCE_KEANIUM_OXIDE:
-        case RESOURCE_LEMERGIUM_HYDRIDE:
-        case RESOURCE_LEMERGIUM_OXIDE:
-        case RESOURCE_ZYNTHIUM_HYDRIDE:
-        case RESOURCE_ZYNTHIUM_OXIDE:
-        case RESOURCE_GHODIUM_HYDRIDE:
-        case RESOURCE_GHODIUM_OXIDE:
-        case RESOURCE_UTRIUM_ACID:
-        case RESOURCE_UTRIUM_ALKALIDE:
-        case RESOURCE_KEANIUM_ACID:
-        case RESOURCE_KEANIUM_ALKALIDE:
-        case RESOURCE_LEMERGIUM_ACID:
-        case RESOURCE_LEMERGIUM_ALKALIDE:
-        case RESOURCE_ZYNTHIUM_ACID:
-        case RESOURCE_ZYNTHIUM_ALKALIDE:
-        case RESOURCE_GHODIUM_ACID:
-        case RESOURCE_GHODIUM_ALKALIDE:
-        case RESOURCE_CATALYZED_UTRIUM_ACID:
-        case RESOURCE_CATALYZED_UTRIUM_ALKALIDE:
-        case RESOURCE_CATALYZED_KEANIUM_ACID:
-        case RESOURCE_CATALYZED_KEANIUM_ALKALIDE:
-        case RESOURCE_CATALYZED_LEMERGIUM_ACID:
-        case RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE:
-        case RESOURCE_CATALYZED_ZYNTHIUM_ACID:
-        case RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE:
-        case RESOURCE_CATALYZED_GHODIUM_ACID:
-        case RESOURCE_CATALYZED_GHODIUM_ALKALIDE:
-            this.compound(x,y,symbol,opt);
-            break
-        case RESOURCE_UTRIUM_BAR:
-        case RESOURCE_LEMERGIUM_BAR:
-        case RESOURCE_ZYNTHIUM_BAR:
-        case RESOURCE_KEANIUM_BAR:
-        case RESOURCE_GHODIUM_MELT:
-        case RESOURCE_OXIDANT:
-        case RESOURCE_REDUCTANT:
-        case RESOURCE_PURIFIER:
-            this.bar(x,y,symbol,opt);
-            break;
-        case RESOURCE_SILICON:
-        case RESOURCE_ALLOY:
-        case RESOURCE_TUBE:
-        case RESOURCE_FIXTURES:
-        case RESOURCE_FRAME:
-        case RESOURCE_HYDRAULICS:
-        case RESOURCE_MACHINE:
-            
-        case RESOURCE_METAL:
-        case RESOURCE_WIRE:
-        case RESOURCE_SWITCH:
-        case RESOURCE_TRANSISTOR:
-        case RESOURCE_MICROCHIP:
-        case RESOURCE_CIRCUIT:
-        case RESOURCE_DEVICE:
-
-        case RESOURCE_BIOMASS:
-        case RESOURCE_CELL:
-        case RESOURCE_PHLEGM:
-        case RESOURCE_TISSUE:
-        case RESOURCE_MUSCLE:
-        case RESOURCE_ORGANOID:
-        case RESOURCE_ORGANISM:
-            
-        case RESOURCE_MIST:
-        case RESOURCE_CONDENSATE:
-        case RESOURCE_CONCENTRATE:
-        case RESOURCE_EXTRACT:
-        case RESOURCE_SPIRIT:
-        case RESOURCE_EMANATION:
-        case RESOURCE_ESSENCE:
-
-        case RESOURCE_OPS:
-        case RESOURCE_BATTERY:
-        case RESOURCE_COMPOSITE:
-        case RESOURCE_CRYSTAL:
-        case RESOURCE_LIQUID:
-
-            this.unique(x,y,symbol,opt);
-            break;
-
-
-        //Structures ═══════════════════════════════════════════════════════════════════════════════════════════════════
         case STRUCTURE_FACTORY: 
         {
             const outline = [
@@ -1458,70 +812,199 @@ RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
     				[0.40*opt.scale, 0.2*opt.scale],
     				[0, -.80*opt.scale],
     			];
-    			inline = relativePoly(x, y, inline);
-    			this.poly(inline, {
-    				stroke     : "#789d7b",
-    				strokeWidth: 0.01,
-    				fill       : "#747474",
-    				opacity    : opt.alpha
-    			});
-    			break;
-    		case STRUCTURE_CONTAINER:
-    			this.rect(x - 0.225*opt.scale, y - 0.3*opt.scale, 0.45*opt.scale, 0.6*opt.scale, {
-    				fill       : "#F6DD69",
-    				opacity    : opt.alpha,
-    				stroke     : "#0d120e",
-    				strokeWidth: 0.10*opt.scale,
-    			});
-    			break;
-			//BodyParts ═══════════════════════════════════════════════════════════════════════════════════════════════════
-			case MOVE:
-			case WORK:
-			case CARRY:
-			case ATTACK:
-			case RANGED_ATTACK:
-			case TOUGH:
-			case HEAL:
-			case CLAIM:
-			    var c = "#FFFFFF"
-			    switch(symbol)
-			    {
-			        case MOVE:
-			            c = "#a9b7c6";
-			            break;
-        			case WORK:
-			            c = "#ffe56d";
-			            break;
-        			case CARRY:
-			            c = "#777777 ";
-			            break;
-        			case ATTACK:
-			            c = "#f93739";
-			            break;
-        			case RANGED_ATTACK:
-			            c = "#5d8096"; 
-			            break;
-        			case TOUGH:
-			            c = "#fff2ca";
-			            break;
-        			case HEAL:
-			            c = "#65f04a";
-			            break;
-        			case CLAIM:
-			            c = "#b99cee";
-			            break;
-			    }
-			    this.circle(x,y,{radius:0.15*opt.scale,fill:c})
-			    break;
-			
-                
-            default:
-                this.text(symbol,x,y+0.2*opt.scale)
-                break
-        }
-        
-        return this
+            inline = relativePoly(x, y, inline);
+            this.poly(inline, {
+                stroke     : "#789d7b",
+                strokeWidth: 0.01,
+                fill       : "#747474",
+                opacity    : opt.alpha
+            });
+            break;
+        case STRUCTURE_CONTAINER:
+            this.rect(x - 0.225*opt.scale, y - 0.3*opt.scale, 0.45*opt.scale, 0.6*opt.scale, {
+                fill       : "#F6DD69",
+                opacity    : opt.alpha,
+                stroke     : "#0d120e",
+                strokeWidth: 0.10*opt.scale,
+            });
+            break;
     }
+}
+
+
+RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
+{
+    _.defaults(opt,{scale:1,alpha:1})
+    switch(symbol)
+    {
+        case RESOURCE_ENERGY:
+        case RESOURCE_POWER:
+            this.fluid(x,y,symbol,opt);
+            break
+        case RESOURCE_HYDROGEN:
+        case RESOURCE_OXYGEN:
+        case RESOURCE_UTRIUM:
+        case RESOURCE_LEMERGIUM:
+        case RESOURCE_KEANIUM:
+        case RESOURCE_CATALYST:
+        case RESOURCE_ZYNTHIUM:
+            this.mineral(x,y,symbol,opt)
+            break
+        case RESOURCE_GHODIUM:
+        case RESOURCE_HYDROXIDE:
+        case RESOURCE_ZYNTHIUM_KEANITE:
+        case RESOURCE_UTRIUM_LEMERGITE:
+        case RESOURCE_UTRIUM_HYDRIDE:
+        case RESOURCE_UTRIUM_OXIDE:
+        case RESOURCE_KEANIUM_HYDRIDE:
+        case RESOURCE_KEANIUM_OXIDE:
+        case RESOURCE_LEMERGIUM_HYDRIDE:
+        case RESOURCE_LEMERGIUM_OXIDE:
+        case RESOURCE_ZYNTHIUM_HYDRIDE:
+        case RESOURCE_ZYNTHIUM_OXIDE:
+        case RESOURCE_GHODIUM_HYDRIDE:
+        case RESOURCE_GHODIUM_OXIDE:
+        case RESOURCE_UTRIUM_ACID:
+        case RESOURCE_UTRIUM_ALKALIDE:
+        case RESOURCE_KEANIUM_ACID:
+        case RESOURCE_KEANIUM_ALKALIDE:
+        case RESOURCE_LEMERGIUM_ACID:
+        case RESOURCE_LEMERGIUM_ALKALIDE:
+        case RESOURCE_ZYNTHIUM_ACID:
+        case RESOURCE_ZYNTHIUM_ALKALIDE:
+        case RESOURCE_GHODIUM_ACID:
+        case RESOURCE_GHODIUM_ALKALIDE:
+        case RESOURCE_CATALYZED_UTRIUM_ACID:
+        case RESOURCE_CATALYZED_UTRIUM_ALKALIDE:
+        case RESOURCE_CATALYZED_KEANIUM_ACID:
+        case RESOURCE_CATALYZED_KEANIUM_ALKALIDE:
+        case RESOURCE_CATALYZED_LEMERGIUM_ACID:
+        case RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE:
+        case RESOURCE_CATALYZED_ZYNTHIUM_ACID:
+        case RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE:
+        case RESOURCE_CATALYZED_GHODIUM_ACID:
+        case RESOURCE_CATALYZED_GHODIUM_ALKALIDE:
+            this.compound(x,y,symbol,opt);
+            break
+        case RESOURCE_UTRIUM_BAR:
+        case RESOURCE_LEMERGIUM_BAR:
+        case RESOURCE_ZYNTHIUM_BAR:
+        case RESOURCE_KEANIUM_BAR:
+        case RESOURCE_GHODIUM_MELT:
+        case RESOURCE_OXIDANT:
+        case RESOURCE_REDUCTANT:
+        case RESOURCE_PURIFIER:
+            this.bar(x,y,symbol,opt);
+            break;
+        case RESOURCE_SILICON:
+        case RESOURCE_ALLOY:
+        case RESOURCE_TUBE:
+        case RESOURCE_FIXTURES:
+        case RESOURCE_FRAME:
+        case RESOURCE_HYDRAULICS:
+        case RESOURCE_MACHINE:
+            
+        case RESOURCE_METAL:
+        case RESOURCE_WIRE:
+        case RESOURCE_SWITCH:
+        case RESOURCE_TRANSISTOR:
+        case RESOURCE_MICROCHIP:
+        case RESOURCE_CIRCUIT:
+        case RESOURCE_DEVICE:
+
+        case RESOURCE_BIOMASS:
+        case RESOURCE_CELL:
+        case RESOURCE_PHLEGM:
+        case RESOURCE_TISSUE:
+        case RESOURCE_MUSCLE:
+        case RESOURCE_ORGANOID:
+        case RESOURCE_ORGANISM:
+            
+        case RESOURCE_MIST:
+        case RESOURCE_CONDENSATE:
+        case RESOURCE_CONCENTRATE:
+        case RESOURCE_EXTRACT:
+        case RESOURCE_SPIRIT:
+        case RESOURCE_EMANATION:
+        case RESOURCE_ESSENCE:
+
+        case RESOURCE_OPS:
+        case RESOURCE_BATTERY:
+        case RESOURCE_COMPOSITE:
+        case RESOURCE_CRYSTAL:
+        case RESOURCE_LIQUID:
+
+            this.unique(x,y,symbol,opt);
+            break;
+
+
+        //Structures ═══════════════════════════════════════════════════════════════════════════════════════════════════
+        
+        case STRUCTURE_FACTORY: 
+        case STRUCTURE_EXTENSION:
+		case STRUCTURE_SPAWN:
+		case STRUCTURE_POWER_SPAWN:
+		case STRUCTURE_LINK: 
+		case STRUCTURE_TERMINAL: 
+		case STRUCTURE_LAB:
+		case STRUCTURE_TOWER:
+		case STRUCTURE_ROAD:
+		case STRUCTURE_RAMPART:
+		case STRUCTURE_WALL:
+		case STRUCTURE_STORAGE:
+		case STRUCTURE_OBSERVER:
+		case STRUCTURE_NUKER:
+        case STRUCTURE_CONTAINER:
+            this.structure(x,y,symbol,opt);
+            break;
+        //BodyParts ═══════════════════════════════════════════════════════════════════════════════════════════════════
+        case MOVE:
+        case WORK:
+        case CARRY:
+        case ATTACK:
+        case RANGED_ATTACK:
+        case TOUGH:
+        case HEAL:
+        case CLAIM:
+            var c = "#FFFFFF"
+            switch(symbol)
+            {
+                case MOVE:
+                    c = "#a9b7c6";
+                    break;
+                case WORK:
+                    c = "#ffe56d";
+                    break;
+                case CARRY:
+                    c = "#777777 ";
+                    break;
+                case ATTACK:
+                    c = "#f93739";
+                    break;
+                case RANGED_ATTACK:
+                    c = "#5d8096"; 
+                    break;
+                case TOUGH:
+                    c = "#fff2ca";
+                    break;
+                case HEAL:
+                    c = "#65f04a";
+                    break;
+                case CLAIM:
+                    c = "#b99cee";
+                    break;
+            }
+            this.circle(x,y,{radius:0.15*opt.scale,fill:c})
+            break;
+        
+            
+        default:
+            this.text(symbol,x,y+0.2*opt.scale)
+            break
+    }
+    
+    return this
+}
     
 const dirs = [
 [],
@@ -1679,15 +1162,3 @@ RoomVisual.prototype.Timer=function(x,y,current,max,opt)
     poly.push([x,y])
     this.poly(poly,{fill:opt.color});
 }
-
-String.prototype.hashCode = function() {
-    var hash = 0, i, chr;
-    if (this.length === 0) return hash;
-    for (i = 0; i < this.length; i++) {
-      chr   = this.charCodeAt(i);
-      hash  = ((hash << 5) - hash) + chr;
-      hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-  };
-

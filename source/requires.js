@@ -4,7 +4,8 @@ require('Cache')
 
 require('traveler')
 
-require('prototypes')
+require('requirePrototypes')
+
 require('customprototypes')
 require('svgDrawer')
 

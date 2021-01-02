@@ -215,11 +215,19 @@ FindColonyLinks=function(colony)
 
     if (!colony.sendLink) 
     {
-        let id = FindLinkInColonyLayout(colony,blacklist);
-        if(id)
+        if(colony.recievelink)
         {
-            colony.sendLink = id;
-            console.log("colony " + colony.pos.roomName + " found rec link with id: " + id);
+            colony.sendLink = colony.recievelink;
+            delete colony.recievelink;
+        }
+        else
+        {
+            let id = FindLinkInColonyLayout(colony,blacklist);
+            if(id)
+            {
+                colony.sendLink = id;
+                console.log("colony " + colony.pos.roomName + " found rec link with id: " + id);
+            }
         }
     }
     if (!colony.recievelink) 
@@ -748,13 +756,15 @@ ColonyRetargetSelling=function(colony)
     if(!globalPrices) { return; }
     let prices = globalPrices.prices;
     if(!prices) { return; }
-    colony.selling = _.filter(has,(r) =>
+    colony.selling = [];
+    
+    /*_.filter(has,(r) =>
     {
         if( (r != RESOURCE_ENERGY && storage.store.getUsedCapacity(r) > RESOURCE_SELLING_LIMIT) || 
             (r == RESOURCE_ENERGY && storage.store.getUsedCapacity(RESOURCE_ENERGY) > ENERGY_SELLING_ENERGY_LIMIT))
         {
 
-            if(prices[ORDER_BUY][r]) 
+            if(prices[ORDER_BUY][r])
             {
                 if(MinimumSellingPrice[r])
                 {
@@ -771,7 +781,7 @@ ColonyRetargetSelling=function(colony)
             }
         }
         return false;
-    })
+    })*/
 }
 
 ColonyRetargetFactory=function(colony)
@@ -1636,6 +1646,23 @@ ColonyTerminalTraffic=function(colony)
             if(res != RESOURCE_ENERGY)
             {
                 RequestResource(colony,room.terminal.id,res,TEMRINAL_RESOURCE_MIN,REQUEST_PRIORITY_AUXILIARY);
+            }
+        }
+
+        if(!room.terminal.cooldown && Memory.mainColony)
+        {
+            let mainColRoom = Game.rooms[Memory.mainColony];
+            if(mainColRoom && mainColRoom.terminal && mainColRoom.controller && mainColRoom.terminal.my)
+            {
+                let resources = ExtractContentOfStore(room.terminal.store);
+                for(let res of resources)
+                {
+                    if(res != RESOURCE_ENERGY)
+                    {
+                        
+                        room.terminal.send(res,Math.min(room.terminal.store[res],room.terminal.store[RESOURCE_ENERGY] || 0), Memory.mainColony);
+                    }
+                }
             }
         }
     }

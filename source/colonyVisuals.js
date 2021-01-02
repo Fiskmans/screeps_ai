@@ -34,6 +34,30 @@ drawColony=function(colony,vis)
             vis.layout(buildings);
         }
         
+        if(colony.requests)
+        {
+            let counts = {}
+            for(let req of colony.requests)
+            {
+                let obj = Game.getObjectById(req.id);
+                if(obj)
+                {
+                    let action = '';
+                    if(req == REQUEST_ACTION_FILL)
+                    {
+                        action = '⬆️';
+                    }
+                    else
+                    {
+                        action = '⬇️';
+                    }
+                    let index = counts[obj.id] || 0;
+                    counts[obj.id] = index + 1;
+                    vis.text(action,obj.pos.x-0.15,obj.pos.y-0.2 + 0.25*index,{align:'right',font:0.2});
+                    vis.symbol(obj.pos.x+0.3,obj.pos.y-0.28 + 0.25*index, req.resource,{scale:0.3})
+                }
+            }
+        }
         
         {
             let index = Memory.colonies.indexOf(colony);

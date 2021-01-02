@@ -129,7 +129,7 @@ RemoveDoneRequests=function(colony)
                     }
                     else
                     {
-                        if(obj.store.getUsedCapacity(req.resource) > req.targetAmount)
+                        if(obj.store.getUsedCapacity(req.resource) >= req.targetAmount)
                         {
                             active = false;
                         }    
@@ -269,11 +269,11 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
     let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos);
     if(req)
     {
-        if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < predicted[req.id].Get(req.resource))
+        if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < req.targetAmount - predicted[req.id].Get(req.resource))
         {
             for(let r of Object.keys(predicted[creep.id].content))
             {
-                if(predicted[creep.id].Get(r) > 0)
+                if(r != req.resource && predicted[creep.id].Get(r) > 0)
                 {
                     let work = {action:CREEP_TRANSFER,target:storageId,arg1:r};
                     creep.EnqueueWork(work);
@@ -293,7 +293,7 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
                 }
             }
         }
-        if(predicted[storageId].Get(req.resource) > 0)
+        if(predicted[creep.id].Get(req.resource) > 0)
         {
             let work = {action:CREEP_TRANSFER,target:req.id,arg1:req.resource};
             creep.EnqueueWork(work);
@@ -320,7 +320,7 @@ EnqueueFromRequests=function(colony,storageId,creep,predicted)
     let req = ColonyFindUnfilledFromRequest(colony,predicted,creep.pos);
     if(req)
     {
-        if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < req.targetAmount)
+        if(predicted[creep.id].total > 0)
         {
             for(let r of Object.keys(predicted[creep.id].content))
             {
