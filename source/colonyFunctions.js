@@ -10,7 +10,7 @@ ColonyWorkerBehaviour=function(colony)
     {
         ColonyIdleWorkers(colony)
         ColonyFindBuildingWork(colony)
-        if (Cache.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
+        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
         {
             delete colony.refreshDowngrade
         }
@@ -18,7 +18,7 @@ ColonyWorkerBehaviour=function(colony)
     else
     {
         colonyConstruct(colony)
-        if (Cache.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
+        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
         {
             colony.refreshDowngrade = true
         }
@@ -118,8 +118,8 @@ ColonyRespawnWorkers=function(colony)
 
     if (count < target)
     {
-        spawnRoleIntoList(Cache.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER,{},colony.workersensus);
-        if (Cache.rooms[colony.pos.roomName].spawns.length == 0) 
+        spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER,{},colony.workersensus);
+        if (Game.rooms[colony.pos.roomName].spawns.length == 0) 
         {
             let closest = FindClosestColony(colony.pos.roomName);
             if (closest && closest.workerpool.length > 1) 
@@ -146,7 +146,7 @@ ColonyRespawnWorkers=function(colony)
 
 ColonyMining=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if (room && room.storage) 
     {
         if(!colony.haulerpool) {colony.haulerpool = []}
@@ -160,7 +160,7 @@ ColonyMining=function(colony)
         }
         if (colony.haulersensus.length < limit) 
         {
-            spawnRoleIntoList(Cache.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER,{},colony.haulersensus)
+            spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER,{},colony.haulersensus)
         }
         MaintainMiningSpots(colony)
     }
@@ -168,7 +168,7 @@ ColonyMining=function(colony)
 
 FindLinkInColonyLayout=function(colony,blackList)
 {
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if(colony.layout)
     {
         let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
@@ -245,7 +245,7 @@ StartMining=function(colony)
 {
     if (colony.miningSpots && colony.miningSpots.length == 0) 
     {
-        let room = Cache.rooms[colony.pos.roomName];
+        let room = Game.rooms[colony.pos.roomName];
         if (room) 
         {
             let sources = room.find(FIND_SOURCES).concat(room.find(FIND_MINERALS))
@@ -259,7 +259,7 @@ StartMining=function(colony)
 
 ColonyFindMisplaced=function(colony,structureType,layout)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(room)
     {
         let all = room.find(FIND_STRUCTURES,{filter:(s) =>
@@ -298,7 +298,7 @@ ColonyFindBuildingWork=function(colony)
 
     if(Memory.mainColony == colony.pos.roomName)
     {
-        let room = Cache.rooms[colony.pos.roomName];
+        let room = Game.rooms[colony.pos.roomName];
         if(room)
         {
             ColonyBuildStatic(colony,layout.structures[room.controller.level])
@@ -312,7 +312,7 @@ ColonyFindBuildingWork=function(colony)
 
 ColonyBuildStatic=function(colony,plan)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     var missing = findMissing(colony.pos.x,colony.pos.y,colony.pos.roomName,plan)
     var prio = Priorotized(colony.pos.x,colony.pos.y,colony.pos.roomName,missing)
     if (prio) 
@@ -416,7 +416,7 @@ BuildMissing=function(colony,buildings,tracker)
 
 ColonyBuildDynamic=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room)
     {
         return;
@@ -739,7 +739,7 @@ ColonyRetargetSelling=function(colony)
 {
     if(Game.time % COLONY_RETARGET_SELLING_INTERVAL != 0) { return; }
     if(!colony.selling) {colony.selling = []};
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room) { return; }
     let terminal = room.terminal;
     if(!terminal) { return; }
@@ -787,7 +787,7 @@ ColonyRetargetSelling=function(colony)
 ColonyRetargetFactory=function(colony)
 {
     if(Game.time % COLONY_RETARGET_FACTORY_INTERVAL != 0) { return; }
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room || !room.factory) { return; }
     let level = room.factory.level || 0;
     let possabilities = FindWorthWhileCommodities();
@@ -847,7 +847,7 @@ ColonySelling=function(colony,terminal)
 
 ColonyMerchant=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if(!room) { return; }
     if(!colony.selling) { return; }
     let target = {};
@@ -876,7 +876,7 @@ ColonyDismantleAll=function(colony)
     {
         return;
     }
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room || !room.storage || room.storage.structureType != STRUCTURE_STORAGE) { return; }
     let all = room.find(FIND_HOSTILE_STRUCTURES);
     all.forEach((s) =>
@@ -888,7 +888,7 @@ ColonyDismantleAll=function(colony)
 
 ColonyCrafting=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room || !room.factory) { return; }
     if(!colony.crafting) { return; }
 
@@ -933,8 +933,8 @@ ColonyCollectPower=function(colony)
             deleteDead(exp.haulers);
             
             let target = Game.getObjectById(exp.target);
-            let room = Cache.rooms[exp.targetRoom];
-            let origRoom = Cache.rooms[colony.pos.roomName];
+            let room = Game.rooms[exp.targetRoom];
+            let origRoom = Game.rooms[colony.pos.roomName];
             if(origRoom && origRoom.observer)
             {
                 origRoom.observer.observeRoom(exp.targetRoom);
@@ -1065,11 +1065,11 @@ ColonyCollectPower=function(colony)
 
             if(exp.healers.length < Math.min(exp.attackers.length,limit))
             {
-                spawnRoleIntoList(Cache.rooms[colony.pos.roomName],exp.healers,ROLE_BANK_HEALER);
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.healers,ROLE_BANK_HEALER);
             }
             if(exp.attackers.length < limit && exp.attackers.length <= exp.healers.length)
             {
-                spawnRoleIntoList(Cache.rooms[colony.pos.roomName],exp.attackers,ROLE_BANK_ATTACKER);
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.attackers,ROLE_BANK_ATTACKER);
             }
             if(((target && target.hits < 200000) ||ruin ||pickup) && carryCapacity < exp.amount)
             {
@@ -1083,7 +1083,7 @@ ColonyCollectPower=function(colony)
                         colony.haulerpool.splice(i,1);
                     }
                 }
-                spawnRoleIntoList(Cache.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER,{},colony.haulersensus);
+                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.haulers,ROLE_HAULER,{},colony.haulersensus);
             }
             let threatend = false;
             room.find(FIND_TOMBSTONES).forEach((t) => {
@@ -1138,7 +1138,7 @@ ColonyCollectPower=function(colony)
 
 ColonyProcessPower=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room) { return; }
     if(!room.storage) { return; }
 

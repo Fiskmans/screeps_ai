@@ -1,7 +1,7 @@
 
 drawColony=function(colony,vis)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if (Memory.lastViewed && Memory.lastViewed.room == room.name && Game.time - Memory.lastViewed.at < 5 && Game.cpu.bucket > 500) 
     {
         if(!vis) {vis = new RoomVisual(colony.pos.roomName)}
@@ -109,7 +109,7 @@ drawColony=function(colony,vis)
                         roadPanels[h] = [pos.x,pos.y];
                     }
                 }
-                let roadroom = Cache.rooms[pos.roomName];
+                let roadroom = Game.rooms[pos.roomName];
                 let road = false;
                 if (roadroom) 
                 {

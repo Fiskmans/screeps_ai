@@ -1,5 +1,6 @@
 
 require('CreepPrototype')
+require('LabPrototype')
 require('NumberPrototype')
 require('RoomPositionPrototype')
 require('RoomPrototype')

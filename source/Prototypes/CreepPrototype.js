@@ -355,7 +355,7 @@ Creep.prototype.updateHarvestState=function()
 Creep.prototype.Retire = function(roomName)
 {
     let spawn = false;
-    let room = Cache.rooms[roomName];
+    let room = Game.rooms[roomName];
     if(room)
     {
         room.PopulateShorthands();

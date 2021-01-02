@@ -44,7 +44,7 @@ worldVisuals=function()
     if (Game.flags["LocalCluster"] && Game.flags["LocalCluster"].color != COLOR_RED && Memory.rooms[Game.flags["LocalCluster"].pos.roomName] && (Game.time - Memory.rooms[Game.flags["LocalCluster"].pos.roomName].lastViewed < 10))
     {
         let pos = Game.flags["LocalCluster"].pos;
-        let room = Cache.rooms[pos.roomName];
+        let room = Game.rooms[pos.roomName];
         if (room) 
         {
             let vis = room.visual;

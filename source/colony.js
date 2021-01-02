@@ -3,7 +3,7 @@ colonyMain=function()
     if(!Memory.colonies) {Memory.colonies = []}
     for(let key in Memory.colonies)
     {
-        let room = Cache.rooms[Memory.colonies[key].pos.roomName];
+        let room = Game.rooms[Memory.colonies[key].pos.roomName];
         if(room)
         {
             room.PopulateShorthands();
@@ -23,7 +23,7 @@ colonyStart=function(colony)
         deleteDead(colony.haulerpool)
     }
 
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if (room && room.controller.my && room.controller.level != 0) 
     {
         colony.level = room.controller.level
@@ -242,7 +242,7 @@ colonyConstruct=function(colony)
     }
     else
     {
-        let sites = Cache.rooms[colony.constructionsite.roomName].lookForAt(LOOK_CONSTRUCTION_SITES,colony.constructionsite.x,colony.constructionsite.y)
+        let sites = Game.rooms[colony.constructionsite.roomName].lookForAt(LOOK_CONSTRUCTION_SITES,colony.constructionsite.x,colony.constructionsite.y)
         colony.constructionsite = sites[0].id
     }
 }
@@ -252,7 +252,7 @@ colonyMiningSpots=function(colony)
     for(let i in colony.miningSpots)
     {
         let spot = colony.miningSpots[i];
-        let room = Cache.rooms[spot.myPosition.roomName];
+        let room = Game.rooms[spot.myPosition.roomName];
         if (!spot.layout) 
         {
             if (room) 
@@ -382,7 +382,7 @@ GuardSpawningColony=function(colony)
 
 ColonyLookForPower = function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room) { return; }
     if(!room.observer) { return; }
     if(colony.expedition) { return; }
@@ -401,7 +401,7 @@ ColonyLookForPower = function(colony)
     let list = PowerPatrols[colony.pos.roomName];
     if(!list || list.length < 1) { return; }
     colony.corridorIndex = colony.corridorIndex % list.length;
-    let vRoom = Cache.rooms[list[colony.corridorIndex]];
+    let vRoom = Game.rooms[list[colony.corridorIndex]];
     if(vRoom)
     {
         vRoom.PopulateShorthands();

@@ -32,7 +32,7 @@ getRoads=function(_x,_y,roomName,plan)
 
 findMissing=function(_x,_y,roomName,plan)
 {
-    var room = Cache.rooms[roomName];
+    var room = Game.rooms[roomName];
     if (room) 
     {
         var contains = false

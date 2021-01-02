@@ -146,7 +146,7 @@ RestartScouting=function()
 {
     console.log("Restarting scouting efforts");
     Memory.colonies.forEach((c) => {
-        let room = Cache.rooms[c.pos.roomName];
+        let room = Game.rooms[c.pos.roomName];
         if (room) {
             Scan(room)
         }
@@ -193,7 +193,7 @@ Scouting=function()
             if (creep) 
             {
                 creep.notifyWhenAttacked(false);
-                let room = Cache.rooms[roomname];
+                let room = Game.rooms[roomname];
                 if(GetMapData(creep.room.name,"lastseen") != 9)
                 {
                     Scan(creep.room);
@@ -239,7 +239,7 @@ Scouting=function()
                 if (currentlyActiveScouts < MAX_ACTIVE_SCOUTS) 
                 {
                     let closest = FindClosestColony(roomname);
-                    let room = Cache.rooms[closest.pos.roomName];
+                    let room = Game.rooms[closest.pos.roomName];
                     if(room)
                     {
                         spawnRoleIntoList(room,Memory.scouts,ROLE_SCOUT);
@@ -489,7 +489,7 @@ Digest=function()
 digestColony=function(colony)
 {
     let out = "";
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if (room) 
     {
         let storage = room.storage;
@@ -530,7 +530,7 @@ GetRoomDiamondDistance=function(roomName1,roomName2)
 
 DefendColony=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if (room) {
         let targets = room.hostiles();
 
@@ -642,7 +642,7 @@ marketTracking=function()
 
 fireAllTurrets=function()
 {
-    _(Cache.rooms).filter(r => _.get(r, ['controller', 'my'])
+    _(Game.rooms).filter(r => _.get(r, ['controller', 'my'])
     .forEach(r => {_(r.find(FIND_MY_STRUCTURES))
     .filter('structureType', STRUCTURE_TOWER)
     .shuffle()
@@ -670,7 +670,7 @@ colonize=function(colony)
         let creep = Game.creeps[colony.claimer[0]]
         if (creep) 
         {
-            let room = Cache.rooms[colony.pos.roomName]
+            let room = Game.rooms[colony.pos.roomName]
             if (room) 
             {
                 if(room.controller.level == 0)
@@ -700,7 +700,7 @@ colonize=function(colony)
         let closest = FindClosestColony(colony.pos.roomName);
         
         if (closest) {
-            let room = Cache.rooms[closest.pos.roomName];
+            let room = Game.rooms[closest.pos.roomName];
             if (room) 
             {
                 if(spawnRoleIntoList(room,colony.claimer,ROLE_CLAIMER) == OK)
@@ -756,7 +756,7 @@ PerformAttacks=function(colony)
             if (creep) 
             {
                 creep.say("Attacking")
-                let room = Cache.rooms[colony.attacking];
+                let room = Game.rooms[colony.attacking];
                 if(room)
                 {
                     let targets = room.hostiles();
@@ -799,7 +799,7 @@ PerformAttacks=function(colony)
         })
         if (colony.attackers.length < 3) 
         {
-            let room = Cache.rooms[colony.pos.roomName];
+            let room = Game.rooms[colony.pos.roomName];
             if (room) {
                 spawnRoleIntoList(room,colony.attackers,ROLE_ATTACKER);
             }
@@ -814,7 +814,7 @@ PerformAttacks=function(colony)
 
 pointat=function(roomName,target)
 {
-    let room = Cache.rooms[roomName];
+    let room = Game.rooms[roomName];
     let vis;
     if(room)
     {
@@ -988,7 +988,7 @@ digMine=function(colony,miningSpot)
         })
         if (needReplacement) 
         {
-            let room = Cache.rooms[colony.pos.roomName]
+            let room = Game.rooms[colony.pos.roomName]
             if (room) 
             {
                 if (miningSpot.type == 'source') 
@@ -1036,7 +1036,7 @@ digMine=function(colony,miningSpot)
     }
     else
     {
-        let room = Cache.rooms[miningSpot.myPosition.roomName];
+        let room = Game.rooms[miningSpot.myPosition.roomName];
         if (room) 
         {
             let results = room.lookAt(miningSpot.myPosition.x,miningSpot.myPosition.y);
@@ -1193,7 +1193,7 @@ deleteAllDead=function()
 spawnRoleIntoList=function(room,list,role,options={},additionalList)
 {
     if (typeof(room) == 'string') {
-        room = Cache.rooms[room];
+        room = Game.rooms[room];
         if (!room) {
             return;
         }
@@ -1279,7 +1279,7 @@ dopath=function(Highway)
         var start = new RoomPosition(Highway.start.x,Highway.start.y,Highway.start.roomName)
         var end = new RoomPosition(Highway.end.x,Highway.end.y,Highway.end.roomName)
         
-        var room = Cache.rooms[start.roomName]
+        var room = Game.rooms[start.roomName]
         if (room) 
         {
             var ret = PathFinder.search(start,[{pos:end,range:1}],{roomCallback:avoidColonyLayout,swampCost:1,plainCost:1,ignoreCreeps:true})
@@ -1395,7 +1395,7 @@ maintainColony=function(colony)
 
 MaintainColonystatic=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if(!room) 
     {
         Game.notify("No vision on colony " + colony.pos.roomName); 
@@ -1477,7 +1477,7 @@ MaintainColonystatic=function(colony)
 
 MaintainColonydynamic=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName]
+    let room = Game.rooms[colony.pos.roomName]
     if(!room) 
     {
         Game.notify("No vision on colony " + colony.pos.roomName); 
@@ -1572,7 +1572,7 @@ MaintainMiningSpot=function(colony,miningSpot)
 {
     if (!miningSpot.lastmaintained || Game.time - miningSpot.lastmaintained > COLONY_MAINTAIN_INTERVAL) 
     {
-        let room = Cache.rooms[miningSpot.myPosition.roomName]
+        let room = Game.rooms[miningSpot.myPosition.roomName]
         if(!room || !miningSpot.layout)
         {
             return
@@ -1739,7 +1739,7 @@ maintain=function(Highway,colony)
                     {
                         creep.travelTo(new RoomPosition(pos.x,pos.y,pos.roomName))
                     }
-                    let room = Cache.rooms[pos.roomName]
+                    let room = Game.rooms[pos.roomName]
                     let road = false
                     if (room) {
                         let structures = room.lookForAt(LOOK_STRUCTURES,pos.x,pos.y) //look for road object
@@ -1810,7 +1810,7 @@ AddMiningSpot=function(colony,miningspot)
 
 Scavange=function(colony)
 {
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if(!room)
     {
         return;
@@ -1884,7 +1884,7 @@ TrackDelta=function(colony)
         }
     }
     
-    let room = Cache.rooms[colony.pos.roomName];
+    let room = Game.rooms[colony.pos.roomName];
     if (room) {
         delta += room.find(FIND_SOURCES).length * 10;
     }
@@ -1979,7 +1979,7 @@ Power_Matilda=function(matilda)
     }
     if(matilda.store.getFreeCapacity(RESOURCE_OPS) < 50)
     {
-        let targetRoom = Cache.rooms[Memory.colonies[0].pos.roomName];
+        let targetRoom = Game.rooms[Memory.colonies[0].pos.roomName];
         if(targetRoom && targetRoom.controller && targetRoom.controller.my)
         {
             let storage = targetRoom.storage;
@@ -2085,7 +2085,7 @@ PowerCreeps=function()
         {
             if(Memory.mainColony)
             {
-                let room = Cache.rooms[Memory.mainColony];
+                let room = Game.rooms[Memory.mainColony];
                 if(room && room.powerSpawn)
                 {
                     matilda.spawn(room.powerSpawn);

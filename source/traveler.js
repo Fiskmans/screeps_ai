@@ -244,7 +244,7 @@ class Traveler {
             }
             roomsSearched++;
             let matrix;
-            let room = Cache.rooms[roomName];
+            let room = Game.rooms[roomName];
             if (room) {
                 if (options.ignoreStructures) {
                     matrix = new PathFinder.CostMatrix();
@@ -350,7 +350,7 @@ class Traveler {
                     }
                 }
                 // SK rooms are avoided when there is no vision in the room, harvested-from SK rooms are allowed
-                if (!options.allowSK && !Cache.rooms[roomName]) {
+                if (!options.allowSK && !Game.rooms[roomName]) {
                     if (!parsed) {
                         parsed = /^[WE]([0-9]+)[NS]([0-9]+)$/.exec(roomName);
                     }

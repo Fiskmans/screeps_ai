@@ -22,7 +22,7 @@ UpdateGrafanaStats=function()
     _.forEach(Memory.colonies, function(colony){
 
       let roomName = colony.pos.roomName;
-      let room = Cache.rooms[roomName]
+      let room = Game.rooms[roomName]
       
       if(!room)
       {

@@ -208,7 +208,7 @@ battlefrontstages =
             let closest = FindClosestColony(roomname,false);
             if (closest) 
             {
-                let spawnroom = Cache.rooms[closest.pos.roomName]
+                let spawnroom = Game.rooms[closest.pos.roomName]
                 if (spawnroom) 
                 {
                     spawnRoleIntoList(spawnroom,battlefront.scouts,ROLE_SCOUT);
@@ -231,7 +231,7 @@ battlefrontstages =
             }
         })
         
-        let room = Cache.rooms[roomname];
+        let room = Game.rooms[roomname];
         if (room) 
         {
             collectIntel(room,battlefront)
@@ -248,7 +248,7 @@ battlefrontstages =
             let closest = FindClosestColony(roomname,false);
             if (closest) 
             {
-                let spawnroom = Cache.rooms[closest.pos.roomName]
+                let spawnroom = Game.rooms[closest.pos.roomName]
                 if (spawnroom) 
                 {
                     if(OK == spawnRoleIntoList(spawnroom,battlefront.drainers,ROLE_ENERGY_DRAIN))
@@ -258,7 +258,7 @@ battlefrontstages =
                 }
             }
         }
-        let room = Cache.rooms[roomname];
+        let room = Game.rooms[roomname];
         let towercount = 0;
         if (room) 
         {
@@ -409,7 +409,7 @@ battlefrontstages =
     },
     [WARSTAGE_ATTACK]:function(playername,war,battlefront,roomname)
     {
-        let room = Cache.rooms[roomname];
+        let room = Game.rooms[roomname];
         let towercount = 0;
         if (room) 
         {
@@ -433,7 +433,7 @@ battlefrontstages =
             let closest = FindClosestColony(roomname,false);
             if (closest) 
             {
-                let spawnroom = Cache.rooms[closest.pos.roomName]
+                let spawnroom = Game.rooms[closest.pos.roomName]
                 if (spawnroom) 
                 {
                     spawnRoleIntoList(spawnroom,battlefront.dismantlers,ROLE_DISMANTLER)
