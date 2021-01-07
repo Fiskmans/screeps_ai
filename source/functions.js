@@ -317,6 +317,55 @@ DecayMap=function()
 
 Scan=function(room)
 {
+    room.PopulateShorthands();
+
+    if(room.portals.length > 0)
+    {
+        for(let portal of room.portals)
+        {
+            let shard    = Game.shard.name;
+            let destRoom = false;  
+            if(portal.destination instanceof RoomPosition)
+            {
+                destRoom = portal.destination.roomName;
+            }
+            else
+            {
+                shard = portal.destination.shard;
+                destRoom = portal.destination.room;
+            }
+
+            if(!Memory.portals[shard]) { Memory.portals[shard] = {} };
+            
+            Memory.portals[shard][room.name] = 
+            { 
+                target:destRoom,
+                pos:portal.pos 
+            };
+        }
+    }
+    else
+    {
+        let again = true;
+        while(again)
+        {
+            again = false;
+            for(let shardName in Memory.portals)
+            {
+                if(Memory.portals[shardName][room.name])
+                {
+                    delete Memory.portals[shardName][room.name];
+                }
+                if(Object.keys(Memory.portals[shardName]).length == 0)
+                {
+                    delete Memory.portals[shardName];
+                    again = true;
+                    break;
+                }
+            }
+        }
+    }
+
     SetMapData(room.name,"lastseen",'9');
     if (room.controller) 
     {
@@ -687,7 +736,7 @@ colonize=function(colony)
             }
             else
             {
-                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName))
+                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
             }
         }
         else
@@ -697,9 +746,10 @@ colonize=function(colony)
     }
     else
     {
-        let closest = FindClosestColony(colony.pos.roomName);
+        let closest = FindClosestColony(colony.pos.roomName,false,3);
         
-        if (closest) {
+        if (closest) 
+        {
             let room = Game.rooms[closest.pos.roomName];
             if (room) 
             {
@@ -711,6 +761,13 @@ colonize=function(colony)
             else
             {
                 Game.notify("No vision on seedling colony for " + colony.pos.roomName);
+            }
+        }
+        else
+        {
+            if(!InterShard.Transport.Adopt(colony.claimer,ROLE_CLAIMER))
+            {
+                InterShard.Transport.Request(ROLE_CLAIMER);
             }
         }
     }
@@ -1081,7 +1138,7 @@ addColony=function(x,y,roomName)
     delete Memory.data.panalyze;
     delete Memory.data.posexpansions;
     
-    Memory.colonies.push(new Colony(x,y,roomName))
+    Memory.colonies.push(new ColonyObject(x,y,roomName))
     
     Game.notify("Adding a new colony to " + roomName + " at " + x + "," + y);
     
@@ -1192,7 +1249,7 @@ deleteAllDead=function()
 }
 spawnRoleIntoList=function(room,list,role,options={},additionalList)
 {
-    if (typeof(room) == 'string') {
+    if (typeof(room) === 'string') {
         room = Game.rooms[room];
         if (!room) {
             return;
@@ -1234,12 +1291,13 @@ spawnRoleIntoList=function(room,list,role,options={},additionalList)
                     options.memory = {};   
                 }
                 options.memory.home = room.name;
-                code = s.spawnCreep(body,ROLE_PREFIXES[role] + Memory.creepid,options);
+                let name = (SHARD_CREEP_NAME_PREFIXES[Game.shard.name] || '?' ) + (ROLE_PREFIXES[role] || '?') + Memory.creepid;
+                code = s.spawnCreep(body,name,options);
                 if (code == OK) {
-                    list.push(ROLE_PREFIXES[role] + Memory.creepid);
+                    list.push(name);
                     if(additionalList)
                     {
-                        additionalList.push(ROLE_PREFIXES[role] + Memory.creepid);
+                        additionalList.push(name);
                     }
                     s.spawning = true;
                     Memory.creepid += 1;
@@ -1308,7 +1366,7 @@ avoidColonyLayout=function(roomName)
         var pos = col.pos
         if (pos.roomName == roomName) 
         {
-            if(roomName == Memory.mainColony)
+            if(Game.shard.name == "shard3" && roomName == Memory.mainColony)
             {
                 var blocked = getBlocked(pos.x,pos.y,roomName,layout.structures[8])
                 for(var b in blocked)
@@ -1338,7 +1396,7 @@ avoidColonyLayout=function(roomName)
 
 maintainall=function(colony)
 {
-    if(Memory.mainColony == colony.pos.roomName)
+    if(Game.shard.name == "shard3" && Memory.mainColony == colony.pos.roomName)
     {
         for(let highway of colony.highways)
         {
@@ -1382,7 +1440,7 @@ maintainColony=function(colony)
 {
     if (Game.time - colony.lastmaintained > COLONY_MAINTAIN_INTERVAL) 
     {
-        if(Memory.mainColony == colony.pos.roomName)
+        if(Game.shard.name == "shard3" && Memory.mainColony == colony.pos.roomName)
         {   
             MaintainColonystatic(colony);
         }
@@ -2097,4 +2155,9 @@ PowerCreeps=function()
             Power_Matilda(matilda);
         }
     }
+}
+
+lerp = function(a,b,c)
+{
+    return (a*(1-c)) + (b*c);
 }

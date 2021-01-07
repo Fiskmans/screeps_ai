@@ -18,6 +18,8 @@ UpdateGrafanaStats=function()
     Memory.stats['colonies.count'] = Memory.colonies.length;
     Memory.stats['scouting.targets'] = Object.keys(Memory.scouting).length;
     
+    Memory.stats['creep.count'] = Object.keys(Game.creeps).length;
+
     Memory.stats['store'] = {};
     _.forEach(Memory.colonies, function(colony){
 

@@ -58,6 +58,29 @@ drawColony=function(colony,vis)
                 }
             }
         }
+
+        if(colony.planner)
+        {
+            for(let tag in colony.planner)
+            {
+                let stash = colony.planner[tag];
+                if(stash.bestPos)
+                {
+                    const tot = (48.0*48.0*2.0);
+                    vis.text("Planner: " + tag + " " + ((tot - stash.queue.length) / tot * 100.0).toFixed(2) + "%",stash.bestPos.x,stash.bestPos.y-1);
+                    vis.circle(stash.bestPos.x,stash.bestPos.y,{fill:"#00FF00"})
+                }
+            }
+        }
+
+        for(let lab of room.Structures(STRUCTURE_LAB))
+        {
+            let task = lab.memory.task;
+            if(task)
+            {
+                vis.symbol(lab.pos.x,lab.pos.y-0.2,task.resource,{scale:0.4});
+            }
+        }
         
         {
             let index = Memory.colonies.indexOf(colony);

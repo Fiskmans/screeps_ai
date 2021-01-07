@@ -57,21 +57,9 @@ colonyDumbRefill=function(colony)
     let room = Game.rooms[colony.pos.roomName];
     
     let limit = 0;
-    if(colony.level < 4 || !room.storage)
+    if((colony.level < 4 || !room.storage) && room.energyAvailable < room.energyCapacityAvailable)
     {
-        limit = room.find(FIND_MY_STRUCTURES,{filter: (s) => {return (s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_SPAWN) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}}).length / 10;
-        room.towers.forEach((t) => 
-        {
-            if(t.store.getFreeCapacity(RESOURCE_ENERGY) > 400) 
-            {
-                limit++;
-            }
-            
-        })
-        if(room.powerSpawn && room.powerSpawn.store.getFreeCapacity(RESOURCE_ENERGY) > 1000)
-        {
-            limit++;
-        }
+        limit = Math.ceil(colony.workersensus.length / 3.0)
     }
     
 
@@ -213,7 +201,14 @@ colonyConstruct=function(colony)
                     creep.updateHarvestState()
                     if (creep.memory.harvesting) 
                     {
-                        creep.dumbHarvest()
+                        if(creep.pos.roomName != colony.pos.roomName && creep.room.sources.length == 0)
+                        {
+                            creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName));   
+                        }
+                        else
+                        {
+                            creep.dumbHarvest()
+                        }
                     }
                     else
                     {

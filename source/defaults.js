@@ -11,4 +11,7 @@ defaultMemory=function()
 
     if(!Memory.console) {Memory.console = {};}
     if(!Memory.console.jobs) {Memory.console.jobs = [];}
+    if(!Memory.portals) { Memory.portals = {} }
+    if(!Memory.interShard) { Memory.interShard = { to:{} } }
+    if(!Memory.orphans) { Memory.orphans = {} }
 }

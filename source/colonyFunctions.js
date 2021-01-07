@@ -106,6 +106,7 @@ ColonyUpgradeLinked=function(colony)
 
 ColonyRespawnWorkers=function(colony)
 {
+    let room = Game.rooms[colony.pos.roomName];
     if(!colony.workerpool) {colony.workerpool = []};
     if(!colony.workersensus) {colony.workersensus = []};
     deleteDead(colony.workersensus);
@@ -113,33 +114,47 @@ ColonyRespawnWorkers=function(colony)
     let target = TARGET_WORKER_COUNT[colony.level];
     let count = colony.workersensus.length;
 
+    if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_EXTRA_WORKER_THRESHOLD)
+    {
+        target++;
+    }
+
     let vis = new RoomVisual(colony.pos.roomName);
     vis.text(count + " / " + target,25,3);
 
     if (count < target)
     {
-        spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.workerpool,ROLE_WORKER,{},colony.workersensus);
-        if (Game.rooms[colony.pos.roomName].spawns.length == 0) 
+        let list = [];
+        if(!InterShard.Transport.Adopt(list,ROLE_WORKER))
         {
-            let closest = FindClosestColony(colony.pos.roomName);
-            if (closest && closest.workerpool.length > 1) 
+            spawnRoleIntoList(room,colony.workerpool,ROLE_WORKER,{},colony.workersensus);
+            if (room.spawns.length == 0) 
             {
-                let stolen = closest.workerpool.shift();
-                if(stolen)
+                let closest = FindClosestColony(colony.pos.roomName);
+                if (closest && closest.workerpool.length > 1) 
                 {
-                    colony.workerpool.push(stolen);
-                    colony.workersensus.push(stolen);
-                    closest.workersensus = _.remove(closest.workersensus, function(c) {
-                        return c == stolen;
-                    });
-                    
-                    console.log(colony.pos.roomName + " stole a worker from " + closest.pos.roomName)
+                    let stolen = closest.workerpool.shift();
+                    if(stolen)
+                    {
+                        colony.workerpool.push(stolen);
+                        colony.workersensus.push(stolen);
+                        closest.workersensus = _.remove(closest.workersensus, function(c) {
+                            return c == stolen;
+                        });
+                        
+                        console.log(colony.pos.roomName + " stole a worker from " + closest.pos.roomName)
+                    }
+                }
+                else
+                {
+                    InterShard.Transport.Request(ROLE_WORKER);
                 }
             }
-            else
-            {
-                //Panic
-            }
+        }
+        else
+        {
+            colony.workersensus = colony.workersensus.concat(list);
+            colony.workerpool = colony.workerpool.concat(list);
         }
     }
 }
@@ -192,7 +207,7 @@ FindLinkInColonyLayout=function(colony,blackList)
         let result = room.lookAt(colony.pos.x + 6,colony.pos.y + 5)
         for(let r of result)
         {
-            if (r.type == 'structure' && r.structure instanceof StructureLink) 
+            if (r.type == 'structure' && r.structure instanceof StructureLink && !blackList.includes(r.structure.id)) 
             {
                 return r.structure.id;
             }
@@ -213,6 +228,14 @@ FindColonyLinks=function(colony)
         blacklist.push(colony.recievelink);
     }
 
+    if(colony.recievelink && colony.sendLink)
+    {
+        if(colony.recievelink == colony.sendLink)
+        {
+            delete colony.recievelink;
+        }
+    }
+
     if (!colony.sendLink) 
     {
         if(colony.recievelink)
@@ -226,7 +249,7 @@ FindColonyLinks=function(colony)
             if(id)
             {
                 colony.sendLink = id;
-                console.log("colony " + colony.pos.roomName + " found rec link with id: " + id);
+                console.log("colony " + colony.pos.roomName + " found send link with id: " + id);
             }
         }
     }
@@ -296,7 +319,7 @@ ColonyFindBuildingWork=function(colony)
         return;
     }
 
-    if(Memory.mainColony == colony.pos.roomName)
+    if(Game.shard.name == "shard3" && Memory.mainColony == colony.pos.roomName)
     {
         let room = Game.rooms[colony.pos.roomName];
         if(room)
@@ -424,12 +447,26 @@ ColonyBuildDynamic=function(colony)
 
     if(!colony.layout) { colony.layout = ""; }
 
-    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    let mainBuildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    let buildings = [].concat(mainBuildings);
     let unplaced = JSON.parse(JSON.stringify(colonyBuildingsPerLevel[colony.level]))
 
-    if(BuildMissing(colony,buildings,unplaced))
+    if(BuildMissing(colony,mainBuildings,unplaced))
     {
         return;
+    }
+
+    if(colony.subLayouts)
+    {
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            let buildings2 = DeserializeLayout(layout,colony.pos.roomName);
+            if(BuildMissing(colony,buildings2))
+            {
+                return;
+            }
+            buildings = buildings.concat(buildings2);
+        }
     }
 
     for(let k in unplaced)
@@ -441,30 +478,18 @@ ColonyBuildDynamic=function(colony)
             if(building)
             {
                 console.log("Planning a " + building.structure + " at x: " + building.pos.x + " y: " + building.pos.y + " in " + building.pos.roomName)
-                buildings.push(building);
+                mainBuildings.push(building);
             }
             else
             {
                 Game.notify("Colony in " + colony.pos.roomName + "Cant find a place to place it's next building");
             }
 
-            colony.layout = SerializeLayout(buildings);
+            colony.layout = SerializeLayout(mainBuildings);
             return;
         }
     };
 
-    if(colony.subLayouts)
-    {
-
-        for(let layout of Object.values(colony.subLayouts))
-        {
-            let buildings2 = DeserializeLayout(layout,colony.pos.roomName);
-            if(BuildMissing(colony,buildings2))
-            {
-                return;
-            }
-        }
-    }
 }
 
 PlanBuilding=function(colony,alreadyPresent, type, centerPos)
@@ -498,17 +523,19 @@ PlanBuilding=function(colony,alreadyPresent, type, centerPos)
                     let dy = Math.abs(y - centerPos.y);
                     if(IsAllowedByReservation(x - centerPos.x,y - centerPos.y,type))
                     {
-                        if(Math.abs(dx - dy) != 2 && dx + dy != 2)
+                        if(Colony.Planner.AllowBuildingAtPosition(colony,new RoomPosition(x,y,centerPos.roomName),type))
                         {
-                            console.log("tesing d: " + dx + " " + dy);
-                            if(IsValidSpot(colony,terrain,alreadyPresent,x,y,centerPos))
+                            if(Math.abs(dx - dy) != 2 && dx + dy != 2)
                             {
-                                return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
+                                if(IsValidSpot(colony,terrain,alreadyPresent,x,y,centerPos))
+                                {
+                                    return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
+                                }
                             }
-                        }
-                        else if(terrain.get(x,y) != TERRAIN_MASK_WALL)
-                        {
-                            return {structure:STRUCTURE_ROAD,pos:new RoomPosition(x, y, centerPos.roomName)};
+                            else if(terrain.get(x,y) != TERRAIN_MASK_WALL)
+                            {
+                                return {structure:STRUCTURE_ROAD,pos:new RoomPosition(x, y, centerPos.roomName)};
+                            }
                         }
                     }
                 }
@@ -1572,7 +1599,7 @@ ColonyEmptyMines=function(colony)
 
     for(let spot of colony.miningSpots)
     {
-        if(!spot.container)
+        if(!spot.container && spot.digPos)
         {
             for(let t of new RoomPosition(spot.digPos.x,spot.digPos.y,spot.digPos.roomName).lookFor(LOOK_STRUCTURES))
             {
@@ -1624,46 +1651,73 @@ ColonyTerminalTraffic=function(colony)
     RequestEmptying(colony,room.terminal.id,RESOURCE_ENERGY,TERMINAL_ENERGY_MAX,REQUEST_PRIORITY_AUXILIARY);
     RequestResource(colony,room.terminal.id,RESOURCE_ENERGY,TERMINAL_ENERGY_MIN,REQUEST_PRIORITY_AUXILIARY);
 
-    if(Memory.mainColony == colony.pos.roomName)
+    let surplus = [];
+    for(let res of ExtractContentOfStore(room.storage.store))
     {
-        let resources = ExtractContentOfStore(room.terminal.store);
-        for(let res of resources)
+        let amount   = room.storage.store[res]  || 0;
+            amount  += room.terminal.store[res] || 0;
+        for(let creep of room.find(FIND_MY_CREEPS))
         {
-            if(res != RESOURCE_ENERGY)
-            {
-                if(!colony.selling || !colony.selling.includes(res))
-                {
-                    RequestEmptying(colony,room.terminal.id,res,1,REQUEST_PRIORITY_AUXILIARY);
-                }
-            }
-        }
-    }
-    else
-    {
-        let resources = ExtractContentOfStore(room.storage.store);
-        for(let res of resources)
-        {
-            if(res != RESOURCE_ENERGY)
-            {
-                RequestResource(colony,room.terminal.id,res,TEMRINAL_RESOURCE_MIN,REQUEST_PRIORITY_AUXILIARY);
-            }
+            amount += creep.store[res]  || 0 
         }
 
-        if(!room.terminal.cooldown && Memory.mainColony)
+        if(res != RESOURCE_ENERGY && amount > COLONY_SURPLUS_THRESHOLD)
         {
-            let mainColRoom = Game.rooms[Memory.mainColony];
-            if(mainColRoom && mainColRoom.terminal && mainColRoom.controller && mainColRoom.terminal.my)
+            surplus.push(res);
+        }
+    }
+
+    for(let res of ExtractContentOfStore(room.terminal.store))
+    {
+        if(res != RESOURCE_ENERGY && !surplus.includes(res))
+        {
+            RequestEmptying(colony,room.terminal.id,res,1,REQUEST_PRIORITY_AUXILIARY);
+        }
+    }
+
+    for(let res of surplus)
+    {
+        RequestResource(colony,room.terminal.id,res,TERMINAL_EXPORT_AMOUNT,REQUEST_PRIORITY_AUXILIARY);
+
+        if(!room.terminal.cooldown)
+        {
+            for(let col of Memory.colonies)
             {
-                let resources = ExtractContentOfStore(room.terminal.store);
-                for(let res of resources)
+                if(col.pos.roomName != colony.pos.roomName)
                 {
-                    if(res != RESOURCE_ENERGY)
+                    let otherRoom = Game.rooms[col.pos.roomName];
+                    if(!otherRoom) { break; }
+                    if(!otherRoom.storage) { break; }
+                    if(!otherRoom.terminal) { break; }
+
+                    let amount   = room.storage.store[res]  || 0;
+                        amount  += room.terminal.store[res] || 0;
+                    for(let creep of room.find(FIND_MY_CREEPS))
                     {
-                        
-                        room.terminal.send(res,Math.min(room.terminal.store[res],room.terminal.store[RESOURCE_ENERGY] || 0), Memory.mainColony);
+                        amount += creep.store[res]  || 0 
+                    }
+
+                    let otherAmount   = otherRoom.storage.store[res]  || 0;
+                        otherAmount  += otherRoom.terminal.store[res] || 0;
+                    for(let creep of otherRoom.find(FIND_MY_CREEPS))
+                    {
+                        amount += creep.store[res]  || 0 
+                    }
+            
+                    if(otherAmount < COLONY_PUSH_RESOURCE_THRESHOLD)
+                    {
+                        if(room.terminal.store[res] > 0 && room.terminal.store[RESOURCE_ENERGY] > 0)
+                        {
+                            let amountToSend = Math.min(room.terminal.store[res],
+                                room.terminal.store[RESOURCE_ENERGY],
+                                COLONY_PUSH_RESOURCE_THRESHOLD - otherAmount,
+                                amount - COLONY_SURPLUS_THRESHOLD);
+                            room.terminal.send(res,amountToSend,col.pos.roomName);
+                        }
                     }
                 }
             }
         }
     }
+
 }

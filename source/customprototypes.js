@@ -84,7 +84,7 @@ MiningSpot = function(position)
     }
 }
 
-Colony = function(_x,_y,roomName)
+ColonyObject = function(_x,_y,roomName)
 {  
     if (_x instanceof RoomPosition) 
     {

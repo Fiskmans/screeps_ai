@@ -30,6 +30,10 @@ module.exports.loop = function()
 {
   profiler.wrap(function() {
 
+    for(let room of Object.values(Game.rooms))
+    {
+      room.PopulateShorthands();
+    }
     DeSerializeMemory();
     defaultMemory();
     applyFlags();
@@ -41,6 +45,11 @@ module.exports.loop = function()
     
     worldVisuals();
     ConsoleHelperUpdate();
+
+    InterShard.Transport.FlushScreeponauts();
+    InterShard.Transport.FindOrphans();
+    InterShard.Transport.FillRequests();
+    
     
     TrackCPU(Game.cpu.getUsed() / Game.cpu.limit);
     if (Game.cpu.bucket > 1000 && Game.cpu.getUsed() < Game.cpu.limit) 
@@ -51,6 +60,8 @@ module.exports.loop = function()
       analyzeQueue()
         
       marketTracking()
+
+      InterShard.Transport.ActivateDeadShards();
     }
     UpdateGrafanaStats();
 
@@ -58,6 +69,9 @@ module.exports.loop = function()
     {
       Game.cpu.generatePixel();
     }
+
+    InterShard.Pulse.Pulse();
+    InterShard.Memory.Commit();
 })
     
         

@@ -8,7 +8,7 @@ MultiRequestResource=function(colony,amounts,objId,priority)
 
 RequestResource=function(colony,objectId,type,wantedAmount,priority)
 {
-    if(!wantedAmount || wantedAmount < 1)
+    if(!wantedAmount || wantedAmount < 1 || !type)
     {
         console.log("Bad call to RequestResource: " + wantedAmount + " " + type);
         Game.notify("Bad call to RequestResource: " + wantedAmount + " " + type);
@@ -101,7 +101,7 @@ RemoveDoneRequests=function(colony)
     {
         let active = true;
         let req = colony.requests[i];
-        if(Game.time - req.at > STALE_REQUEST_THRESHOLD)
+        if(Game.time - req.at > STALE_REQUEST_THRESHOLD || !req.resource)
         {
             active = false;
         }
@@ -145,7 +145,7 @@ RemoveDoneRequests=function(colony)
     }
 }
 
-ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,ofType)
+ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,storageid,ofType)
 {
     if(!colony.requests)
     {
@@ -162,6 +162,10 @@ ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,ofType)
             {
                 if(fakeStores[req.id].Get(req.resource) < req.targetAmount)
                 {
+                    if(fakeStores[storageid].Get(req.resource) == 0)
+                    {
+                        continue;
+                    }
                     if(req.prio > highestPrio)
                     {
                         filtered = [];
@@ -266,7 +270,7 @@ MakeFakeStores=function(colony,outObj)
 
 EnqueueToRequests=function(colony,storageId,creep,predicted)
 {
-    let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos);
+    let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos,storageId);
     if(req)
     {
         if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < req.targetAmount - predicted[req.id].Get(req.resource))
@@ -295,21 +299,35 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
         }
         if(predicted[creep.id].Get(req.resource) > 0)
         {
+            let lastamount = predicted[creep.id].Get(req.resource)
             let work = {action:CREEP_TRANSFER,target:req.id,arg1:req.resource};
             creep.EnqueueWork(work);
             creep.SimulateWorkUnit(work,predicted);
             
             let lastTarget = Game.getObjectById(req.id);
-            let req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,req.resource);
+            let req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,storageId,req.resource);
             
             while(req2 && predicted[creep.id].Get(req2.resource) > 0)
             {
+                if(predicted[creep.id].Get(req.resource) == lastamount)
+                {
+                    console.log("followup bug detected: " + predicted[creep.id].Get(req2.resource));
+                    break;
+                }
+                lastamount = predicted[creep.id].Get(req.resource);
+
+
                 let work = {action:CREEP_TRANSFER,target:req2.id,arg1:req2.resource};
                 creep.EnqueueWork(work);
                 creep.SimulateWorkUnit(work,predicted);
                 
                 lastTarget = Game.getObjectById(req2.id);
-                req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,req2.resource);
+                req2 = ColonyFindUnfilledToRequest(colony,predicted,lastTarget.pos,storageId,req2.resource);
+
+                if(creep.OverWorked())
+                {
+                    break;
+                }
             }
         }
     }
@@ -348,6 +366,11 @@ EnqueueFromRequests=function(colony,storageId,creep,predicted)
             
             lastTarget = Game.getObjectById(req2.id);
             req2 = ColonyFindUnfilledFromRequest(colony,predicted,lastTarget.pos);
+
+            if(creep.OverWorked())
+            {
+                break;
+            }
         }
     }
 }

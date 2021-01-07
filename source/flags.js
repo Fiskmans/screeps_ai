@@ -147,6 +147,7 @@ Analyze=function(flag)
 Scout=function(flag)
 {
     let roomName = "";
+    let flags = Game.flags;
     if (flags["LocalCluster"]) 
     {
         let lx = flags["LocalCluster"].pos.x;
@@ -301,10 +302,9 @@ Unplan=function(flag)
                 let b = buildings[i];
                 if(b.pos.x == pos.x && b.pos.y == pos.y)
                 {
-                    pos.lookFor(LOOK_STRUCTURES).forEach((s) => { if(s.my && s.structureType == b.structure) { s.destroy() }})
+                    ///pos.lookFor(LOOK_STRUCTURES).forEach((s) => { if(s.my && s.structureType == b.structure) { s.destroy() }})
                     console.log("Unplanning a " + b.structure + " at " + pos.x + " " + pos.y);
                     buildings.splice(i,1);
-                    break;
                 }
             }
 
@@ -330,7 +330,7 @@ FlagFunctions["MarkAsOwned"] = MarkAsOwned;
 
 applyFlags=function()
 {
-    if (Game.time % 7 != 0) 
+    if (Game.time % 3 != 0) 
     {
         return;
     }

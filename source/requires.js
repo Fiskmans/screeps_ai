@@ -11,6 +11,10 @@ require('functions')
 require('expansionplanner')
 require("layouts")
 
+Colony      = require('ColonyRequires');
+InterShard  = require('InterShardRequires')
+Combat      = require('CombatRequires')
+
 require('colony')
 require('colonylogics')
 require('colonyFunctions')

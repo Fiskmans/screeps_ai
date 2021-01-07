@@ -7,7 +7,7 @@ colonyLogic=
     //level 1
     1:function(colony)
     {
-        GuardSpawningColony(colony)
+        GuardSpawningColony(colony);
         ColonyRespawnWorkers(colony);
         colonyDumbRefill(colony);
         ColonyWorkerBehaviour(colony);
@@ -59,6 +59,10 @@ colonyLogic=
         ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
         ColonyTerminalTraffic(colony);
+        Colony.Planner.PlanLabs(colony);
+        Colony.Production.Lab.Setup(colony);
+        Colony.Production.Lab.Plan(colony);
+        Colony.Production.Lab.Run(colony);
     },
     //level 7
     7:function(colony)

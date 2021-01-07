@@ -1,27 +1,27 @@
 
 
-Object.defineProperty(StructureLab.prototype,"memory",
+if(!StructureLab.prototype.memory)
 {
-    stashed: false,
-
-    get: function memory()
+    Object.defineProperty(StructureLab.prototype,"memory",
     {
-        if(!this.stashed)
+        stashed: false,
+        
+        get: function memory()
         {
-            console.log(this.id);
-            if(!Memory.labs)
+            if(!this.stashed)
             {
-                Memory.labs = {};
+                if(!Memory.labs)
+                {
+                    Memory.labs = {};
+                }
+                if(!Memory.labs[this.id])
+                {
+                    Memory.labs[this.id] = {};
+                }
+                this.stashed = Memory.labs[this.id];
             }
-            if(!Memory.labs[this.id])
-            {
-                Memory.labs[this.id] = {};
-            }
-            this.stashed = Memory.labs[this.id];
+            
+            return this.stashed;
         }
-
-        return this.stashed;
-    }
-})
-
-
+    })
+}

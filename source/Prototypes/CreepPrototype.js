@@ -92,6 +92,11 @@ Creep.prototype.HasAtleast1TickWorthOfWork=function()
     return this.memory._workQueue && this.memory._workQueue.length > 1;
 }
 
+Creep.prototype.OverWorked = function()
+{
+    return this.memory._workQueue && this.memory._workQueue.length > 30;
+}
+
 Creep.prototype.EnqueueWork=function(work)
 {
     if(!this.memory._workQueue) { this.memory._workQueue = [] };

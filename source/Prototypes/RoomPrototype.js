@@ -33,6 +33,30 @@ Room.prototype.refillable=function()
     return all;
 }
 
+
+Room.prototype.hostiles=function()
+{
+    if(!this._hostiles)
+    {
+        this._hostiles = [];
+        this._hostiles = this.find(FIND_HOSTILE_CREEPS);
+        if(this.controller && !this.controller.my)
+        {
+            this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,
+                {   filter:(s) => 
+                    {
+                        return !s.my 
+                            && s.structureType != STRUCTURE_CONTROLLER 
+                            && s.structureType != STRUCTURE_ROAD 
+                            && s.structureType != STRUCTURE_CONTAINER 
+                            && s.hits > 0;
+                    }
+                }));
+        }
+    }
+    return this._hostiles;
+}
+
 Room.prototype.findAllStructures=function()
 {
     if(!this._structures)
@@ -57,34 +81,12 @@ Room.prototype.Structures=function(type)
     return this._structures[type];
 }
 
-Room.prototype.hostiles=function()
-{
-    if(!this._hostiles)
-    {
-        this._hostiles = [];
-        this._hostiles = this.find(FIND_HOSTILE_CREEPS);
-        if(this.controller && !this.controller.my)
-        {
-            this._hostiles = this._hostiles.concat(this.find(FIND_STRUCTURES,
-                {   filter:(s) => 
-                    {
-                        return !s.my && 
-                        s.structureType != STRUCTURE_CONTROLLER && 
-                        s.structureType != STRUCTURE_ROAD && 
-                        s.structureType != STRUCTURE_CONTAINER &&
-                        s.hits > 0
-                    }
-                }));
-        }
-    }
-    return this._hostiles;
-}
-
 Room.prototype.PopulateShorthands=function()
 {
     this.findAllStructures();
-    let ShorthandFirstOfType=function(type,room,alias) { if(room._structures[type] && room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
-    let ShorthandType=function(type,room,alias) { room[alias] = room._structures[type] }
+
+    let ShorthandFirstOfType    =   function(type,room,alias) { if(room._structures[type] && room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
+    let ShorthandType           =   function(type,room,alias) { room[alias] = room._structures[type] }
 
     ShorthandFirstOfType(STRUCTURE_FACTORY,this,"factory");
     ShorthandFirstOfType(STRUCTURE_NUKER,this,"nuker");
@@ -93,10 +95,12 @@ Room.prototype.PopulateShorthands=function()
     ShorthandFirstOfType(STRUCTURE_INVADER_CORE,this,"invaderCore");
     ShorthandFirstOfType(STRUCTURE_POWER_BANK,this,"powerBank");
     ShorthandFirstOfType(STRUCTURE_POWER_SPAWN,this,"powerSpawn");
-    if(!this.storage) { ShorthandFirstOfType(STRUCTURE_CONTAINER,this,"storage") }
 
     ShorthandType(STRUCTURE_CONTAINER,this,"containers");
     ShorthandType(STRUCTURE_ROAD,this,"roads");
     ShorthandType(STRUCTURE_TOWER,this,"towers");
     ShorthandType(STRUCTURE_SPAWN,this,"spawns");
+    ShorthandType(STRUCTURE_PORTAL,this,"portals");
+
+    this["sources"] = this.find(FIND_SOURCES);
 }

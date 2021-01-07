@@ -252,6 +252,37 @@ reservedDynamicLayout =
         [ 0]:STRUCTURE_SPAWN
     }
 }
+labSateliteLayout = 
+{
+    [-1]:
+    {
+        [-1]:STRUCTURE_LAB,
+        [ 0]:STRUCTURE_LAB,
+        [ 1]:STRUCTURE_ROAD,
+        [ 2]:STRUCTURE_LAB
+    },
+    [ 0]:
+    {
+        [-1]:STRUCTURE_LAB,
+        [ 0]:STRUCTURE_ROAD,
+        [ 1]:STRUCTURE_LAB,
+        [ 2]:STRUCTURE_ROAD
+    },
+    [ 1]:
+    {
+        [-1]:STRUCTURE_ROAD,
+        [ 0]:STRUCTURE_LAB,
+        [ 1]:STRUCTURE_LAB,
+        [ 2]:STRUCTURE_LAB
+    },
+    [ 2]:
+    {
+        [-1]:STRUCTURE_LAB,
+        [ 0]:STRUCTURE_ROAD,
+        [ 1]:STRUCTURE_LAB
+    }
+}
+
 
 guaranteedEmpty = {x:0,y:2};
 

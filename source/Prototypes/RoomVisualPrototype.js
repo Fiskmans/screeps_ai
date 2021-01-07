@@ -1162,3 +1162,41 @@ RoomVisual.prototype.Timer=function(x,y,current,max,opt)
     poly.push([x,y])
     this.poly(poly,{fill:opt.color});
 }
+
+RoomVisual.prototype.CostMatrix=function(roomName,matrix)
+{
+    const roomTerrain = new Room.Terrain(roomName);
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            let cost = matrix.get(x, y);
+            if (cost === 0) {
+                const terrain = roomTerrain.get(x, y);
+                if (terrain === 0) {
+                    cost = 2;
+                } else {
+                    if (terrain & TERRAIN_MASK_SWAMP) {
+                        cost = 10;
+                    }
+                    if (terrain & TERRAIN_MASK_WALL) {
+                        cost = 255;
+                    }
+                }
+            }
+            const value = Math.min(255, cost > 1 ? cost * 20 : 0) / 255;
+            const r = Math.min(1, 4 * value) * 255;
+            const g = Math.min(1, 1.2 * (1 - value)) * 255;
+            const color = `#${Math.round(r).toString(16).padStart(2, "0")}${Math.round(g).toString(16).padStart(2, "0")}00`;
+            const strokeWidth = 0.05;
+            this.rect(x - 0.5 + strokeWidth, y - 0.5 + strokeWidth, 1 - strokeWidth * 2, 1 - strokeWidth * 2, {
+                fill: `${color}22`,
+                opacity: 0.3,
+                stroke: color,
+                strokeWidth
+            });
+            this.text(`${cost}`, x, y + 0.125, {
+                color,
+                font: 0.25
+            });
+        }
+    }
+}
