@@ -366,3 +366,301 @@ module.exports.PlanLabs = function(colony)
 {
     this.PlanLayout(colony,"labs",labSateliteLayout);
 }
+
+let ExpandColony=function(colony)
+{
+    if(typeof colony.layout === 'undefined') 
+    {
+        colony.layout = ""; 
+    }
+    let mainBuildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    let buildings = [].concat(mainBuildings);
+    let unplaced = JSON.parse(JSON.stringify(colonyBuildingsPerLevel[colony.level]))
+
+    for(let building of mainBuildings)
+    {
+        if(unplaced[building.structure])
+        {
+            unplaced[building.structure] -= 1;
+        }
+    }
+
+    if(colony.subLayouts)
+    {
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
+        }
+    }
+    ResetMatrix();
+    let done = true;
+    for(let k in unplaced)
+    {        
+        while(unplaced[k] > 0)
+        {
+            SetupMatrix(buildings)
+            let building = PlanBuilding(colony,buildings,k,colony.pos);
+            if(building)
+            {
+                mainBuildings.push(building);
+                buildings.push(building);
+                SetupMatrix([building]);
+                unplaced[k] -= 1;
+            }
+            else
+            {
+                console.log("Colony in " + colony.pos.roomName + "Cant find a place to place it's next building")
+                Game.notify("Colony in " + colony.pos.roomName + "Cant find a place to place it's next building");
+                colony.mainPlanner = 
+                {
+                    stage:PLANNER_STAGE_FAILED
+                }
+                return;
+            }
+        }
+        if(unplaced[k] > 0)
+        {
+            done = false;
+        }
+    }
+
+
+    colony.layout = SerializeLayout(mainBuildings);
+
+    if(!done)
+    {   
+        console.log("Planner is waiting for next tick to continue in room: " + colony.pos.roomName);
+        logObject({["Buildings left to place"]:unplaced})
+    }
+    else
+    {
+        if(colony.level == RCL_MAX)
+        {
+            console.log("Planner is done in room: " + colony.pos.roomName);
+            colony.mainPlanner = 
+            {
+                stage:PLANNER_STAGE_DONE
+            }
+        }
+        else
+        {
+            console.log("Planner waiting for level " + (colony.level + 1) + " to continue in room: " + colony.pos.roomName);
+            colony.mainPlanner = 
+            {
+                stage:PLANNER_STAGE_WAITING,
+                level:colony.level
+            }
+        }
+    }
+}
+
+PlanBuilding=function(colony,alreadyPresent, type, centerPos)
+{
+    let TURN_MAP =
+    {
+        [RIGHT]: TOP,
+        [TOP]: LEFT,
+        [LEFT]: BOTTOM,
+        [BOTTOM]: RIGHT
+    }
+    
+    let terrain = new Room.Terrain(centerPos.roomName);  
+
+    let left = 1;
+    let depth = 1;
+    let direction = RIGHT;
+
+    let x = centerPos.x;
+    let y = centerPos.y;
+
+    while(depth < 25)
+    {
+        if(x > 0 || x < 49)
+        {
+            if(y > 0 || y < 49)
+            {
+                if(!IsTaken(alreadyPresent,x,y,true))
+                {
+                    let dx = Math.abs(x - centerPos.x);
+                    let dy = Math.abs(y - centerPos.y);
+                    if(IsAllowedByReservation(x - centerPos.x,y - centerPos.y,type))
+                    {
+                        if(Colony.Planner.AllowBuildingAtPosition(colony,new RoomPosition(x,y,centerPos.roomName),type))
+                        {
+                            if(Math.abs(dx - dy) != 2 && dx + dy != 2)
+                            {
+                                if(IsValidSpot(colony,terrain,alreadyPresent,x,y,centerPos))
+                                {
+                                    return {structure:type,pos:new RoomPosition(x, y, centerPos.roomName)};
+                                }
+                            }
+                            else if(terrain.get(x,y) != TERRAIN_MASK_WALL)
+                            {
+                                return {structure:STRUCTURE_ROAD,pos:new RoomPosition(x, y, centerPos.roomName)};
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        x += offsets.x[direction];
+        y += offsets.y[direction];
+        left -= 1;
+        if(left <= 0)
+        {
+            direction = TURN_MAP[direction];
+            left = depth;
+            if(direction == TOP || direction == BOTTOM)
+            {
+                depth += 1;
+            }
+        }
+    }
+    return false;
+}
+
+let IsAllowedByReservation=function(x,y,structure)
+{
+    at = (reservedDynamicLayout[x] || {})[y];
+    if(!at)
+    {
+        return true;
+    }
+    if(at == structure)
+    {
+        return true;
+    }
+    return false;
+}
+
+let BuildingPlannerPathingMatrix = false;
+let ResetMatrix=function()
+{
+    BuildingPlannerPathingMatrix = new PathFinder.CostMatrix();
+}
+
+let SetupMatrix=function(buildings)
+{
+    for(let y = 0; y < 50;y++)
+    {
+        for(let x = 0; x < 50;x++)
+        {
+            BuildingPlannerPathingMatrix.set(x,y,256);
+        }
+    }
+
+    buildings.forEach((b) => 
+    {
+        if (b.structure == STRUCTURE_ROAD)
+        {
+            BuildingPlannerPathingMatrix.set(b.pos.x,b.pos.y,1);
+        }
+    })
+}
+
+let BuildingPathingMap=function(roomName)
+{
+    if(BuildingPlannerPathingMatrix)
+    {
+        return BuildingPlannerPathingMatrix;
+    }
+    
+    var matrix = new PathFinder.CostMatrix();
+    for(let y = 0; y < 50;y++)
+    {
+        for(let x = 0; x < 50;x++)
+        {
+            matrix.set(x,y,256);
+        }
+    }
+    return matrix
+}
+
+let IsTaken=function(buildings,x,y,countRoads)
+{
+    let isTaken = false;
+    buildings.forEach((b) =>
+    {
+        if((countRoads || b.structure != STRUCTURE_ROAD) && b.pos.x == x && b.pos.y == y)
+        {
+            isTaken = true;
+        }
+    })
+    return isTaken;
+}
+
+let IsValidSpot=function(colony,terrain,buildings,x,y,centerPos)
+{
+    if(buildings.length > 0)
+    {
+        var pathToCore = PathFinder.search(centerPos,[{pos:new RoomPosition(x,y,centerPos.roomName),range:1}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+        if (pathToCore.incomplete)
+        {
+            return false;
+        }
+    }
+
+    if(terrain.get(x,y) == TERRAIN_MASK_WALL)
+    {
+        return false;
+    }
+
+    let blocks = false;
+
+    ALL_DIRECTIONS.forEach((d) =>
+    {
+        if (blocks)
+        {
+            return;
+        }
+
+        let _x = x + offsets.x[d];
+        let _y = y + offsets.y[d];
+        if(IsTaken(buildings,_x,_y,true))
+        {
+            var pathToCore2 = PathFinder.search(centerPos,[{pos:new RoomPosition(_x,_y,centerPos.roomName),range:1}],{roomCallback:BuildingPathingMap,swampCost:1,plainCost:1,ignoreCreeps:true})
+            if (pathToCore2.incomplete) 
+            {
+                blocks = true;
+            }
+        }
+    })
+    
+    for(let highway of colony.highways)
+    {
+        if(highway.path)
+        {
+            for(let p of highway.path)
+            {
+                if(p.x == x && p.y == y && p.roomName == centerPos.roomName)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    return !blocks;
+}
+
+module.exports.Expand = function(colony)
+{
+    if(!colony.mainPlanner)
+    {
+        console.log("setting up mainplanner for: " + colony.pos.roomName);
+        colony.mainPlanner =
+        {
+            stage:PLANNER_STAGE_PLACE
+        }
+    }
+
+    if(colony.mainPlanner.stage == PLANNER_STAGE_PLACE)
+    {
+        Performance.Decisions.Run("planner",ExpandColony,colony)
+    }
+    else if(colony.mainPlanner.stage == PLANNER_STAGE_WAITING 
+        && colony.mainPlanner.level < colony.level)
+    {
+        Performance.Decisions.Run("planner",ExpandColony,colony)
+    }
+}

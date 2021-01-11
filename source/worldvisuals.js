@@ -265,21 +265,43 @@ let visuals =
         if(Game.flags["Damage"] && Game.flags["Damage"].color != COLOR_RED)
         {
             let pos = Game.flags["Damage"].pos;
+
+            if(!DoVisuals(pos.roomName))
+            {
+                return;
+            }
+
             let room = Game.rooms[pos.roomName];
             if(room)
             {
                 let vis = room.visual || new RoomVisual(pos.roomName);
+
+                let options = {};
+                if(Game.flags["FakeCreep"])
+                {
+                    options.creeps = [{
+                        id:"a",
+                        body:[
+                            {
+                                hits:50,
+                                type:ATTACK,
+                                boost:RESOURCE_UTRIUM_HYDRIDE
+                            }
+                        ],
+                        pos:Game.flags["FakeCreep"].pos
+                    }]
+                }
                 
-                for(let obj of Combat.Calculator.Damage(room,DAMAGE_TYPE_FRIENDLY,pos).dealers)
+                for(let obj of Combat.Calculator.Damage(room,DAMAGE_TYPE_FRIENDLY,pos,options).dealers)
                 {
                     vis.line(obj.pos,pos,{width:0.01,opacity:1,color:"#AAFFAA"});
                 }
-                for(let obj of Combat.Calculator.Damage(room,DAMAGE_TYPE_ENEMY,pos).dealers)
+                for(let obj of Combat.Calculator.Damage(room,DAMAGE_TYPE_ENEMY,pos,options).dealers)
                 {
                     vis.line(obj.pos,pos,{width:0.01,opacity:1,color:"#FFAAAA"});
                 }
 
-                const range = 2;
+                const range = 4;
                 for(let x = pos.x - range; x <= pos.x + range; x++)
                 {
                     if(x < 0 || x > 49)
@@ -292,7 +314,7 @@ let visuals =
                         {
                             continue;
                         }
-                        vis.text(Combat.Calculator.Damage(room,DAMAGE_TYPE_ENEMY,x,y).damage,
+                        vis.text(Combat.Calculator.Damage(room,DAMAGE_TYPE_ENEMY,x,y,options).damage,
                             x-0.05,
                             y-0.1, 
                             {
@@ -311,9 +333,38 @@ let visuals =
                             }
                         );
                         
-                        vis.text(Combat.Calculator.Damage(room,DAMAGE_TYPE_FRIENDLY,x,y).damage,
-                            x+0.13,
+                        vis.text(Combat.Calculator.Damage(room,DAMAGE_TYPE_FRIENDLY,x,y,options).damage,
+                            x+0.185,
                             y-0.1, 
+                            {
+                                font:0.15,
+                                align:'left',
+                                color:'#AAFFAA'
+                            }
+                        );
+
+                        vis.text(Combat.Calculator.Heal(room,HEAL_TYPE_ENEMY,x,y,options).heal,
+                            x-0.05,
+                            y+0.1, 
+                            {
+                                font:0.15,
+                                align:'right',
+                                color:'#FFAAAA'
+                            }
+                        );
+                        vis.text('🚑',
+                            x-0.04,
+                            y+0.1, 
+                            {
+                                font:0.15,
+                                align:'middle',
+                                color:'#FFAAAA'
+                            }
+                        );
+                        
+                        vis.text(Combat.Calculator.Heal(room,HEAL_TYPE_FRIENDLY,x,y,options).heal,
+                            x+0.185,
+                            y+0.1, 
                             {
                                 font:0.15,
                                 align:'left',

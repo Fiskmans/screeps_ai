@@ -3,14 +3,6 @@ colonyMain=function()
     if(!Memory.colonies) {Memory.colonies = []}
     for(let key in Memory.colonies)
     {
-        let room = Game.rooms[Memory.colonies[key].pos.roomName];
-        if(room)
-        {
-            room.PopulateShorthands();
-        }
-    }
-    for(let key in Memory.colonies)
-    {
         colonyStart(Memory.colonies[key])
     }
 }
@@ -399,7 +391,6 @@ ColonyLookForPower = function(colony)
     let vRoom = Game.rooms[list[colony.corridorIndex]];
     if(vRoom)
     {
-        vRoom.PopulateShorthands();
         if(vRoom.powerBank)
         {
             let timeLeft = vRoom.powerBank.ticksToDecay;

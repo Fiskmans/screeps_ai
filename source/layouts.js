@@ -235,11 +235,14 @@ reservedDynamicLayout =
 {
     [-2]:
     {
-        [-1]:STRUCTURE_LINK
+        [-1]:STRUCTURE_LINK,
+        [ 1]:STRUCTURE_TOWER
     },
     [-1]: 
     {
-        [ 0]:STRUCTURE_LINK
+        [-2]:STRUCTURE_TOWER,
+        [ 0]:STRUCTURE_LINK,
+        [ 2]:STRUCTURE_TOWER
     },
     [ 0]:
     {
@@ -249,7 +252,13 @@ reservedDynamicLayout =
     },
     [ 1]: 
     {
-        [ 0]:STRUCTURE_SPAWN
+        [-2]:STRUCTURE_TOWER,
+        [ 0]:STRUCTURE_SPAWN,
+        [ 2]:STRUCTURE_TOWER
+    },
+    [ 2]:
+    {
+        [-1]:STRUCTURE_TOWER
     }
 }
 labSateliteLayout = 

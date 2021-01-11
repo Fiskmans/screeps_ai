@@ -13,6 +13,9 @@ COLONY_CHECK_BUILDINGS_INTERVAL = 23
 COLONY_RETARGET_SELLING_INTERVAL = 13
 COLONY_RETARGET_FACTORY_INTERVAL = 17
 COLONY_EXTRA_WORKER_THRESHOLD = 600000
+RCL_MAX                             = 8
+CPU_BUCKET_MAX                      = 10000
+INTENT_CPU_COST                     = 0.2
 
 COLONY_SURPLUS_THRESHOLD = 10000
 COLONY_PUSH_RESOURCE_THRESHOLD = 5000
@@ -25,7 +28,13 @@ TERMINAL_EXPORT_AMOUNT  = 2500
 MARKETING_STOCK_ENERGY  = TERMINAL_ENERGY_MIN
 MARGETING_STOCK_OTHER   = TEMRINAL_RESOURCE_MIN
 
+MARKET_SELL_REFRESH_INTERVAL    = 20;
+MARKET_PRICE_REFRESH_INTERVAL   = 100;
+MARKET_STALE_PRICE_THRESHOLD    = 500;
+MARKET_SELL_ABOVE               = 15000
+MARKET_DUMP_ABOVE               = 100000
 MARKETING_IMPORT_LEVEL = 5000
+
 FACTORY_NUMBER_OF_CRAFTS_TO_STOCK = 6
 FACTORY_ENERGY_TO_LEAVE_IN_STORAGE = 200000
 SVG_DRAWER_CPU_LIMIT = Game.cpu.limit * 0.95;
@@ -45,8 +54,8 @@ MINING_CONTAINER_EMPTY_THRESHOLD = 1000
 TOWER_REFILL_THRESHOLD = 600
 
 LAB_REBUILD_STATUS_INTERVAL = 500
-LAD_REFILL_THRESHOLD        = 1600
-LAB_STOCK_RESOURCE_AMOUNT   = 2500
+LAB_REFILL_THRESHOLD        = 1600
+LAB_STOCK_RESOURCE_AMOUNT   = 1500
 LAB_REMOVE_RESOURCE_AMOUNT  = 1000
 LAB_USABLE_AMOUNT_THRESHOLD = 250
 LAB_PRODUCTION_CAP          = 3000
@@ -76,50 +85,52 @@ RAMPARTS_HITS_TO_IGNORE =
     8:RAMPART_HITS_MAX[8]-1000000,
 }
 
-MARKETING_ENERGY_LOWER_LIMIT = 100000
-POWER_PROCESS_ENERGY_LIMIT = 150000
-POWER_SEARCHING_ENERGY_LIMIT = 200000
-ENERGY_SELLING_ENERGY_LIMIT = 500000
-RESOURCE_SELLING_LIMIT = 3000
+MARKETING_ENERGY_LOWER_LIMIT    = 100000
+POWER_PROCESS_ENERGY_LIMIT      = 150000
+POWER_SEARCHING_ENERGY_LIMIT    = 200000
+ENERGY_SELLING_ENERGY_LIMIT     = 500000
 
-ROLE_WORKER = 'worker'
-ROLE_HAULER = 'hauler'
-ROLE_MINER = 'miner'
-ROLE_CLAIMER = 'claimer'
-ROLE_ATTACKER = 'attacker'
-ROLE_MINERALMINER = 'mineralminer'
-ROLE_LINKEDMINER = 'linkedminer'
-ROLE_LINKEDMINERBOOST1 = 'linkedminerboosted1'
-ROLE_LINKEDMINERBOOST2 = 'linkedminerboosted2'
-ROLE_LINKEDMINERBOOST3 = 'linkedminerboosted3'
-ROLE_LINKEDMINERBOOST4 = 'linkedminerboosted4'
-ROLE_LINKEDMINERBOOST5 = 'linkedminerboosted5'
-ROLE_SCOUT = 'scout'
-ROLE_GUARD = 'guard'
-ROLE_ENERGY_DRAIN = 'energyDrain'
-ROLE_DISMANTLER = 'dismantler'
-ROLE_BANK_HEALER = 'bankhealer'
-ROLE_BANK_ATTACKER = 'bankattacker'
+
+ROLE_WORKER             = 'worker'
+ROLE_HAULER             = 'hauler'
+ROLE_MINER              = 'miner'
+ROLE_CLAIMER            = 'claimer'
+ROLE_ATTACKER           = 'attacker'
+ROLE_MINERALMINER       = 'mineralminer'
+ROLE_LINKEDMINER        = 'linkedminer'
+ROLE_LINKEDMINERBOOST1  = 'linkedminerboosted1'
+ROLE_LINKEDMINERBOOST2  = 'linkedminerboosted2'
+ROLE_LINKEDMINERBOOST3  = 'linkedminerboosted3'
+ROLE_LINKEDMINERBOOST4  = 'linkedminerboosted4'
+ROLE_LINKEDMINERBOOST5  = 'linkedminerboosted5'
+ROLE_SCOUT              = 'scout'
+ROLE_GUARD              = 'guard'
+ROLE_ENERGY_DRAIN       = 'energyDrain'
+ROLE_DISMANTLER         = 'dismantler'
+ROLE_BANK_HEALER        = 'bankhealer'
+ROLE_BANK_ATTACKER      = 'bankattacker'
+ROLE_MINI_BLINKY        = 'miniblinky'
 
 ROLE_PREFIXES = {
-    [ROLE_WORKER] : 'W',
-    [ROLE_HAULER] : 'H',
-    [ROLE_MINER] : 'M',
-    [ROLE_CLAIMER] : 'C',
-    [ROLE_ATTACKER] : 'A',
-    [ROLE_MINERALMINER] : 'M',
-    [ROLE_LINKEDMINER] : 'M',
-    [ROLE_LINKEDMINERBOOST1] : 'M',
-    [ROLE_LINKEDMINERBOOST2] : 'M',
-    [ROLE_LINKEDMINERBOOST3] : 'M',
-    [ROLE_LINKEDMINERBOOST4] : 'M',
-    [ROLE_LINKEDMINERBOOST5] : 'M',
-    [ROLE_SCOUT] : 'S',
-    [ROLE_GUARD] : 'G',
-    [ROLE_ENERGY_DRAIN] : 'D',
-    [ROLE_DISMANTLER] : 'D',
-    [ROLE_BANK_HEALER] : 'B',
-    [ROLE_BANK_ATTACKER] : 'B'
+    [ROLE_WORKER]               : 'W',
+    [ROLE_HAULER]               : 'H',
+    [ROLE_MINER]                : 'M',
+    [ROLE_CLAIMER]              : 'C',
+    [ROLE_ATTACKER]             : 'A',
+    [ROLE_MINERALMINER]         : 'M',
+    [ROLE_LINKEDMINER]          : 'M',
+    [ROLE_LINKEDMINERBOOST1]    : 'M',
+    [ROLE_LINKEDMINERBOOST2]    : 'M',
+    [ROLE_LINKEDMINERBOOST3]    : 'M',
+    [ROLE_LINKEDMINERBOOST4]    : 'M',
+    [ROLE_LINKEDMINERBOOST5]    : 'M',
+    [ROLE_SCOUT]                : 'S',
+    [ROLE_GUARD]                : 'G',
+    [ROLE_ENERGY_DRAIN]         : 'D',
+    [ROLE_DISMANTLER]           : 'D',
+    [ROLE_BANK_HEALER]          : 'B',
+    [ROLE_BANK_ATTACKER]        : 'B',
+    [ROLE_MINI_BLINKY]          : 'B'
 }
 
 TARGET_WORKER_COUNT = [
@@ -137,12 +148,15 @@ TARGET_WORKER_COUNT = [
 DAMAGE_TYPE_ENEMY    = 'enemy'
 DAMAGE_TYPE_FRIENDLY = 'friendly'
 
-OWNER_CORRIDOR = 'C'
-OWNER_ME = 'M'
-OWNER_UNOWNED = 'U'
-OWNER_ENEMY = 'E'
-OWNER_KEEPER = 'K'
-OWNER_UNKNOWN = ' '
+HEAL_TYPE_ENEMY      = 'enemy'
+HEAL_TYPE_FRIENDLY   = 'friendly'
+
+OWNER_CORRIDOR  = 'C'
+OWNER_ME        = 'M'
+OWNER_UNOWNED   = 'U'
+OWNER_ENEMY     = 'E'
+OWNER_KEEPER    = 'K'
+OWNER_UNKNOWN   = ' '
 
 OWNER_COLOR = {
     [OWNER_CORRIDOR]:"#FFFFFF",
@@ -246,10 +260,9 @@ BODIES =
         {cost:1300,body:[MOVE,MOVE,CLAIM,CLAIM]},
         {cost:2600,body:[MOVE,MOVE,MOVE,MOVE,CLAIM,CLAIM,CLAIM,CLAIM]}],
     [ROLE_ATTACKER]:[
-        {cost:130,body:[MOVE,ATTACK]},
-        {cost:440,body:[TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,MOVE]},
-        {cost:700,body:[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,MOVE]},
-        {cost:1400,body:[TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,TOUGH,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,MOVE]}],
+        {cost:260,body:[MOVE,MOVE,ATTACK,ATTACK]},
+        {cost:520,body:[MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK]},
+        {cost:2080,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK]}],
     [ROLE_MINERALMINER]:[
         {cost:550,body:[MOVE,WORK,WORK,WORK,WORK,WORK]},
         {cost:750,body:[MOVE,WORK,WORK,WORK,WORK,WORK,WORK,WORK]},
@@ -281,7 +294,9 @@ BODIES =
     [ROLE_BANK_HEALER]:[
         {cost:6900,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL]}],
     [ROLE_BANK_ATTACKER]:[
-        {cost:2340,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,MOVE]}]
+        {cost:2340,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,ATTACK,MOVE]}],
+    [ROLE_MINI_BLINKY]:[
+        {cost:5500,body:[MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL,HEAL]}]
 }
 
 ALL_DIRECTIONS = [
@@ -327,22 +342,148 @@ for(let left in REACTIONS)
     }
 }
 
-RESOURCES_BASIC=[
-    RESOURCE_ENERGY,
-    RESOURCE_POWER,
-    RESOURCE_HYDROGEN,
-    RESOURCE_OXYGEN,
-    RESOURCE_UTRIUM,
-    RESOURCE_LEMERGIUM,
-    RESOURCE_KEANIUM,
-    RESOURCE_ZYNTHIUM,
-    RESOURCE_CATALYST
-]
+RESOURCE_TYPE_ENERGY    = 'energy'
+RESOURCE_TYPE_OPS       = 'ops'
+RESOURCE_TYPE_MINABLE   = 'mine'
+RESOURCE_TYPE_CHEMICAL  = 'chemical'
+RESOURCE_TYPE_COMMODITY = 'commodity'
+
+
+MARKET_RESOURCE_LIMITS = {
+    [RESOURCE_TYPE_ENERGY]: 
+    {
+        sell:               650000,
+        dump:               800000
+    },
+    [RESOURCE_TYPE_OPS]: 
+    {
+        sell:               1000,
+        dump:               8000
+    },
+    [RESOURCE_TYPE_MINABLE]: 
+    {
+        sell:               15000,
+        dump:               100000
+    },
+    [RESOURCE_TYPE_CHEMICAL]: 
+    {
+        sell:               4000,
+        dump:               10000
+    },
+    [RESOURCE_TYPE_COMMODITY]: 
+    {
+        sell:               20,
+        dump:               100000
+    }
+}
+
+RESOURCE_TYPES={
+    [RESOURCE_ENERGY]:                          RESOURCE_TYPE_ENERGY,
+    [RESOURCE_POWER]:                           RESOURCE_TYPE_MINABLE,
+            
+    [RESOURCE_HYDROGEN]:                        RESOURCE_TYPE_MINABLE,
+    [RESOURCE_OXYGEN]:                          RESOURCE_TYPE_MINABLE,
+    [RESOURCE_UTRIUM]:                          RESOURCE_TYPE_MINABLE,
+    [RESOURCE_LEMERGIUM]:                       RESOURCE_TYPE_MINABLE,
+    [RESOURCE_KEANIUM]:                         RESOURCE_TYPE_MINABLE,
+    [RESOURCE_ZYNTHIUM]:                        RESOURCE_TYPE_MINABLE,
+    [RESOURCE_CATALYST]:                        RESOURCE_TYPE_MINABLE,
+    
+    [RESOURCE_HYDROXIDE]:                       RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_ZYNTHIUM_KEANITE]:                RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_UTRIUM_LEMERGITE]:                RESOURCE_TYPE_CHEMICAL,
+
+    [RESOURCE_GHODIUM]:                         RESOURCE_TYPE_CHEMICAL,
+                
+    [RESOURCE_KEANIUM_HYDRIDE]:                 RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_KEANIUM_OXIDE]:                   RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_UTRIUM_HYDRIDE]:                  RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_UTRIUM_OXIDE]:                    RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_LEMERGIUM_HYDRIDE]:               RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_LEMERGIUM_OXIDE]:                 RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_ZYNTHIUM_HYDRIDE]:                RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_ZYNTHIUM_OXIDE]:                  RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_GHODIUM_HYDRIDE]:                 RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_GHODIUM_OXIDE]:                   RESOURCE_TYPE_CHEMICAL,
+                
+    [RESOURCE_KEANIUM_ACID]:                    RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_KEANIUM_ALKALIDE]:                RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_UTRIUM_ACID]:                     RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_UTRIUM_ALKALIDE]:                 RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_LEMERGIUM_ACID]:                  RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_LEMERGIUM_ALKALIDE]:              RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_ZYNTHIUM_ACID]:                   RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_ZYNTHIUM_ALKALIDE]:               RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_GHODIUM_ACID]:                    RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_GHODIUM_ALKALIDE]:                RESOURCE_TYPE_CHEMICAL,
+  
+    [RESOURCE_CATALYZED_KEANIUM_ACID]:          RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_KEANIUM_ALKALIDE]:      RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_UTRIUM_ACID]:           RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_UTRIUM_ALKALIDE]:       RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_LEMERGIUM_ACID]:        RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE]:    RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_ZYNTHIUM_ACID]:         RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_ZYNTHIUM_ALKALIDE]:     RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_GHODIUM_ACID]:          RESOURCE_TYPE_CHEMICAL,
+    [RESOURCE_CATALYZED_GHODIUM_ALKALIDE]:      RESOURCE_TYPE_CHEMICAL,
+
+    [RESOURCE_OXIDANT]:                         RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_REDUCTANT]:                       RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_ZYNTHIUM_BAR]:                    RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_LEMERGIUM_BAR]:                   RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_UTRIUM_BAR]:                      RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_KEANIUM_BAR]:                     RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_PURIFIER]:                        RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_GHODIUM_MELT]:                    RESOURCE_TYPE_COMMODITY,
+
+    [RESOURCE_SILICON]:                         RESOURCE_TYPE_MINABLE,
+
+    [RESOURCE_WIRE]:                            RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_SWITCH]:                          RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_TRANSISTOR]:                      RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_MICROCHIP]:                       RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_CIRCUIT]:                         RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_DEVICE]:                          RESOURCE_TYPE_COMMODITY,
+    
+    [RESOURCE_METAL]:                           RESOURCE_TYPE_MINABLE,
+
+    [RESOURCE_ALLOY]:                           RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_TUBE]:                            RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_FIXTURES]:                        RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_FRAME]:                           RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_HYDRAULICS]:                      RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_MACHINE]:                         RESOURCE_TYPE_COMMODITY,
+
+    [RESOURCE_BIOMASS]:                         RESOURCE_TYPE_MINABLE,
+
+    [RESOURCE_CELL]:                            RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_PHLEGM]:                          RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_TISSUE]:                          RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_MUSCLE]:                          RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_ORGANOID]:                        RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_ORGANISM]:                        RESOURCE_TYPE_COMMODITY,
+    
+    [RESOURCE_MIST]:                            RESOURCE_TYPE_MINABLE,
+
+    [RESOURCE_CONDENSATE]:                      RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_CONCENTRATE]:                     RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_EXTRACT]:                         RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_SPIRIT]:                          RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_EMANATION]:                       RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_ESSENCE]:                         RESOURCE_TYPE_COMMODITY,
+    
+    [RESOURCE_OPS]:                             RESOURCE_TYPE_OPS,
+    [RESOURCE_BATTERY]:                         RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_COMPOSITE]:                       RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_CRYSTAL]:                         RESOURCE_TYPE_COMMODITY,
+    [RESOURCE_LIQUID]:                          RESOURCE_TYPE_COMMODITY,
+}
 
 ENEMIES = [
     "SteeleR",
     "Jaemon", // self dying, sweet revenge >:)
-    "Viperl", // white peace? he didn't notice my attack and id dont what to fight
+    "Viperl", // white peace? he didn't notice my attack and i dont what to fight
     "CrossXBones" // nuke as soon as in range
     ]
 FRENEMIES = []
@@ -352,14 +493,16 @@ QUIPS = [
     "Ever seen a blue flamingo?",
     "Crabs are people",
     "Clams are people",
+    "Legit or quit",
     "Even a broken clock is right two times a day",
     "Apple pie recipie: 1.Lots of Hydrogen 2.Lots of Time",
     "A million apes on a million typewriters will eventually write code that runs",
     "Lurendrejs are not do goods for yous",
     "https://youtu.be/dQw4w9WgXcQ",
     "An arrow in your knee is better than an arrow in your tea",
-    "A human has a head, 2 legs and 2 arms and even it loses a one, it’s still a human.",
-    "Ingenuity is shorting a battery to make a light when it's dark, stupidity is taking them out of the flashlight first."
+    //"Ingenuity is shorting a battery to make a light when it's dark, stupidity is taking them out of the flashlight first.",
+    "With all but the best decisions you can still end up in the wrong place",
+    "Segmentation fault: Core dumped"
     ]
 
 ALWAYSPROFITABLE = 200
@@ -378,7 +521,7 @@ MinimumSellingPrice =
     [RESOURCE_REDUCTANT]:                   0.25,
 
     [RESOURCE_ZYNTHIUM]:                    0.036,
-    [RESOURCE_ZYNTHIUM_HYDRIDE]:           0.07,
+    [RESOURCE_ZYNTHIUM_HYDRIDE]:            0.07,
     [RESOURCE_ZYNTHIUM_BAR]:                0.26,
     
     [RESOURCE_UTRIUM]:                      0.038,
@@ -538,8 +681,6 @@ RESOURCE_UNIQUE_ICONS=
     [RESOURCE_CRYSTAL]:"RESOURCE_CRYSTAL_SVG",
     [RESOURCE_LIQUID]:"RESOURCE_LIQUID_SVG"
 }
-
-
 
 
 BAKED_COORD=

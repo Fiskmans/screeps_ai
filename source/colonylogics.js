@@ -2,11 +2,13 @@ colonyLogic=
 {
     0:function(colony)
     {
-       colonize(colony);
+        Colony.Planner.Expand(colony);
+        colonize(colony);
     },
     //level 1
     1:function(colony)
     {
+        Colony.Planner.Expand(colony);
         GuardSpawningColony(colony);
         ColonyRespawnWorkers(colony);
         colonyDumbRefill(colony);
@@ -51,29 +53,27 @@ colonyLogic=
     6:function(colony)
     {
         this[5](colony)
-        let worth = FindWorthWhileReselling();
-        if(worth.length > 0)
-        {
-            Game.notify("Worth it to buy and resell:\n\n" + PrettySerialize(worth));
-        } 
-        ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
         ColonyTerminalTraffic(colony);
+
         Colony.Planner.PlanLabs(colony);
+
         Colony.Production.Lab.Setup(colony);
         Colony.Production.Lab.Plan(colony);
         Colony.Production.Lab.Run(colony);
+
+        Market.Decisions.Selling(colony);
     },
     //level 7
     7:function(colony)
     {
         this[6](colony)
-        ColonyRetargetFactory(colony);
         ColonyCrafting(colony);
     },
     //level 8
     8:function(colony)
     {
+        Colony.Planner.Expand(colony);
         DefendColony(colony);
         GuardSpawningColony(colony)
         ColonyRespawnWorkers(colony);
@@ -88,10 +88,8 @@ colonyLogic=
         colonyDismantle(colony)
         FindColonyLinks(colony)
         ColonyMaintainUpgradeSite(colony)
-        ColonyRetargetSelling(colony);
         ColonyMerchant(colony);
         ColonyTerminalTraffic(colony);
-        ColonyRetargetFactory(colony);
         ColonyCrafting(colony);
         maintainall(colony)
         maintainColony(colony)

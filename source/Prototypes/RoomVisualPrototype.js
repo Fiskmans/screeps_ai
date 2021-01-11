@@ -39,7 +39,7 @@ RoomVisual.prototype.recipe=function(x,y,type,opt = {},angleRange = [0,6.28])
     let origScale = opt.scale;
     this.symbol(x,y,type,opt);
     opt.scale *= opt.scalePerLevel
-    if(RESOURCES_BASIC.includes(type)) { return; }
+    if(true) { return; }
     let ingredients = {};
     let amount = 1;
     //this.line(x,y,x+Math.cos(angleRange[0])*opt.radius*0.2,y+Math.sin(angleRange[0])*opt.radius*0.2,{color:"#00FF00"})
@@ -210,12 +210,39 @@ RoomVisual.prototype.stock=function(x,y,obj,opt = {})
             this.text(opt.name,x-0.3*opt.scale,y + 0.15*opt.scale,{font:0.7*opt.scale,align:"left"})
         }
         this.text(inv.getUsedCapacity() + "/" + inv.getCapacity(),x-0.3*opt.scale,y + (opt.name ? 1.15 : 0.15)*opt.scale,{font:0.7*opt.scale,align:"left"})
-        this.rect(x-0.45,y-0.45,(6+opt.offsetx+opt.buffer)*opt.scale,Math.ceil((Object.keys(has).length+(opt.name ? 2 : 1))*opt.scale + 0.1),{fill:"#C4C4C4",stroke:"#000000"})
-        y = y+opt.scale * (opt.name ? 2 : 1)
+        this.rect(
+            x-0.45,
+            y-0.45,
+            (6+opt.offsetx+opt.buffer)*opt.scale,
+            Object.keys(has).length * opt.scale * 0.5 + (opt.name ? 2 : 1) * opt.scale + 0.25,
+            {
+                fill:"#C4C4C4",
+                stroke:"#000000"
+            })
+
+        y = y + opt.scale * (opt.name ? 1.6 : 1)
+
+        opt.scale *= 0.5;
         for(let type in has)
         {
             this.symbol(x+(opt.offsetx*opt.scale),y,type,opt)
-            this.text((!opt.nox ? " x" : "") + has[type],x+(0.9 + opt.offsetx)*opt.scale,y + 0.15*opt.scale,{font:0.7*opt.scale,align:"left"})
+            this.text(has[type],x+(0.9 + opt.offsetx)*opt.scale,y + 0.15*opt.scale,{font:0.7*opt.scale,align:"left"})
+
+            if(opt.showPrice)
+            {
+                let buyPrice = Market.Prices.ToBuy(type,this.roomName);
+                if(buyPrice)
+                {
+                    this.text(buyPrice.toFixed(2),x+7*opt.scale,y + 0.15*opt.scale,{align:"right",font:0.7*opt.scale,color:"#FFAAAA"})
+                }
+
+                let sellPrice = Market.Prices.ToSell(type,this.roomName);
+                if(sellPrice)
+                {
+                    this.text(sellPrice.toFixed(2),x+8*opt.scale,y + 0.15*opt.scale,{align:"left",font:0.7*opt.scale,color:"#AAFFAA"})
+                }
+            }
+
             y = y+opt.scale
         }
     }

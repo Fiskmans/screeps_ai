@@ -1,0 +1,15 @@
+- Redo market
+- CustomPathfinder with nexttarget as heuristic
+- update worker creeps to new DoWork structure
+- Kickstart code for RCL<4 colonies
+- Migrate colonyPlanner to Colony.planner
+- Migrate old code to module based system
+- Fix recipie visual, commodity/chemical different?
+- Move mining spot over to Planner/sublayout
+- make planner independent of builder
+- Write own profiler in Performance.profile, hook intents?
+- Hauler performance measurer and adaptive hauler count
+- Deposit mining
+
+Done
+- Implement Performance enable/disable 

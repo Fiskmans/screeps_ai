@@ -28,26 +28,6 @@ FindWorthWhileReactions=function()
     return worthy;
 }
 
-FindWorthWhileReselling=function()
-{
-    let worthy = {};
-    if(!globalPrices) { return worthy; }
-    let prices = globalPrices.prices;
-    if(!prices || !prices[ORDER_BUY] || !prices[ORDER_SELL]) {return worthy;}
-
-    RESOURCES_ALL.forEach((r) =>
-    {
-        if(prices[ORDER_BUY][r] && prices[ORDER_SELL][r])
-        {
-            let gain = prices[ORDER_BUY][r].price / prices[ORDER_SELL][r].price
-            if (gain > 1)
-            {
-                worthy[r] = gain;
-            }
-        }
-    })
-    return worthy;
-}
 
 TrackCPU=function(current,level)
 {
@@ -101,40 +81,6 @@ lerpColor=function(a, b, amount) {
 FlagSwitch=function(flagname)
 {
     return !Game.flags[flagname] || Game.flags[flagname].color != COLOR_RED;
-}
-
-FindWorthWhileCommodities=function()
-{
-    let worthy = {};
-    if(!globalPrices || !globalPrices.prices){console.log("No prices set"); return {}; }
-    for(let result in COMMODITIES)
-    {
-        let gain = globalPrices.prices[ORDER_BUY][result];
-        let losses = 0;
-        let canBuyAll = true;
-        for(let input in COMMODITIES[result].components)
-        {
-            let loss = globalPrices.prices[ORDER_SELL][input]
-            if (loss) 
-            {
-                losses += loss.price * COMMODITIES[result].components[input];
-            }
-            else
-            {
-                canBuyAll = false;
-                break;
-            }
-        }
-        //console.log("[" + result + "] Gain: " + (gain ? gain.price * COMMODITIES[result].amount : "N/A") + " loss: " + losses + " canbuyall: " + canBuyAll)
-        if (gain && losses && canBuyAll) 
-        {
-            if (gain.price * COMMODITIES[result].amount > losses) 
-            {
-                worthy[result] = {gain:(gain.price * COMMODITIES[result].amount) / losses,level:COMMODITIES[result].level}
-            }
-        }
-    }
-    return worthy;
 }
 
 EnablePhone=function(state) 
@@ -317,8 +263,6 @@ DecayMap=function()
 
 Scan=function(room)
 {
-    room.PopulateShorthands();
-
     if(room.portals.length > 0)
     {
         for(let portal of room.portals)
@@ -829,6 +773,15 @@ PerformAttacks=function(colony)
                     targets = _.filter(targets,(f) => {return !f.my})
                     targets = _.sortBy(targets, (t) => creep.pos.getRangeTo(t))
                     let target = targets[0];
+                    for(let spawn of room.Structures(STRUCTURE_SPAWN))
+                    {
+                        if(!spawn.my && !PathFinder.search(creep.pos,spawn,{maxOps:200}).incomplete)
+                        {
+                            target = spawn;
+                            break;
+                        }
+                    }
+
                     if (target.structureType == STRUCTURE_CONTROLLER) 
                     {
                         if (targets.length == 1) 
@@ -1483,7 +1436,7 @@ MaintainColonystatic=function(colony)
                     return;
                 }
                 
-                let pos = {x:colony.pos.x + dx,y:colony.pos.y + dy,roomName:colony.pos.roomName}
+                let pos = new RoomPosition(colony.pos.x + dx,colony.pos.y + dy,colony.pos.roomName)
                 let wantedstruct = layout.structures[room.controller.level][dy][dx]
                 if(!wantedstruct) 
                 {
@@ -1497,13 +1450,23 @@ MaintainColonystatic=function(colony)
                     }
                     let struct = false
                     if (room) {
-                        let structures = room.lookForAt(LOOK_STRUCTURES,pos.x,pos.y) //look for structure object
-                        for (let s of structures)
+                        for (let s of pos.lookFor(LOOK_STRUCTURES))
                         {
                             if (s.structureType == wantedstruct) 
                             {
                                 struct = s;
                                 break;
+                            }
+                        }
+                        if(!struct)
+                        {
+                            for(let site of pos.lookFor(LOOK_CONSTRUCTION_SITES))
+                            {
+                                if (site.structureType == wantedstruct) 
+                                {
+                                    struct = site;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -1521,6 +1484,10 @@ MaintainColonystatic=function(colony)
                         {
                             creep.do("build",struct)
                         }
+                    }
+                    else
+                    {
+                        pos.createConstructionSite(wantedstruct);
                     }
                 }
             }
@@ -1575,8 +1542,7 @@ MaintainColonydynamic=function(colony)
                 }
                 let struct = false
                 if (room) {
-                    let structures = pos.lookFor(LOOK_STRUCTURES) //look for structure object
-                    for (let s of structures)
+                    for (let s of pos.lookFor(LOOK_STRUCTURES))
                     {
                         if (s.structureType == wantedstruct) 
                         {
@@ -1584,14 +1550,14 @@ MaintainColonydynamic=function(colony)
                             break;
                         }
                     }
-                    if (!struct) 
+                    if(!struct)
                     {
-                        let constructions = pos.lookFor(LOOK_CONSTRUCTION_SITES) //look for constructionssite
-                        for(let c of constructions)
+                        for(let site of pos.lookFor(LOOK_CONSTRUCTION_SITES))
                         {
-                            if (c instanceof ConstructionSite) 
+                            if (site.structureType == wantedstruct) 
                             {
-                                struct = c
+                                struct = site;
+                                break;
                             }
                         }
                     }
@@ -1610,6 +1576,10 @@ MaintainColonydynamic=function(colony)
                     {
                         creep.do("build",struct)
                     }
+                }
+                else
+                {
+                    pos.createConstructionSite(wantedstruct);
                 }
             }
             creep.updateHarvestState()
@@ -2160,4 +2130,9 @@ PowerCreeps=function()
 lerp = function(a,b,c)
 {
     return (a*(1-c)) + (b*c);
+}
+
+DoVisuals = function(roomName)
+{
+    return Memory.lastViewed && Memory.lastViewed.room == roomName && (Game.time - Memory.lastViewed.at < 5);
 }

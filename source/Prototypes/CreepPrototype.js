@@ -363,7 +363,6 @@ Creep.prototype.Retire = function(roomName)
     let room = Game.rooms[roomName];
     if(room)
     {
-        room.PopulateShorthands();
         if(room.spawns.length > 0)
         {
             spawn = room.spawns[0];

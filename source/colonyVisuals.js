@@ -161,11 +161,11 @@ drawColony=function(colony,vis)
         
         if (room.storage) 
         {
-            vis.stock(pos.x + 12,pos.y+2,room.storage,{scale:0.7,name:"Storage"})
+            vis.stock(pos.x + 12,pos.y+2,room.storage,{scale:0.7,name:"Storage",showPrice:true})
         }
         if(room.terminal)
         {
-            vis.stock(pos.x - 5.4,pos.y+2,room.terminal,{scale:0.7,name:"Terminal"})
+            vis.stock(pos.x - 5.4,pos.y+2,room.terminal,{scale:0.7,name:"Terminal",showPrice:true})
             if(colony.selling.length > 0)
             {
                 vis.text("📦",pos.x-5.2,pos.y+1.3);
@@ -192,7 +192,7 @@ drawColony=function(colony,vis)
         }
         if(colony.crafting)
         {
-            vis.recipe(pos.x - 6,pos.y - 4,colony.crafting,{radius:1.7,scale:0.7,scalePerLevel:1});
+            //vis.recipe(pos.x - 6,pos.y - 4,colony.crafting,{radius:1.7,scale:0.7,scalePerLevel:1});
         }
         let amount = room.energyAvailable / room.energyCapacityAvailable;
         vis.rect(pos.x-0.5,pos.y-2.5,11*amount,1,{fill:"#FFFF00",stroke:"#00000000",opacity:0.6,strokeWidth:0.05})

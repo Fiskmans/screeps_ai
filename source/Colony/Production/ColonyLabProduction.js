@@ -89,31 +89,6 @@ module.exports.Run = function(colony)
     }
 }
 
-let FindAllResources=function(room,allResouces)
-{
-    let sumStore = function(store)
-    {
-        for(let r of ExtractContentOfStore(store))
-        {
-            if(!allResouces[r]) { allResouces[r] = 0; }
-            allResouces[r] += store[r];
-        }
-    }
-
-    for(let lab of room.Structures(STRUCTURE_LAB))
-    {
-        sumStore(lab.store);
-    }
-    if(room.storage)
-    {
-        sumStore(room.storage.store);
-    }
-    for(let creep of room.find(FIND_MY_CREEPS))
-    {
-        sumStore(creep.store);
-    }
-}
-
 let RemoveTasks = function(room,allResouces)
 {
     for(let lab of room.Structures(STRUCTURE_LAB))
@@ -343,7 +318,7 @@ module.exports.Plan=function(colony)
 
     let allResouces = {};
 
-    FindAllResources(room,allResouces);
+    Helpers.Resources.FindAll(room,allResouces);
     if(RemoveTasks(room,allResouces))
     {
         PlanTasks(room,allResouces);

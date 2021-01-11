@@ -1,4 +1,12 @@
 require('Globals')
+require('constants')
+
+Colony      = require('ColonyRequires');
+InterShard  = require('InterShardRequires');
+Combat      = require('CombatRequires');
+Market      = require('MarketRequires');
+Performance = require('PerformanceRequires');
+Helpers     = require('HelpersRequires');
 
 require('traveler')
 
@@ -11,10 +19,6 @@ require('functions')
 require('expansionplanner')
 require("layouts")
 
-Colony      = require('ColonyRequires');
-InterShard  = require('InterShardRequires')
-Combat      = require('CombatRequires')
-
 require('colony')
 require('colonylogics')
 require('colonyFunctions')
@@ -25,7 +29,6 @@ require('worldvisuals')
 require('colonyVisuals')
 
 require('defaults')
-require('constants')
 
 require('warCode')
 require('warVisuals')
