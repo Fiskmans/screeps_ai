@@ -239,7 +239,7 @@ RoomVisual.prototype.stock=function(x,y,obj,opt = {})
                 let sellPrice = Market.Prices.ToSell(type,this.roomName);
                 if(sellPrice)
                 {
-                    this.text(sellPrice.toFixed(2),x+8*opt.scale,y + 0.15*opt.scale,{align:"left",font:0.7*opt.scale,color:"#AAFFAA"})
+                    this.text((sellPrice < 0 ? "" : " ") + sellPrice.toFixed(2),x+8*opt.scale,y + 0.15*opt.scale,{align:"left",font:0.7*opt.scale,color:"#AAFFAA"})
                 }
             }
 
@@ -301,19 +301,6 @@ RoomVisual.prototype.layout=function(buildings,opt = {})
         }
     }
 }
-
-RoomVisual.prototype.DrawMatrix=function(matrix)
-{
-    for(let y = 0;y < 50; y++)
-    {
-        for(let x = 0;x < 50; x++)
-        {
-            this.rect(x-0.5,y-0.5,1,1,{fill:"#" + lerpColor(0x00FF00, 0xff0000, (matrix.get(x,y)/255).clamp(0,1))})
-        }
-    }
-    return this
-}
-
 
 RoomVisual.prototype.fluid=function(x,y,type,opt = {})
 {

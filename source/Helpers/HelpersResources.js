@@ -32,3 +32,13 @@ module.exports.FindAll=function(room,allResouces)
         sumStore(creep.store);
     }
 }
+
+module.exports.BodyCost=function(body)
+{
+    let o = 0;
+    for(let part of body)
+    {
+        o += BODYPART_COST[part];
+    }
+    return o;
+}

@@ -84,21 +84,3 @@ MiningSpot = function(position)
     }
 }
 
-ColonyObject = function(_x,_y,roomName)
-{  
-    if (_x instanceof RoomPosition) 
-    {
-        this.pos = _x
-    }
-    else
-    {
-        this.pos = new RoomPosition(_x,_y,roomName)
-    }
-    
-    this.highways = []
-    this.miningSpots = []
-    this.constructionsite = false
-    this.workerpool = []
-    this.lastmaintained = 0
-}
-

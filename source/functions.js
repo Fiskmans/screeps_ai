@@ -99,11 +99,6 @@ RestartScouting=function()
     })
 }
 
-DeSerializeMemory=function()
-{
-    Memory;
-}
-
 Scouting=function()
 {
     if (!Memory.scouts) 
@@ -443,11 +438,19 @@ const roomNameRegExp = /^([WE])(\d+)([NS])(\d+)$/;
 
 PosFromRoomName=function(roomName)
 {
-    const [, we, lon, ns, lat] = roomNameRegExp.exec(roomName);
-    return [
-        we === 'W' ? -lon - 1 : +lon,
-        ns === 'S' ? -lat - 1 : +lat
-    ];
+    try
+    {
+        const [, we, lon, ns, lat] = roomNameRegExp.exec(roomName);
+        return [
+            we === 'W' ? -lon - 1 : +lon,
+            ns === 'S' ? -lat - 1 : +lat
+        ];
+    }
+    catch
+    {
+        console.log(roomName + " failed the regex");
+        return[0,0]
+    }
 }
 
 SegAndIndexFromPos=function(coords)
@@ -1071,32 +1074,6 @@ digMine=function(colony,miningSpot)
     }
 }
 
-
-addColony=function(x,y,roomName)
-{
-    if(x instanceof RoomPosition) // if firts arg is room position, dig out values
-    {
-        roomName = x.roomName
-        y = x.y
-        x = x.x
-    }
-    
-    if(!x || !y || !roomName || !(typeof(x) === 'number') || !(typeof(y) === 'number') || !(typeof(roomName) === 'string'))
-    {
-        console.log("addcolony called with x: " + x + " y: " + y + " roomName: " + roomName)
-        return ERR_INVALID_ARGS
-    }
-    
-    delete Memory.data.pexpansions;
-    delete Memory.data.panalyze;
-    delete Memory.data.posexpansions;
-    
-    Memory.colonies.push(new ColonyObject(x,y,roomName))
-    
-    Game.notify("Adding a new colony to " + roomName + " at " + x + "," + y);
-    
-    return OK;
-}
 analyzeRoom=function(roomName)
 {
     console.log("Analysing " + roomName)
@@ -1829,10 +1806,6 @@ AddMiningSpot=function(colony,miningspot)
         console.log(colony.pos.roommName + " started mining at: " + miningspot.myPosition.roomName);
         if(!colony.miningSpots) { colony.miningSpots = []}
         colony.miningSpots.push(miningspot);
-        let center = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
-        let way = new Highway(center, miningspot.myPosition);
-        if(!colony.highways) { colony.highways = [] }
-        colony.highways.push(way);
     }
 }
 
@@ -2130,9 +2103,4 @@ PowerCreeps=function()
 lerp = function(a,b,c)
 {
     return (a*(1-c)) + (b*c);
-}
-
-DoVisuals = function(roomName)
-{
-    return Memory.lastViewed && Memory.lastViewed.room == roomName && (Game.time - Memory.lastViewed.at < 5);
 }

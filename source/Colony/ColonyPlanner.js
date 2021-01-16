@@ -99,6 +99,142 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
     return matrix;
 }
 
+module.exports.InvalidatePathMatrixes=function()
+{
+    this.stashedRoad = {};
+}
+
+module.exports.MatrixRoadPreferFuture=function(roomName)
+{
+    if(!this.stashedRoad)
+    {
+        this.stashedRoad = {};
+    }
+    if(this.stashedRoad[roomName])
+    {
+        if(Game.time - this.stashedRoad[roomName].at < STALE_PLANNER_COSTMATRIX_THRESHOLD)
+        {
+            return this.stashedRoad[roomName].value;
+        }
+        else
+        {
+            delete this.stashedRoad[roomName].value;
+        }
+    }
+
+    let matrix = new PathFinder.CostMatrix();
+    if(Game.shard.name == "shard3" && roomName == Memory.mainColony)
+    {
+        for(let x = 0;x < 50;x++)
+        {
+            for(let y = 0;y < 50;y++)
+            {
+                matrix.set(x,y,256);
+            }
+        }
+        return matrix;
+    }
+
+    let terrain = new Room.Terrain(roomName);
+
+    for(let x = 0;x < 50;x++)
+    {
+        for(let y = 0;y < 50;y++)
+        {
+            let t = terrain.get(x,y);
+            if(t == TERRAIN_MASK_SWAMP)
+            {
+                matrix.set(x,y,5);
+            }
+            if(t == 0)
+            {
+                matrix.set(x,y,2);
+            }
+            if(t == TERRAIN_MASK_WALL)
+            {
+                matrix.set(x,y,256);
+            }
+        }
+    }
+
+    for(let colony of Memory.colonies)
+    {
+        if(colony.pos.roomName == roomName)
+        {
+            for(let d = -50;d < 50;d++)
+            {
+                let p = 
+                [
+                    {
+                        x:colony.pos.x+1+d,
+                        y:colony.pos.y+1-d
+                    },
+                    {
+                        x:colony.pos.x-1+d,
+                        y:colony.pos.y-1-d
+                    },
+                    {
+                        x:colony.pos.x-1+d,
+                        y:colony.pos.y+1+d
+                    },
+                    {
+                        x:colony.pos.x+1+d,
+                        y:colony.pos.y-1+d
+                    }
+                ]
+                for(let p1 of p)
+                {
+                    if(!(p1.x <= 0 || p1.x >= 49 || p1.y <= 0 || p1.y >= 49))
+                    {
+                        if(matrix.get(p1.x,p1.y) < 100)
+                        {
+                            matrix.set(p1.x,p1.y,1);
+                        }
+                    }
+                }
+            }
+            if(colony.layout)
+            {
+                let buildings = DeserializeLayout(colony.layout,roomName);
+                for(let b of buildings)
+                {
+                    matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
+                }
+            }
+            if(colony.subLayouts)
+            {
+                for(let layout of Object.values(colony.subLayouts))
+                {
+                    let buildings = DeserializeLayout(layout,roomName);
+                    for(let b of buildings)
+                    {
+                        matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
+                    }
+                }
+            }
+            if(colony.highways)
+            {
+                for(let highway of colony.highways)
+                {
+                    if(highway.path)
+                    {
+                        for(let p of highway.path)
+                        {
+                            if(p.roomName == roomName)
+                            {
+                                matrix.set(p.x,p.y,1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    this.stashedRoad[roomName] = {at:Game.time,value:matrix};
+    return matrix;
+}
+
 module.exports.InstaniateLayout=function(center,layout)
 {
     let buildings = [];
@@ -291,7 +427,7 @@ module.exports.Place=function(colony,tag,layout,allowance)
     }
 }
 
-module.exports.Waiting=function(colony,tag,layout)
+module.exports.Waiting=function(colony,tag)
 {
     if(colony.planner[tag].level < colony.level)
     {
@@ -334,7 +470,7 @@ module.exports.PlanLayout=function(colony,tag,layout)
             this.Place(colony,tag,layout,1);
             break;
         case PLANNER_STAGE_WAITING:
-            this.Waiting(colony,tag,layout,1);
+            this.Waiting(colony,tag,);
             break;
     }
 }
@@ -369,6 +505,10 @@ module.exports.PlanLabs = function(colony)
 
 let ExpandColony=function(colony)
 {
+    if(!colony.level)
+    {
+        return;
+    }
     if(typeof colony.layout === 'undefined') 
     {
         colony.layout = ""; 
@@ -405,7 +545,10 @@ let ExpandColony=function(colony)
                 mainBuildings.push(building);
                 buildings.push(building);
                 SetupMatrix([building]);
-                unplaced[k] -= 1;
+                if(unplaced[building.structure])
+                {
+                    unplaced[building.structure] -= 1;
+                }
             }
             else
             {
@@ -430,7 +573,6 @@ let ExpandColony=function(colony)
     if(!done)
     {   
         console.log("Planner is waiting for next tick to continue in room: " + colony.pos.roomName);
-        logObject({["Buildings left to place"]:unplaced})
     }
     else
     {

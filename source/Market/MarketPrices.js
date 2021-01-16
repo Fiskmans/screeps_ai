@@ -97,5 +97,5 @@ module.exports.ToSell=function(resource,roomName)
     }
     let energyAmount = 0;
     energyAmount = Game.market.calcTransactionCost(1000, roomName, price.room) / 1000.0;
-    return price.price + energyAmount * energyAmount;
+    return price.price - energyAmount * energyAmount;
 }

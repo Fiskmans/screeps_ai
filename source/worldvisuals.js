@@ -38,7 +38,7 @@ let visuals =
     },
     map:function()
     {
-        if (Game.flags["LocalCluster"] && Game.flags["LocalCluster"].color != COLOR_RED && Memory.rooms[Game.flags["LocalCluster"].pos.roomName] && (Game.time - Memory.rooms[Game.flags["LocalCluster"].pos.roomName].lastViewed < 10))
+        if (Game.flags["LocalCluster"] && Game.flags["LocalCluster"].color != COLOR_RED && Memory.rooms[Game.flags["LocalCluster"].pos.roomName] && Helpers.Externals.IsRoomVisible(Game.flags["LocalCluster"].pos.roomName))
         {
             let pos = Game.flags["LocalCluster"].pos;
             let room = Game.rooms[pos.roomName];
@@ -69,43 +69,6 @@ let visuals =
                 if (Game.flags["Down"]&& Game.flags["Down"].color != COLOR_RED) 
                 {
                     vis.DrawMapSegment({x:pos.x+2,y:pos.y+12,segx:segx,segy:segy-1});
-                }
-                if (Game.flags["wars"]&& Game.flags["wars"].color != COLOR_RED) 
-                {
-                    if (Memory.wars) 
-                    {
-                        for(let name in Memory.wars)
-                        {
-                            if (Memory.wars[name].battlefronts) 
-                            {
-                                for(let roomname in Memory.wars[name].battlefronts)
-                                {
-                                    let [sx,sy] = PosFromRoomName(roomname)
-                                    let sdx = sx - segx * 10;
-                                    let sdy = sy - segy * 10;
-                                    let [vsx,vsy] = [pos.x + 2 + sdx,pos.y + 12-sdy+0.3]
-                                    vis.text("💀",vsx,vsy);
-                                    let front = Memory.wars[name].battlefronts[roomname];
-                                    if (front.path) 
-                                    {
-                                        for(let from in front.path)
-                                        {
-                                            let to = front.path[from];
-                                            let [fx,fy] = PosFromRoomName(from)
-                                            let fdx = fx - segx * 10;
-                                            let fdy = fy - segy * 10;
-                                            let [vfx,vfy] = [pos.x + 2 + fdx,pos.y + 12-fdy]
-                                            let [tx,ty] = PosFromRoomName(to)
-                                            let tdx = tx - segx * 10;
-                                            let tdy = ty - segy * 10;
-                                            let [vtx,vty] = [pos.x + 2 + tdx,pos.y + 12-tdy]
-                                            vis.line(vfx,vfy,vtx,vty);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
                 
                 for(let name in Memory.scouting)
@@ -149,7 +112,7 @@ let visuals =
     },
     cpu:function()
     {
-        if (Game.flags["CPU"] && Game.flags["CPU"].color != COLOR_RED) 
+        if (Game.flags["CPU"] && Game.flags["CPU"].color != COLOR_RED && Helpers.Externals.IsRoomVisible(Game.flags["CPU"].pos.roomName)) 
         {
             //Preperations
             let barpos = {x:Game.flags["CPU"].pos.x+0.5,y:Game.flags["CPU"].pos.y-0.5};
@@ -161,7 +124,7 @@ let visuals =
                 for (var i = 0; i < Memory.performance.length; i++) 
                 {
                     vis.graph(barpos.x,barpos.y + 5 + spacing*i,10,2,Memory.performance[i].data,
-                            {strokeWidth:0.05,opacity:1,cliptops:false,
+                            {strokeWidth:0.01,opacity:1,cliptops:false,
                                 top:{width:0.05,opacity:1,lineStyle:"dotted"},
                                 bottom:{width:0.05,opacity:1},
                                 left:{width:0.05,opacity:1,type:"edge"},
@@ -266,7 +229,7 @@ let visuals =
         {
             let pos = Game.flags["Damage"].pos;
 
-            if(!DoVisuals(pos.roomName))
+            if(!Helpers.Externals.IsRoomVisible(pos.roomName))
             {
                 return;
             }
@@ -378,23 +341,37 @@ let visuals =
 
             }
         }
+    },
+    hud:function()
+    {
+        if(!Memory.lastViewed)
+        {
+            return;
+        }
+        if(!Memory.lastViewed.room || !Memory.lastViewed.at)
+        {
+            return;
+        }
+
+        let vis = new RoomVisual(Memory.lastViewed.room);
+        let delta = Game.time - Memory.lastViewed.at;
+
+        vis.text("lastViewed",0,0,{align:"left"});
+        vis.text(delta + " ticks ago",0,1,{align:"left"});
+
+        if(delta > 5)
+        {
+            return;
+        }
+        if(Memory.performancedecisions && Memory.performancedecisions.average)
+        {
+            vis.text(Memory.performancedecisions.average.toFixed(2) + " cpu" ,49.4,0,{align:"right",font:0.4});
+        }
     }
 }
 
 worldVisuals=function()
 {
-    if(Memory.lastViewed)
-    {
-        if(Memory.lastViewed.room && Memory.lastViewed.at)
-        {
-            let vis = new RoomVisual(Memory.lastViewed.room);
-            let delta = Game.time - Memory.lastViewed.at;
-
-            vis.text("lastViewed",0,0,{align:"left"});
-            vis.text(delta + " ticks ago",0,1,{align:"left"});
-
-        }
-    }
     visuals.colony();
     visuals.expansionPlanner();
     visuals.map();
@@ -402,7 +379,24 @@ worldVisuals=function()
     visuals.recipe();
     visuals.resourceDemo();
     visuals.damage();
+    visuals.hud();
     
-    DrawWars();
+    if(Game.flags["Start"] && Game.flags["End"])
+    {
+        let vis = new RoomVisual(Game.flags["Start"].pos.roomName);
+        vis.poly(
+            QuickFind.Helpers.Line(Game.flags["Start"].pos,Game.flags["End"].pos),
+            {
+                stroke:QuickFind.Helpers.IsReachable(Game.flags["Start"].pos,Game.flags["End"].pos) ?
+                        "#00FF00" :
+                        "#FF0000"
+            }
+            );
+    }
 
+    //if(Game.shard.name == "shard2")
+    //{
+    //   let vis = new RoomVisual("W33S38");
+    //   vis.CostMatrix("W33S38",Colony.Planner.MatrixRoadPreferFuture("W33S38"));
+    //}
 }

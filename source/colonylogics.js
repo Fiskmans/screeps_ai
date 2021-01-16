@@ -12,8 +12,10 @@ colonyLogic=
         GuardSpawningColony(colony);
         ColonyRespawnWorkers(colony);
         colonyDumbRefill(colony);
-        ColonyWorkerBehaviour(colony);
+        Colony.Modules.BasicWorkers(colony);
         PerformAttacks(colony);
+        Colony.Modules.MaintainHighways(colony);
+        colonyMiningSpots(colony);
     },
     //level 2
     2:function(colony)
@@ -78,7 +80,7 @@ colonyLogic=
         GuardSpawningColony(colony)
         ColonyRespawnWorkers(colony);
         colonyDumbRefill(colony);
-        ColonyWorkerBehaviour(colony);
+        Colony.Modules.BasicWorkers(colony);
         PerformAttacks(colony);
         StartMining(colony)
         ColonyMining(colony)
@@ -98,5 +100,7 @@ colonyLogic=
         ColonyLookForPower(colony);
         ColonyCollectPower(colony);
         ColonyProcessPower(colony);
+        Colony.Modules.MaintainHighways(colony);
+        colonyMiningSpots(colony);
     }
 }

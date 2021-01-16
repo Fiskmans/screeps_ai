@@ -7,6 +7,8 @@ Combat      = require('CombatRequires');
 Market      = require('MarketRequires');
 Performance = require('PerformanceRequires');
 Helpers     = require('HelpersRequires');
+QuickFind   = require('QuickFindRequires');
+Empire      = require('EmpireExpansion');
 
 require('traveler')
 
@@ -29,9 +31,6 @@ require('worldvisuals')
 require('colonyVisuals')
 
 require('defaults')
-
-require('warCode')
-require('warVisuals')
 
 require('grafana')
 

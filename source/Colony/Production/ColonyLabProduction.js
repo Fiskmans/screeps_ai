@@ -1,13 +1,12 @@
 
 module.exports.Setup = function(colony)
 {
-    let room = Game.rooms[colony.pos.roomName];
-
     if(Game.time % LAB_REBUILD_STATUS_INTERVAL != 0)
     {
         return;
     }
 
+    let room = Game.rooms[colony.pos.roomName];
     for(let lab of room.Structures(STRUCTURE_LAB))
     {
         lab.memory.inRange = [];

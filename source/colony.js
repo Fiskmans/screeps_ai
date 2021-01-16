@@ -1,47 +1,7 @@
-colonyMain=function()
-{
-    if(!Memory.colonies) {Memory.colonies = []}
-    for(let key in Memory.colonies)
-    {
-        colonyStart(Memory.colonies[key])
-    }
-}
 
-colonyStart=function(colony)
-{
-    deleteDead(colony.workerpool)
-    if (colony.haulerpool) 
-    {
-        deleteDead(colony.haulerpool)
-    }
 
-    let room = Game.rooms[colony.pos.roomName]
-    if (room && room.controller.my && room.controller.level != 0) 
-    {
-        colony.level = room.controller.level
-        colonyLogic[room.controller.level](colony);
-    }
-    else
-    {
-        colony.level = 0;
-        colonyLogic[0](colony);
-        return;
-    }
-    colonyHighways(colony)
-    colonyMiningSpots(colony)
-    drawColony(colony)
-}
-colonyHighways=function(colony)
-{
-    for(var key in colony.highways)
-    {
-        dopath(colony.highways[key])
-        maintain(colony.highways[key],colony)
-    }
-}
 colonyDumbRefill=function(colony)
 {
-    
     if(!colony.refillers) {colony.refillers = []}
     if(!colony.crefillers) {colony.crefillers = []}
     deleteDead(colony.refillers)
@@ -49,7 +9,7 @@ colonyDumbRefill=function(colony)
     let room = Game.rooms[colony.pos.roomName];
     
     let limit = 0;
-    if((colony.level < 4 || !room.storage) && room.energyAvailable < room.energyCapacityAvailable)
+    if(!room.storage && room.energyAvailable < room.energyCapacityAvailable)
     {
         limit = Math.ceil(colony.workersensus.length / 3.0)
     }

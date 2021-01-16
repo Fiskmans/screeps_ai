@@ -18,13 +18,6 @@ analyzeQueue=function()
     }
 }
 
-makeColony=function(_x,_y,roomName)
-{
-    if(!Memory.colonies) {Memory.colonies = []}
-    Memory.colonies.push(new ColonyObject(_x,_y,roomName))
-    return true
-}
-
 checkSomePlanned=function(amount)
 {
     

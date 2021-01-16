@@ -21,40 +21,10 @@ Unplan=function(flag)
     }
 }
 
-HaltWars=function(flag)
-{
-    if (Memory.wars) 
-    {
-        for(let name in Memory.wars)
-        {
-            for(let roomname in Memory.wars[name].battlefronts)
-            {
-                Memory.wars[name].battlefronts[roomname].halt = 1
-            }
-        }
-    }
-    flag.remove();
-}
-ResumeWars=function(flag)
-{
-    if (Memory.wars) 
-    {
-        for(let name in Memory.wars)
-        {
-            for(let roomname in Memory.wars[name].battlefronts)
-            {
-                if (Memory.wars[name].battlefronts[roomname].halt) {
-                    delete Memory.wars[name].battlefronts[roomname].halt
-                }
-            }
-        }
-    }
-    flag.remove();
-}
 
 StartColony=function(flag)
 {
-    addColony(flag.pos)
+    Colony.Starter.Generate(flag.pos);
     flag.remove();
 }
 
@@ -255,7 +225,10 @@ Abandon=function(flag)
                                         }
                                         else
                                         {
-                                            closest.haulerpool.push(c.name);
+                                            if(closest.haulerpool)
+                                            {
+                                                closest.haulerpool.push(c.name);
+                                            }
                                         }
                                     }
                                 }
@@ -320,8 +293,6 @@ FlagFunctions["Unplan"] = Unplan;
 FlagFunctions["Abandon"] = Abandon;
 FlagFunctions["Discard"] = Discard;
 FlagFunctions["Analyze"] = Analyze;
-FlagFunctions["HaltWars"] = HaltWars;
-FlagFunctions["ResumeWars"] = ResumeWars;
 FlagFunctions["RemoveMine"] = RemoveMine;
 FlagFunctions["Disassemble"] = Disassemble;
 FlagFunctions["StartColony"] = StartColony;
@@ -407,23 +378,6 @@ applyFlags=function()
             {
                 startflag.setColor(COLOR_RED);
                 endflag.setColor(COLOR_RED);
-            }
-        }
-    }
-
-    if(Memory.wars)
-    {
-        for(let name in Memory.wars)
-        {
-            if (flags[name]) 
-            {
-                if(!Memory.wars.battlefronts) { Memory.wars.battlefronts = {}}
-                let roomname = flags[name].pos.roomName;
-                if (!Memory.wars[name].battlefronts[roomname]) 
-                {
-                    Memory.wars[name].battlefronts[roomname] = {};
-                }
-                flags[name].remove()
             }
         }
     }

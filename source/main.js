@@ -3,21 +3,17 @@ require('requires')
 module.exports.loop = function()
 {
     Performance.Intents.Reset();
-    Performance.Profiler.Update();
     
     for(let room of Object.values(Game.rooms))
     {
         room.PopulateShorthands();
     }
     
-    DeSerializeMemory();
     defaultMemory();
     applyFlags();
     
-    colonyMain();
+    Colony.Dispatcher.DispatchAll();
     PowerCreeps();
-    
-    DoWars();
     
     worldVisuals();
     ConsoleHelperUpdate();
@@ -48,7 +44,13 @@ module.exports.loop = function()
     {
         Game.cpu.generatePixel();
     }
-    
+
     InterShard.Pulse.Pulse();
     InterShard.Memory.Commit();
+    Performance.Profiler.Update();
+    Performance.Decisions.UpdateAverage();
 }
+
+
+Performance.Profiler.Register("main",module.exports);
+require('PerformanceProfilerRegistry')

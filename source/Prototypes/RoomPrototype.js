@@ -59,32 +59,35 @@ Room.prototype.hostiles=function()
 
 Room.prototype.findAllStructures=function()
 {
-    if(!this._structures)
-    {
-        this._structures = {};
-        Object.keys(CONSTRUCTION_COST).forEach((s) => this._structures[s] = [])
-        this._structures[STRUCTURE_CONTROLLER] = []
-        this._structures[STRUCTURE_INVADER_CORE] = []
-        this._structures[STRUCTURE_POWER_BANK] = []
-        this._structures[STRUCTURE_KEEPER_LAIR] = []
-        this._structures[STRUCTURE_PORTAL] = []
-        
-        this.find(FIND_STRUCTURES).forEach((s) => {
-                this._structures[s.structureType].push(s)
-        })
-    }
+    this._structures = {};
+    Object.keys(CONSTRUCTION_COST).forEach((s) => this._structures[s] = [])
+    this._structures[STRUCTURE_CONTROLLER] = []
+    this._structures[STRUCTURE_INVADER_CORE] = []
+    this._structures[STRUCTURE_POWER_BANK] = []
+    this._structures[STRUCTURE_KEEPER_LAIR] = []
+    this._structures[STRUCTURE_PORTAL] = []
+    
+    this.find(FIND_STRUCTURES).forEach((s) => {
+            this._structures[s.structureType].push(s)
+    })
 }
 
 Room.prototype.Structures=function(type)
 {
-    this.findAllStructures();
+    if(!this._structures)
+    {
+        this.findAllStructures();
+    }
     return this._structures[type];
 }
 
 Room.prototype.PopulateShorthands=function()
 {
-    this.findAllStructures();
-
+    if(!this._structures)
+    {
+        this.findAllStructures();
+    }
+    
     let ShorthandFirstOfType    =   function(type,room,alias) { if(room._structures[type] && room._structures[type].length > 0) {room[alias] = room._structures[type][0]} }
     let ShorthandType           =   function(type,room,alias) { room[alias] = room._structures[type] }
 

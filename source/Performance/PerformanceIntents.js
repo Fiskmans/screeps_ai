@@ -21,7 +21,7 @@ module.exports.GetUsed=function()
 
 module.exports.GetUsedCPU=function()
 {
-    return Gamepad.cpu.getUsed() - this.GetUsed();
+    return Game.cpu.getUsed() - this.GetUsed();
 }
 
 let HookAll=function(intents)

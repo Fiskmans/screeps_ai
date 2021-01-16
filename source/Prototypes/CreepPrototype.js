@@ -4,13 +4,23 @@ Creep.prototype.do=function(action,target,arg1,arg2,arg3)
     {
         target = Game.getObjectById(target);
     }
-    let err = this[action](target,arg1,arg2,arg3);
+    let err;
+    if(action == CREEP_WITHDRAW && target instanceof Creep)
+    {
+        err = target[CREEP_TRANSFER](this,arg1,arg2,arg3);
+    }
+    else
+    {
+        err = this[action](target,arg1,arg2,arg3);
+    }
+    
     if(err == ERR_NOT_IN_RANGE)
     {
         this.travelTo(target)
     }
     return err;
 }
+
 Creep.prototype.LeaveEdge=function()
 {
     if (this.pos.x < 2) { this.travelTo(new RoomPosition(25,25,this.room.name,{ignoreCreeps:false})); }
@@ -108,19 +118,60 @@ Creep.prototype._execWork=function(work)
     return this.do(work.action,work.target,work.arg1,work.arg2);
 }
 
+Creep.prototype._workPossible=function(work)
+{
+    let target;
+    switch(work.action)
+    {
+        case CREEP_TRANSFER:
+            if(this.store.getUsedCapacity(work.arg1) == 0)
+            {
+                return false;
+            }
+            target = Game.getObjectById(work.target);
+            if(!target || target.store.getFreeCapacity(work.arg1) == 0)
+            {
+                return false;
+            }
+            break;
+        case CREEP_WITHDRAW:
+            if(this.store.getFreeCapacity(work.arg1) == 0)
+            {
+                return false;
+            }
+            target = Game.getObjectById(work.target);
+            if(!target || target.store.getUsedCapacity(work.arg1) == 0)
+            {
+                return false;
+            }
+            break;
+    }
+
+    return true;
+}
+
 Creep.prototype.DoWork=function()
 {
     if(this.spawning || !this.HasWork())
     {
-        return;
+        return false;
+    }
+
+    while(!this._workPossible(this.memory._workQueue[0]))
+    {
+        this.memory._workQueue.shift();
+        if(this.memory._workQueue.length == 0)
+        {
+            return false;
+        }
     }
 
     let res = this._execWork(this.memory._workQueue[0]);
     let dequeu = false;
     switch(res)
     {
-        case OK:
         default: // any error
+        case OK:
             dequeu = true;
             break;
 
@@ -138,22 +189,30 @@ Creep.prototype.DoWork=function()
                 this.travelTo(nextTarget);
             }
         }
+        return !this.HasWork();
     }
 }
 
 Creep.prototype.DrawWork=function(vis,opt)
 {
     let options = opt || {};
-    _.defaults(options,{radius:0.4,strokeStart:0x77CC77,strokeEnd:0xCC7777});
+    _.defaults(options,{radius:0.4,strokeStart:0x77CC77,strokeEnd:0xCC7777,baseRoom:this.pos.roomName});
     if(!this.HasWork())
     {
         return;
     }
+    
 
-    let lastPos = this.pos;
+    let [bx,by] = PosFromRoomName(options.baseRoom);
+    let lx = this.pos.x;
+    let ly = this.pos.y;
+    let [tx,ty] = PosFromRoomName(this.pos.roomName);
+    lx += (tx - bx) * ROOM_WIDTH;
+    ly -= (ty - by) * ROOM_HEIGHT;
+
     let stroke = "#" + options.strokeStart.toString(16);
 
-    vis.circle(lastPos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
+    vis.circle(lx,ly,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
 
     for(let i in this.memory._workQueue)
     {
@@ -163,37 +222,42 @@ Creep.prototype.DrawWork=function(vis,opt)
         let obj = Game.getObjectById(work.target)
         if(!obj)
         {
-            vis.line(lastPos.x + 0.5,lastPos.y + 0.5,lastPos.x - 0.5,lastPos.y - 0.5,{stroke:"#FF0000"});
-            vis.line(lastPos.x + 0.5,lastPos.y - 0.5,lastPos.x + 0.5,lastPos.y - 0.5,{stroke:"#FF0000"});
+            vis.line(lx + 0.5,ly + 0.5,lx - 0.5,ly - 0.5,{stroke:"#FF0000"});
+            vis.line(lx + 0.5,ly - 0.5,lx + 0.5,ly - 0.5,{stroke:"#FF0000"});
             break;
         }
         vis.circle(obj.pos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
 
-        //vis.text(stroke,obj.pos);
+        let ox = obj.pos.x;
+        let oy = obj.pos.y;
+        let [orx,ory] = PosFromRoomName(obj.pos.roomName);
+        ox += (orx - bx) * ROOM_WIDTH;
+        oy -= (ory - by) * ROOM_HEIGHT;
 
-        let dx = lastPos.x - obj.pos.x;
-        let dy = lastPos.y - obj.pos.y;
+        let dx = lx - ox;
+        let dy = ly - oy;
 
         let len = Math.sqrt(dx*dx+dy*dy);
 
         dx /= len;
         dy /= len;
 
-        vis.line(   lastPos.x - dx * options.radius,lastPos.y - dy * options.radius,
-                    obj.pos.x + dx * options.radius,obj.pos.y + dy * options.radius,
+        vis.line(   lx - dx * options.radius,ly - dy * options.radius,
+                    ox + dx * options.radius,oy + dy * options.radius,
                     {color:stroke,width:0.05,opacity:0.9});
 
-        vis.text(CREEP_ACTION_ICON[work.action], obj.pos.x, obj.pos.y + 0.1, {align:'right',font:0.27})
+        vis.text(CREEP_ACTION_ICON[work.action], ox, oy + 0.1, {align:'right',font:0.27})
         
         switch(work.action)
         {
             case CREEP_WITHDRAW:
             case CREEP_TRANSFER:
-                vis.symbol(obj.pos.x+0.2,obj.pos.y,work.arg1,{scale:0.4});
+                vis.symbol(ox+0.2,oy,work.arg1,{scale:0.4});
                 break;
         }
 
-        lastPos = obj.pos;
+        lx = ox;
+        ly = oy;
     }
 
 }
@@ -380,4 +444,9 @@ Creep.prototype.Retire = function(roomName)
     {
         this.say("bad retirement: " + roomName);
     }
+}
+
+Creep.prototype.GoToRoom=function(roomName)
+{
+    this.travelTo(new RoomPosition(25,25,roomName),{range:20});
 }

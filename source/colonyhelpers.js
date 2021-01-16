@@ -162,7 +162,7 @@ ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,storageid,ofType)
             {
                 if(fakeStores[req.id].Get(req.resource) < req.targetAmount)
                 {
-                    if(fakeStores[storageid].Get(req.resource) == 0)
+                    if(storageid && fakeStores[storageid].Get(req.resource) == 0)
                     {
                         continue;
                     }
@@ -190,7 +190,7 @@ ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,storageid,ofType)
         if(obj)
         {
             let d = obj.pos.getRangeTo(pos);
-            if(d < dist)
+            if(d < dist || !closest)
             {
                 dist = d;
                 closest = req;
@@ -213,6 +213,10 @@ ColonyFindUnfilledFromRequest=function(colony,fakeStores,pos)
     {
         if(req.action == REQUEST_ACTION_EMPTY)
         {
+            if(Game.shard.name == "shard2" && !fakeStores[req.id])
+            {
+                console.log("no store for: " + req.id);
+            }
             if(fakeStores[req.id] && fakeStores[req.id].Get(req.resource) >= req.targetAmount)
             {
                 if(req.prio > highestPrio)
@@ -238,7 +242,7 @@ ColonyFindUnfilledFromRequest=function(colony,fakeStores,pos)
         if(obj)
         {
             let d = obj.pos.getRangeTo(pos);
-            if(d < dist)
+            if(d < dist || !closest)
             {
                 dist = d;
                 closest = req;

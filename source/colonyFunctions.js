@@ -1,31 +1,4 @@
 
-colonyRetargetFactory=function(room,colony)
-{
-    
-}
-
-ColonyWorkerBehaviour=function(colony)
-{
-    if(!colony.constructionsite || colony.refreshDowngrade)
-    {
-        ColonyIdleWorkers(colony)
-        ColonyFindBuildingWork(colony)
-        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
-        {
-            delete colony.refreshDowngrade
-        }
-    }
-    else
-    {
-        colonyConstruct(colony)
-        if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
-        {
-            colony.refreshDowngrade = true
-        }
-    }
-}
-
-
 
 ColonyIdleWorkers=function(colony)
 {
@@ -204,8 +177,14 @@ FindLinkInColonyLayout=function(colony,blackList)
     }
     else
     {
-        let result = room.lookAt(colony.pos.x + 6,colony.pos.y + 5)
-        for(let r of result)
+        for(let r of room.lookAt(colony.pos.x + 6,colony.pos.y + 5))
+        {
+            if (r.type == 'structure' && r.structure instanceof StructureLink && !blackList.includes(r.structure.id)) 
+            {
+                return r.structure.id;
+            }
+        }
+        for(let r of room.lookAt(colony.pos.x + 4,colony.pos.y + 5))
         {
             if (r.type == 'structure' && r.structure instanceof StructureLink && !blackList.includes(r.structure.id)) 
             {
@@ -381,6 +360,17 @@ ColonyBuildStatic=function(colony,plan)
             console.log("Could not create constructionsite got unkown error: " + err);
         }
     }
+    if(colony.subLayouts)
+    {
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            let buildings2 = DeserializeLayout(layout,colony.pos.roomName);
+            if(BuildMissing(colony,buildings2))
+            {
+                return;
+            }
+        }
+    }
 }
 
 DeserializeLayout=function(layoutString,roomName)
@@ -400,14 +390,17 @@ DeserializeLayout=function(layoutString,roomName)
 SerializeLayout=function(layout)
 {
     let result = "";
-    layout.forEach((b) =>
+    for(let b of layout)
     {
-        result += STRUCTURE_CHAR[b.structure] + BAKED_COORD["Encode"][b.pos.x] + BAKED_COORD["Encode"][b.pos.y];
-    })
+        result +=   
+        STRUCTURE_CHAR[b.structure] + 
+        BAKED_COORD["Encode"][b.pos.x] + 
+        BAKED_COORD["Encode"][b.pos.y];
+    }
     return result;
 }
 
-BuildMissing=function(colony,buildings,tracker)
+BuildMissing=function(colony,buildings)
 {
     let room = Game.rooms[colony.pos.roomName];
     if(!room)
@@ -1091,7 +1084,7 @@ FindUpgradePosition=function(colony)
     return pos;
 }
 
-FincUpgradeLink=function(buildings)
+FindUpgradeLink=function(buildings)
 {
     for(let b of buildings)
     {
@@ -1120,9 +1113,13 @@ FindOrCreateUpgradeLink=function(colony)
         return; 
     }
 
+    if(colony.upgradeLink)
+    {
+        return;
+    }
+    
     let buildings = DeserializeLayout(colony.subLayouts["upgradeSite"],colony.pos.roomName);
-
-    let expectedPos = FincUpgradeLink(buildings);
+    let expectedPos = FindUpgradeLink(buildings);
     if(expectedPos)
     {
         for(let o of expectedPos.lookFor(LOOK_STRUCTURES))
@@ -1431,5 +1428,4 @@ ColonyTerminalTraffic=function(colony)
             }
         }
     }
-
 }
