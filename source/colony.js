@@ -190,7 +190,14 @@ colonyConstruct=function(colony)
     else
     {
         let sites = Game.rooms[colony.constructionsite.roomName].lookForAt(LOOK_CONSTRUCTION_SITES,colony.constructionsite.x,colony.constructionsite.y)
-        colony.constructionsite = sites[0].id
+        if(sites.length > 0)
+        {
+            colony.constructionsite = sites[0].id
+        }
+        else
+        {
+            delete colony.constructionsite;
+        }
     }
 }
 
@@ -236,22 +243,22 @@ colonyMiningSpots=function(colony)
             {
                 if (!spot.linkPosition) 
                 {
-                    let terrain = new Room.Terrain(spot.myPosition.roomName)
-                    for (var at = 0; at < 9; at++) 
-                    {
-                        let x = at%3;
-                        let y = Math.floor(at/3);
-                        if (!spot.layout[y][x]) 
-                        {
-                            let apos = new RoomPosition(spot.myPosition.x + x-1, spot.myPosition.y + y-1,spot.myPosition.roomName) 
-                            if (apos.isNearTo(spot.digPos.x,spot.digPos.y) && terrain.get(apos.x,apos.y) != TERRAIN_MASK_WALL) 
-                            {
-                                spot.linkPosition = apos;
-                                spot.layout[y][x] = STRUCTURE_LINK;
-                                break;
-                            }
-                        }
-                    }
+                    //let terrain = new Room.Terrain(spot.myPosition.roomName)
+                    //for (var at = 0; at < 9; at++) 
+                    //{
+                    //    let x = at%3;
+                    //    let y = Math.floor(at/3);
+                    //    if (!spot.layout[y][x]) 
+                    //    {
+                    //        let apos = new RoomPosition(spot.myPosition.x + x-1, spot.myPosition.y + y-1,spot.myPosition.roomName) 
+                    //        if (apos.isNearTo(spot.digPos.x,spot.digPos.y) && terrain.get(apos.x,apos.y) != TERRAIN_MASK_WALL) 
+                    //        {
+                    //            spot.linkPosition = apos;
+                    //            spot.layout[y][x] = STRUCTURE_LINK;
+                    //            break;
+                    //        }
+                    //    }
+                    //}
                 }
                 else if (!spot.link) 
                 {

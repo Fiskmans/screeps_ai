@@ -1,7 +1,40 @@
 
 
+let C =
+{
+    UNDER_ATTACK: 'attack',
+    HAS_CORE: 'core',
+    SAFE: 'safe'
+}
+
 module.exports.Main=function(colony)
 {
+
+    this.Setup(colony);
+
+    RemoveDoneRequests(colony);
+    if(!this.InvaderDeterent(colony))
+    {
+        this.Claim(colony);
+        this.Reserve(colony);
+        this.Mine(colony);
+        this.Hauling(colony);
+        this.RemoteMining(colony);
+        this.Develop(colony);
+        this.Roads(colony);
+        this.Terminate(colony);
+        this.ExpandMining(colony);
+        this.Defend(colony);
+        this.FulfillRequests(colony);
+    }
+}
+
+module.exports.Setup=function(colony)
+{
+    if(!colony.upgradePos)
+    {
+        colony.upgradePos = FindUpgradePosition(colony);
+    }
     if(!colony.workersensus)
     {
         colony.workersensus = [];
@@ -12,24 +45,558 @@ module.exports.Main=function(colony)
         {
             miners:[],
             workers:[],
+            remotes:[],
             claimers:[],
             scouts:[],
+            defenders:[],
+            destroyers:[],
+            miningContainers:[],
             miningThoughput:0,
-            checkedRooms:{}
+            checkedRooms:{},
+            remoteSites:{},
+            remoteState:{}
+        }
+    }
+    if(!colony.haulerpool)
+    {
+        colony.haulerpool = [];
+    }
+}
+
+module.exports.Reserve=function(colony)
+{
+    let list = colony.kickStart.claimers;
+    deleteDead(list)
+    for(let cname of list)
+    {
+        let creep = Game.creeps[cname];
+        if(creep.memory.target)
+        {
+            if(creep.memory.target == creep.room.name)
+            {
+                if(!creep.room.controller.reservation || creep.room.controller.reservation.username == MY_USERNAME)
+                {
+                    creep.do(CREEP_RESERVE_CONTROLLER,creep.room.controller);
+                }
+                else
+                {
+                    creep.do(CREEP_ATTACK_CONTROLLER,creep.room.controller);
+                }
+            }
+            else
+            {
+                creep.GoToRoom(creep.memory.target);
+            }
+        }
+    }
+    let needMoreClaimers = false;
+    for(let source of Object.values(colony.kickStart.remoteSites))
+    {
+        let r = Game.rooms[source.room];
+        if(!r || !r.controller.reservation || r.controller.reservation.username == MY_USERNAME || r.controller.reservation.ticksToEnd < 2000)
+        {
+            let found = false;
+            for(let cname of list)
+            {
+                let creep = Game.creeps[cname];
+                if(!creep.memory.target)
+                {
+                    creep.memory.target = source.room;
+                }
+                if(creep.memory.target == source.room)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+            {
+                needMoreClaimers = true;
+            }
+        }
+    }
+    if(needMoreClaimers)
+    {
+        let body = BODIES.LV3_CLAIMER;
+        Colony.Helpers.SpawnCreep(colony,list,body,ROLE_CLAIMER);
+    }
+}
+
+module.exports.Defend=function(colony)
+{
+    deleteDead(colony.kickStart.destroyers);
+    deleteDead(colony.kickStart.defenders);
+    for(let cname of colony.kickStart.defenders)
+    {
+        let creep = Game.creeps[cname];
+        if(creep.memory.target)
+        {
+            if(creep.room.name == creep.memory.target)
+            {
+                let target = false;
+                for(let c of creep.room.find(FIND_CREEPS))
+                {
+                    if(c.my && c.hits < c.maxHits)
+                    {
+                        target = c;
+                        break;
+                    }
+                }
+                for(let s of creep.room.find(FIND_HOSTILE_STRUCTURES,{filter:(s) => { return !ENEMY_STRUCTURES_WITH_LOOT.includes(s.structureType); }}))
+                {
+                    target = s;
+                    break;
+                }
+                for(let c of creep.room.find(FIND_HOSTILE_CREEPS))
+                {
+                    target = s;
+                    break;
+                }
+
+                if(target)
+                {
+                    if(target.my)
+                    {
+                        let len = creep.pos.getRangeTo(target.pos);
+                        if(len > 1)
+                        {
+                            creep.travelTo(target);
+                            if(let < 4)
+                            {
+                                creep[CREEP_RANGED_HEAL](target);
+                            }
+                        }
+                        else
+                        {
+                            creep[CREEP_HEAL](target);
+                        }
+                    }
+                    else if(target instanceof Creep)
+                    {
+                        creep.travelTo(target,{range:3,flee:true});
+                        let len = creep.pos.getRangeTo(target.pos);
+                        if(len < 4)
+                        {
+                            if(len == 1)
+                            {
+                                creep[CREEP_RANGED_MASS_ATTACK]();
+                            }
+                            else
+                            {
+                                creep[CREEP_RANGED_ATTACK](target);
+                            }
+                        }
+                        creep[CREEP_HEAL](creep);
+                    }
+                    else
+                    {
+                        creep.travelTo(target,{range:1});
+                        let len = creep.pos.getRangeTo(target.pos);
+                        if(len < 4)
+                        {
+                            if(len == 1)
+                            {
+                                creep[CREEP_RANGED_MASS_ATTACK]();
+                            }
+                            else
+                            {
+                                creep[CREEP_RANGED_ATTACK](target);
+                            }
+                        }
+                        if(creep.hits < creep.maxHits)
+                        {
+                            creep[CREEP_HEAL](creep);
+                        }
+                    }
+                }
+                else
+                {
+                    delete creep.memory.target;
+                }
+            }
+            else
+            {
+                creep.GoToRoom(creep.memory.target)
+            }
+        }
+    }
+    for(let cname of colony.kickStart.destroyers)
+    {
+        let creep = Game.creeps[cname];
+        if(creep.memory.target)
+        {
+            if(creep.room.name == creep.memory.target)
+            {
+                let target = false;
+                for(let s of creep.room.find(FIND_HOSTILE_STRUCTURES,{filter:(s) => { return !ENEMY_STRUCTURES_WITH_LOOT.includes(s.structureType); }}))
+                {
+                    target = s;
+                    break;
+                }
+
+                if(target)
+                {
+                    creep.do(CREEP_ATTACK,target);
+                }
+                else
+                {
+                    delete creep.memory.target;
+                }
+            }
+            else
+            {
+                creep.GoToRoom(creep.memory.target)
+            }
+        }
+    }
+}
+
+
+module.exports.EnqueueRemoteHaulingWork=function(colony,creep,fakeStores,source)
+{
+    if(fakeStores[creep.id].Get(RESOURCE_ENERGY) < fakeStores[creep.id].GetCapacity(RESOURCE_ENERGY))
+    {
+        creep.say("more");
+        for(let mName of source.miners)
+        {
+            let miner = Game.creeps[mName];
+            if(fakeStores[miner.id].Get(RESOURCE_ENERGY) > 0)
+            {
+                let work = 
+                {
+                    action:CREEP_WITHDRAW,
+                    target:miner.id,
+                    arg1:RESOURCE_ENERGY
+                }
+                creep.EnqueueWork(work);
+                creep.SimulateWorkUnit(work,fakeStores);
+                break;
+            }
+        }
+        
+        if(fakeStores[creep.id].Get(RESOURCE_ENERGY) < fakeStores[creep.id].GetCapacity(RESOURCE_ENERGY))
+        {
+            let ro = Game.rooms[source.room];
+            if(ro)
+            {
+                for(let r of ro.find(FIND_DROPPED_RESOURCES))
+                {
+                    if(r.resourceType == RESOURCE_ENERGY)
+                    {
+                        let work = 
+                        {
+                            action:CREEP_PICKUP,
+                            target:r.id
+                        }
+                        creep.EnqueueWork(work);
+                        creep.SimulateWorkUnit(work,fakeStores);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        creep.say("dump");
+        if(source.containerID && fakeStores[source.containerID].total < CONTAINER_CAPACITY)
+        {
+            let work = 
+            {
+                action:CREEP_TRANSFER,
+                target:source.containerID,
+                arg1:RESOURCE_ENERGY
+            }
+            creep.EnqueueWork(work);
+            creep.SimulateWorkUnit(work,fakeStores);
+        }
+        if(fakeStores[creep.id].Get(RESOURCE_ENERGY) == fakeStores[creep.id].GetCapacity(RESOURCE_ENERGY))
+        {
+            let room = Game.rooms[colony.pos.roomName];
+            if(room)
+            {
+                let c = creep.pos.findClosestByRange(FIND_STRUCTURES,{filter:(s) =>
+                {
+                    return s.structureType == STRUCTURE_CONTAINER && 
+                        fakeStores[s.id].total < CONTAINER_CAPACITY;
+                }});
+                if(c)
+                {
+                    let work = 
+                    {
+                        action:CREEP_TRANSFER,
+                        target:c.id,
+                        arg1:RESOURCE_ENERGY
+                    }
+                    creep.EnqueueWork(work);
+                    creep.SimulateWorkUnit(work,fakeStores);
+                }
+            }
+        }
+    }
+}
+
+module.exports.RemoteMining=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    let wantsMoreDefenders = false;
+    let wantsMoreDestroyers = false;
+
+    for(let source of Object.values(colony.kickStart.remoteSites))
+    {
+        if(!source.enabled)
+        {
+            continue;
+        }
+        if(!source.containerID && source.containerPos)
+        {
+            for(let s of room.lookForAt(LOOK_STRUCTURES,source.containerPos.x,source.containerPos.y))
+            {
+                if(s.structureType == STRUCTURE_CONTAINER)
+                {
+                    source.containerID = s.id;
+                    break;
+                }
+            }
+        }
+
+        let mroom = Game.rooms[source.room];
+        if(mroom)
+        {
+            colony.kickStart.remoteState[source.room] = C.SAFE;
+            for(let c of mroom.find(FIND_HOSTILE_STRUCTURES))
+            {
+                if(c.owner.username == INVADER_USERNAME)
+                {
+                    colony.kickStart.remoteState[source.room] = C.HAS_CORE;
+                }
+            }
+            for(let c of mroom.find(FIND_HOSTILE_CREEPS))
+            {
+                if(c.owner.username == INVADER_USERNAME)
+                {
+                    colony.kickStart.remoteState[source.room] = C.UNDER_ATTACK;
+                }
+            }
+        }
+        if(colony.kickStart.remoteState[source.room] == C.UNDER_ATTACK)
+        {
+            let found = false;
+            deleteDead(colony.kickStart.defenders);
+            for(let dname of colony.kickStart.defenders)
+            {
+                let creep = Game.creeps[dname]
+                if(_.isUndefined(creep.memory.target))
+                {
+                    console.log("Added: " + creep.name + " to the defence of " + source.room);
+                    creep.memory.target = source.room;
+                }
+                if(creep.memory.target == source.room)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+            {
+                wantsMoreDefenders = true;
+            }
+        }
+        if(colony.kickStart.remoteState[source.room] == C.HAS_CORE)
+        {
+            let found = 0;
+            deleteDead(colony.kickStart.destroyers);
+            for(let dname of colony.kickStart.destroyers)
+            {
+                let creep = Game.creeps[dname]
+                if(_.isUndefined(creep.memory.target))
+                {
+                    console.log("Added: " + creep.name + " to the destruction of " + source.room);
+                    creep.memory.target = source.room;
+                }
+                if(creep.memory.target == source.room)
+                {
+                    found += 1;
+                }
+            }
+            if(found < 2)
+            {
+                wantsMoreDestroyers = true;
+            }
+        }
+
+        deleteDead(source.haulers);
+        deleteDead(source.miners);
+
+        if(colony.kickStart.remoteState[source.room] == C.UNDER_ATTACK)
+        {
+            for(let cname of source.miners.concat(source.haulers))
+            {
+                let creep = Game.creeps[cname];
+                if(creep.room.name == source.room)
+                {
+                    creep.travelTo(creep.pos.findClosestByPath(creep.room.find(FIND_EXIT)));
+                }
+                else
+                {
+                    creep.GoToRoom(creep.room.name);
+                }
+            }
+            continue;
+        }
+        let sourceEnergy = (SOURCE_ENERGY_CAPACITY/ENERGY_REGEN_TIME);
+        if(colony.level < 3)
+        {
+            sourceEnergy /= 2;
+        }
+
+        let fakeStores = {};
+
+
+        let generated = 0;
+        for(let mname of source.miners)
+        {
+            let creep = Game.creeps[mname];
+            fakeStores[creep.id] = new FakeStore(creep.store);
+            for(let res of creep.pos.lookFor(LOOK_RESOURCES))
+            {
+                fakeStores[creep.id].content[res.resourceType] += res.amount;
+                creep.say(fakeStores[creep.id].Get(res.resourceType));
+            }
+
+            generated += creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+        }
+
+        generated = Math.min(generated,sourceEnergy);
+
+        this.GenerateFakeStores(colony,fakeStores);
+
+        let hauled = 0;
+        for(let cname of source.haulers)
+        {
+            let creep = Game.creeps[cname];
+            hauled += creep.getActiveBodyparts(CARRY)*50/(source.distance*2);
+            if(!creep.HasAtleast1TickWorthOfWork())
+            {
+                this.EnqueueRemoteHaulingWork(colony,creep,fakeStores,source);
+            }
+
+            if(creep.HasWork())
+            {
+                creep.DoWork();
+            }
+        }
+        colony.kickStart.miningThoughput += Math.min(hauled,sourceEnergy)
+        for(let mname of source.miners)
+        {
+            let creep = Game.creeps[mname];
+            if(_.isUndefined(creep.memory.index))
+            {
+                for(let i in source.spots)
+                {
+                    let taken = false;
+                    for(let omname of source.miners)
+                    {
+                        let otherMiner = Game.creeps[omname];
+                        if(otherMiner.memory.index === i)
+                        {
+                            taken = true;
+                            break;
+                        }
+                    }
+                    if(!taken)
+                    {
+                        creep.memory.index = i;
+                        break;
+                    }
+                }
+                if(_.isUndefined(creep.memory.index))
+                {
+                    continue;
+                }
+            }
+
+            let spot = source.spots[creep.memory.index];
+            if(!spot)
+            {
+                delete creep.memory.index;
+            }
+            if(creep.pos.x != spot.pos.x || creep.pos.y != spot.pos.y)
+            {
+                creep.travelTo(new RoomPosition(spot.pos.x,spot.pos.y,spot.pos.roomName));
+            }
+            else
+            {
+                creep.harvest(Game.getObjectById(spot.id));
+                for(let r of creep.pos.lookFor(LOOK_RESOURCES))
+                {
+                    creep.pickup(r);
+                    break;
+                }
+            }
+        }
+
+
+        if(colony.kickStart.wantMoreWorkers || colony.haulerpool.length == 0)
+        {
+            continue;
+        }
+
+        if(colony.kickStart.remoteState[source.room] != C.SAFE)
+        {
+            continue;
+        }
+
+        if(hauled < generated)
+        {
+            let body = BODIES.LV2_HAULER;
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
+            {
+                body = BODIES.LV3_HAULER;
+            }
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+            {
+                body = BODIES.LV4_HAULER;
+            }
+            Colony.Helpers.SpawnCreep(colony,source.haulers,body,ROLE_HAULER);
+        }
+        if(generated < sourceEnergy && source.miners.length < source.spots.length)
+        {
+            let body = BODIES.LV2_REMOTE_MINER;
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
+            {
+                body = BODIES.LV3_REMOTE_MINER;
+            }
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+            {
+                body = BODIES.LV4_REMOTE_MINER;
+            }
+            Colony.Helpers.SpawnCreep(colony,source.miners,body,ROLE_WORKER);
         }
     }
 
-
-
-    RemoveDoneRequests(colony);
-    if(!this.InvaderDeterent(colony))
+    if(wantsMoreDefenders)
     {
-        this.Claim(colony);
-        this.Mine(colony);
-        this.Develop(colony);
-        this.Roads(colony);
-        this.Terminate(colony);
-        this.ExpandMining(colony)
+        let body = BODIES.LV3_REMOTE_DEFENDER;
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+        {
+            body = BODIES.LV4_REMOTE_DEFENDER;
+        }
+        Colony.Helpers.SpawnCreep(colony,colony.kickStart.defenders,body,ROLE_DEFENDER);
+    }
+    if(wantsMoreDestroyers)
+    {
+        let body = BODIES.LV3_CORE_POPPER;
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+        {
+            body = BODIES.LV4_CORE_POPPER;
+        }
+        Colony.Helpers.SpawnCreep(colony,colony.kickStart.destroyers,body,ROLE_DEFENDER);
     }
 }
 
@@ -39,6 +606,7 @@ module.exports.AddSources=function(colony,room)
     let terrain = new Room.Terrain(room.name);
     for(let source of room.sources)
     {
+        let sourceSpots = [];
         for(let dir of ALL_DIRECTIONS)
         {
             let pos = source.pos.offsetDirection(dir);
@@ -49,8 +617,25 @@ module.exports.AddSources=function(colony,room)
                         pos:pos,
                         id:source.id
                     });
+                sourceSpots.push(
+                    {
+                        pos:pos,
+                        score:0
+                    });
             }
         }
+        for(let p of spots)
+        {
+            for(let p2 of sourceSpots)
+            {
+                p2.score += p.pos.getRangeTo(p2.pos) < 2
+                ? 1 
+                : 0;
+            }
+        }
+        sourceSpots = _.sortBy(sourceSpots,(s) => s.score);
+        colony.kickStart.miningContainers.push(sourceSpots[0]);
+
         console.log("Added source: " + source.id + " to colony kickstart: " + colony.pos.roomName);
     }
 }
@@ -69,12 +654,44 @@ module.exports.ConsiderRoom=function(colony,room)
     {
         return;
     }
-    this.AddSources(colony,room);
+
+    let terrain = new Room.Terrain(room.name);
+    for(let source of room.sources)
+    {
+        let pathResult = PathFinder.search(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),[{pos:source.pos,range:1}]);
+        if(pathResult.incomplete)
+        {
+            continue;
+        }
+
+
+        colony.kickStart.remoteSites[source.id] = 
+        {
+            spots:[],
+            miners:[],
+            haulers:[],
+            distance:pathResult.path.length,
+            room:room.name
+        };
+        let spots = colony.kickStart.remoteSites[source.id].spots;
+        for(let dir of ALL_DIRECTIONS)
+        {
+            let pos = source.pos.offsetDirection(dir);
+            if(pos && terrain.get(pos.x,pos.y) != TERRAIN_MASK_WALL)
+            {
+                spots.push(
+                    {
+                        pos:pos,
+                        id:source.id
+                    });
+            }
+        }
+        console.log("Added source: " + source.id + " to colony kickstart remotes: " + colony.pos.roomName);
+    }
 }
 
 module.exports.ExpandMining=function(colony)
 {
-    return;
     if(colony.level < 2)
     {
         return;
@@ -130,6 +747,88 @@ module.exports.ExpandMining=function(colony)
             }
         }
     }
+    for(let source of Object.values(colony.kickStart.remoteSites))
+    {
+        if(source.enabled)
+        {
+            if(!source.containerPos)
+            {
+                let pathResult = PathFinder.search(
+                    new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),
+                    [{pos:new RoomPosition(source.spots[0].pos.x,source.spots[0].pos.y,source.spots[0].pos.roomName),range:1}]);
+
+                if(!pathResult.incomplete)
+                {
+                    let path = pathResult.path;
+                    path.reverse();
+                    for(let p of path)
+                    {
+                        if(p.roomName == colony.pos.roomName)
+                        {
+                            if(p.x < 46 && p.x > 5 && p.y < 46 && p.y > 5)
+                            {
+                                source.containerPos = p;
+                                console.log("adding a container to " + p)
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    console.log("Incomplete");
+                }
+                for(let source2  of Object.values(colony.kickStart.remoteSites))
+                {
+                    if(source2.room == source.room)
+                    {
+                        source2.containerPos = source.containerPos;
+                    }
+                }
+            }
+        }
+    }
+
+    if(Object.values(Game.map.describeExits(colony.pos.roomName)).length == Object.values(colony.kickStart.checkedRooms).length)
+    {
+        if(!colony.kickStart.hasDecidedRemotes)
+        {
+            let byRoom = {};
+            for(let source of Object.values(colony.kickStart.remoteSites))
+            {
+                source.enabled = false;
+                let score = 1/source.distance;
+                if(!byRoom[source.room])
+                {
+                    byRoom[source.room] = score
+                }
+                else
+                {
+                    byRoom[source.room] += score
+                }
+            }
+
+            let sorted = _.sortBy(Object.keys(byRoom),(r) => -byRoom[r]);
+            let distance = 0;
+            for(let r of sorted)
+            {
+                for(let source of Object.values(colony.kickStart.remoteSites))
+                {
+                    if(source.room == r)
+                    {
+                        source.enabled = true; 
+                        distance += source.distance;
+                    }
+                }
+                if(distance > 150)
+                {
+                    break;
+                }
+            }
+
+            colony.kickStart.hasDecidedRemotes = true;
+        }
+    }
 
     if(wantMoreScouts)
     {
@@ -140,7 +839,6 @@ module.exports.ExpandMining=function(colony)
             ROLE_SCOUT
         )
     }
-
 }
 
 module.exports.Terminate=function(colony)
@@ -201,8 +899,6 @@ module.exports.InvaderDeterent = function(colony)
     for(let tower of room.Structures(STRUCTURE_TOWER))
     {
         RequestResource(colony,tower.id,RESOURCE_ENERGY,600,REQUEST_PRIORITY_TIMED);
-        tower.attack(invader);
-        shutdown = false;
     }
     if(invader)
     {
@@ -280,9 +976,9 @@ module.exports.Roads=function(colony)
         let res = GenerateRoad(colony,room.controller.pos);
         if(res)
         {
-            Colony.Planner.InvalidatePathMatrixes();
             colony.subLayouts["kickstart_roads"] += res
             colony.kickStart.roads += 1;
+            Colony.Helpers.ReduceSubLayouts(colony);
         }
     }
     else if(colony.kickStart.miningSpots && colony.kickStart.roads < 1 + colony.kickStart.miningSpots.length)
@@ -297,9 +993,9 @@ module.exports.Roads=function(colony)
         let res = GenerateRoad(colony,targetpos);
         if(res)
         {
-            Colony.Planner.InvalidatePathMatrixes();
             colony.subLayouts["kickstart_roads"] += res
             colony.kickStart.roads += 1;
+            Colony.Helpers.ReduceSubLayouts(colony);
         }
     }
 }
@@ -338,7 +1034,10 @@ module.exports.Claim=function(colony)
         {
             if(!room.controller.owner)
             {
-                creep.do('claimController',room.controller);
+                if(creep.do('claimController',room.controller) == OK)
+                {
+                    creep.signController(room.controller,"Colony started at: " + Game.time);
+                }
             }
             else
             {
@@ -362,7 +1061,6 @@ module.exports.Mine=function(colony)
         this.AddSources(colony,room);
     }
 
-
     let list = colony.kickStart.miners;
     deleteDead(list);
 
@@ -382,13 +1080,7 @@ module.exports.Mine=function(colony)
         {
             taken[creep.memory.miningIndex] = true;
             let spot = spots[creep.memory.miningIndex];
-            for(let part of creep.body)
-            {
-                if(part.type == WORK)
-                {
-                    throughPuts[spot.id] += HARVEST_POWER;
-                }
-            }
+            throughPuts[spot.id] += creep.getActiveBodyparts(WORK) * HARVEST_POWER;
         }
     }
     for(let creepName of list)
@@ -404,13 +1096,7 @@ module.exports.Mine=function(colony)
                     {
                         creep.memory.miningIndex = i;
                         taken[i] = true;
-                        for(let part of creep.body)
-                        {
-                            if(part.type == WORK)
-                            {
-                                throughPuts[spots[i].id] += HARVEST_POWER;
-                            }
-                        }
+                        throughPuts[spots[i].id] += creep.getActiveBodyparts(WORK) * HARVEST_POWER;
                         break;
                     }
                 }
@@ -419,19 +1105,24 @@ module.exports.Mine=function(colony)
         if(!_.isUndefined(creep.memory.miningIndex))
         {
             let spot = spots[creep.memory.miningIndex];
-            if(creep.pos.x != spot.pos.x || creep.pos.y != spot.pos.y)
+            if(creep.pos.x != spot.pos.x || creep.pos.y != spot.pos.y || creep.pos.roomName != spot.pos.roomName)
             {
                 creep.travelTo(new RoomPosition(spot.pos.x,spot.pos.y,spot.pos.roomName));
             }
             else
             {
                 creep.harvest(Game.getObjectById(spot.id));
-                let limit = creep.store.getCapacity(RESOURCE_ENERGY)/3;
+                let limit = creep.store.getCapacity(RESOURCE_ENERGY)/5*4;
                 for(let r of creep.pos.lookFor(LOOK_RESOURCES))
                 {
                     creep.pickup(r);
                     break;
                 }
+
+                RequestEmptying(colony,creep.id,RESOURCE_ENERGY,limit,REQUEST_PRIORITY_FUNCTION);
+            }
+            if(creep.store.getUsedCapacity(RESOURCE_ENERGY) >= Math.min(creep.store.getCapacity(RESOURCE_ENERGY),creep.getActiveBodyparts(WORK) * BUILD_POWER))
+            {
                 for(let s of room.lookForAtArea(
                     LOOK_CONSTRUCTION_SITES,
                     Math.max(2,creep.pos.y-3),
@@ -443,8 +1134,25 @@ module.exports.Mine=function(colony)
                     creep.build(s[LOOK_CONSTRUCTION_SITES]);
                     break;   
                 }
+            }
 
-                RequestEmptying(colony,creep.id,RESOURCE_ENERGY,limit,REQUEST_PRIORITY_FUNCTION);
+            if(creep.store.getUsedCapacity(RESOURCE_ENERGY) > 40)
+            {
+
+                for(let s of room.lookForAtArea(
+                    LOOK_STRUCTURES,
+                    Math.max(2,creep.pos.y-1),
+                    Math.max(2,creep.pos.x-1),
+                    Math.min(48,creep.pos.y+1),
+                    Math.min(48,creep.pos.x+1),
+                    true))
+                {
+                    if(s[LOOK_STRUCTURES].structureType == STRUCTURE_CONTAINER && s[LOOK_STRUCTURES].store.getFreeCapacity(RESOURCE_ENERGY) > 0)
+                    {
+                        creep.transfer(s[LOOK_STRUCTURES],RESOURCE_ENERGY)
+                        break;
+                    }
+                }
             }
         }
         if(_.isUndefined(creep.memory.miningIndex))
@@ -478,7 +1186,7 @@ module.exports.Mine=function(colony)
         {
             if(room.energyCapacityAvailable > 500)
             {
-                body = [MOVE,WORK,WORK,WORK,WORK,CARRY,CARRY];
+                body = [MOVE,MOVE,MOVE,WORK,WORK,WORK,CARRY,CARRY];
             }
             if(room.energyCapacityAvailable > 750)
             {
@@ -506,10 +1214,6 @@ module.exports.Mine=function(colony)
 let StampSites=function(colony,layout,allowed)
 {
     let room = Game.rooms[colony.pos.roomName];
-    if(room.find(FIND_HOSTILE_CREEPS).length > 0)
-    {
-        return;
-    }
     
     let buildings = DeserializeLayout(layout,colony.pos.roomName);
     let structures = room.lookForAtArea(LOOK_STRUCTURES,2,2,48,48);
@@ -556,6 +1260,54 @@ let StampSites=function(colony,layout,allowed)
     return allBuilt;
 }
 
+module.exports.CreateContainersSites=function(colony,onlyMining)
+{
+    let missing = false;
+    let locations = [];
+    if(!onlyMining)
+    {
+        locations.push(new RoomPosition(colony.pos.x,colony.pos.y+1,colony.pos.roomName));
+        if(colony.upgradePos)
+        {
+            locations.push(new RoomPosition(colony.upgradePos.x,colony.upgradePos.y+1,colony.upgradePos.roomName));
+        }
+        for(let source of Object.values(colony.kickStart.remoteSites))
+        {
+            if(source.enabled && source.containerPos)
+            {
+                locations.push(new RoomPosition(source.containerPos.x,source.containerPos.y,source.containerPos.roomName));
+                break;
+            }
+        }
+    }
+
+    for(let p of colony.kickStart.miningContainers)
+    {
+        locations.push(new RoomPosition(p.pos.x,p.pos.y,p.pos.roomName));
+    }
+
+    let vis = new RoomVisual(colony.pos.roomName); 
+    for(let p of locations)
+    {
+        let has = false;
+        for(let t of p.lookFor(LOOK_STRUCTURES).concat(p.lookFor(LOOK_CONSTRUCTION_SITES)))
+        {
+            if(t.structureType == STRUCTURE_CONTAINER)
+            {
+                has = true;
+                break;
+            }
+        }
+        if(!has)
+        {
+            missing = true;
+            p.createConstructionSite(STRUCTURE_CONTAINER);
+            vis.symbol(p.x,p.y,STRUCTURE_CONTAINER);
+        }
+    }
+    return missing;
+}
+
 module.exports.CreateSites=function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
@@ -568,7 +1320,6 @@ module.exports.CreateSites=function(colony)
         return;
     }
 
-
     const NEEDED = [
         STRUCTURE_SPAWN,
         STRUCTURE_EXTENSION,
@@ -576,23 +1327,213 @@ module.exports.CreateSites=function(colony)
         STRUCTURE_STORAGE
     ];
 
-    if(StampSites(colony,colony.layout,NEEDED) && colony.level > 1)
+    if(StampSites(colony,colony.layout,[STRUCTURE_SPAWN]))
     {
-        const ALLOWED = [
-            STRUCTURE_SPAWN,
-            STRUCTURE_EXTENSION,
-            STRUCTURE_TOWER,
-            STRUCTURE_STORAGE,
-            STRUCTURE_ROAD
-        ];
-
-        if(StampSites(colony,colony.layout,ALLOWED))
+        if(StampSites(colony,colony.layout,[STRUCTURE_STORAGE]))
         {
-            if(!colony.subLayouts) {colony.subLayouts = {}}
-            for(let layout of Object.values(colony.subLayouts))
+            if(this.CreateContainersSites(colony,true))
             {
-                StampSites(colony,layout,ALLOWED);
+                return;
             }
+            if(StampSites(colony,colony.layout,NEEDED) && colony.level > 1)
+            {
+                if(this.CreateContainersSites(colony))
+                {
+                    return;
+                }
+                const ALLOWED = [
+                    STRUCTURE_SPAWN,
+                    STRUCTURE_EXTENSION,
+                    STRUCTURE_TOWER,
+                    STRUCTURE_STORAGE,
+                    STRUCTURE_ROAD
+                ];
+
+                if(StampSites(colony,colony.layout,ALLOWED))
+                {
+                    if(!colony.subLayouts) {colony.subLayouts = {}}
+                    for(let layout of Object.values(colony.subLayouts))
+                    {
+                        StampSites(colony,layout,ALLOWED);
+                    }
+                }
+            }
+        }
+    }
+}
+
+module.exports.EnqueueWork=function(colony,room,fakeStores,creep,target,miners)
+{
+    if(fakeStores[creep.id].Get(RESOURCE_ENERGY) == 0)
+    {
+        let container = _.sortBy(_.filter(room.Structures(STRUCTURE_CONTAINER),(c) => fakeStores[c.id].Get(RESOURCE_ENERGY) > 0),(c) => c.pos.getRangeTo(creep.pos))[0];
+        
+        if(container)
+        {
+            let work = 
+            {
+                action:CREEP_WITHDRAW,
+                target:container.id,
+                arg1:RESOURCE_ENERGY
+            };
+            creep.EnqueueWork(work);
+            creep.SimulateWorkUnit(work,fakeStores);
+        }
+        else
+        {
+            let req = ColonyFindUnfilledFromRequest(colony,fakeStores,creep.pos);
+            if(req && req.resource == RESOURCE_ENERGY)
+            {
+                let work = 
+                {
+                    action:CREEP_WITHDRAW,
+                    target:req.id,
+                    arg1:RESOURCE_ENERGY
+                };
+                creep.EnqueueWork(work);
+                creep.SimulateWorkUnit(work,fakeStores);
+            }
+            else if(colony.kickStart.miningSpace && miners.length < colony.kickStart.miningSpots.length)
+            {
+                return true;
+            }
+        }
+    }
+
+    if(target instanceof Structure)
+    {
+        let power = creep.getActiveBodyparts(WORK) * DISMANTLE_POWER;
+        let work = 
+        {
+            action:CREEP_DISMANTLE,
+            target:target.id
+        };
+
+        for(let i = 0;i < target.hits && !creep.OverWorked();i += power)
+        {
+            creep.EnqueueWork(work);
+            creep.SimulateWorkUnit(work,fakeStores);
+        }
+        return;
+    }
+    
+    if(colony.haulerpool.length < 4 && fakeStores[creep.id].Get(RESOURCE_ENERGY) > 0)
+    {
+        let req = ColonyFindUnfilledToRequest(colony,fakeStores,new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),false,RESOURCE_ENERGY);
+        if(req)
+        {
+            let work = 
+            {
+                action:CREEP_TRANSFER,
+                target:req.id,
+                arg1:RESOURCE_ENERGY
+            }
+            creep.EnqueueWork(work);
+            creep.SimulateWorkUnit(work,fakeStores);
+            return;
+        }
+    }
+
+    let work = 
+    {
+        action:CREEP_UPGRADE_CONTROLLER,
+        target:room.controller.id
+    };
+
+
+    if(room.controller.ticksToDowngrade > 5000 && target instanceof ConstructionSite)
+    {
+        work =
+        {
+            action:CREEP_BUILD,
+            target:target.id
+        };
+    }
+    for(let s of room.find(FIND_STRUCTURES))
+    {
+        if(s.hits / s.hitsMax < 0.7)
+        {
+            let w =
+            {
+                action:CREEP_REPAIR,
+                target:s.id
+            };
+            let p = REPAIR_POWER;
+            for(let i = s.hits; i < s.hitsMax && !creep.OverWorked(); i += p)
+            {
+                creep.EnqueueWork(w);
+                creep.SimulateWorkUnit(w,fakeStores);
+            }
+            break;
+        }
+    }
+
+    if(!room.controller.my && !target)
+    {
+        creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),{range:6});
+        return;
+    }
+
+    while(fakeStores[creep.id].Get(RESOURCE_ENERGY) > 0 && !creep.OverWorked())
+    {
+        creep.EnqueueWork(work);
+        creep.SimulateWorkUnit(work,fakeStores);
+    }
+
+    if(!creep.HasWork())
+    {
+        return true;
+    }
+}
+
+module.exports.GenerateFakeStores=function(colony,fakeStores)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+    let creepPools =
+    [
+        colony.haulerpool,
+        colony.kickStart.miners,
+        colony.kickStart.workers,
+        colony.kickStart.remotes,
+        colony.kickStart.claimers,
+        colony.kickStart.scouts,
+        colony.kickStart.defenders,
+        colony.kickStart.destroyers,
+    ]
+
+    for(let source of Object.values(colony.kickStart.remoteSites))
+    {
+        creepPools.push(source.miners);
+        creepPools.push(source.haulers);
+    }
+
+    for(let list of creepPools)
+    {
+        deleteDead(list);
+        for(let creepName of list)
+        {
+            let creep = Game.creeps[creepName];
+            fakeStores[creep.id] = new FakeStore(creep.store);
+        }
+    }
+
+    for(let infra of room.Structures(STRUCTURE_SPAWN)
+        .concat(room.Structures(STRUCTURE_EXTENSION))
+        .concat(room.Structures(STRUCTURE_TOWER))
+        .concat(room.Structures(STRUCTURE_CONTAINER)))
+    {
+        fakeStores[infra.id] = new FakeStore(infra.store);
+    }
+
+    for(let list of creepPools)
+    {
+        for(let creepName of list)
+        {
+            Game.creeps[creepName].SimulateWork(fakeStores);
         }
     }
 }
@@ -600,95 +1541,55 @@ module.exports.CreateSites=function(colony)
 module.exports.Develop=function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
+    let list = colony.kickStart.workers;
     if(!room)
     {
+        deleteDead(list);   
+        for(let i = list.length - 1;i >= 0;i--)
+        {
+            let creep = Game.creeps[list[i]];
+            creep.GoToRoom(colony.pos.roomName);
+        }
+        if(colony.kickStart.claimers.length == 0)
+        {
+            return;
+        }
+        let body = BODIES.LV1_WORKER;
+        Colony.Helpers.SpawnCreep(
+            colony,
+            list,
+            body,
+            ROLE_WORKER,
+            {
+                allowShards:true,
+                allowNearby:true,
+                nearbyBody:BODY_GROUPS.WORKERS,
+                extraList:colony.workersensus
+            });
+
         return;
     }
 
-    if(Game.time % 35 == 0)
+    if(Game.time % 5 == 0)
     {
-        this.CreateSites(colony);
+        if(room.find(FIND_HOSTILE_CREEPS).length == 0 || room.Structures(STRUCTURE_TOWER).length > 0)
+        {
+            this.CreateSites(colony);
+        }
     }
 
+    if(colony.kickStart.wantMoreWorkers)
+    {
+        colony.kickStart.wantMoreWorkers = false;
+    }
     
-    let sites = room.find(FIND_CONSTRUCTION_SITES);
-    let list = colony.kickStart.workers;
     deleteDead(list);
-    let spawnInfra = room.Structures(STRUCTURE_SPAWN).concat(room.Structures(STRUCTURE_EXTENSION));
     let fakeStores = {};
     let miners = colony.kickStart.miners;
-    InterShard.Transport.Adopt(list,ROLE_WORKER);
-    
-    for(let creepName of list)
-    {
-        let creep = Game.creeps[creepName];
-        fakeStores[creep.id] = new FakeStore(creep.store);
-    }
-    deleteDead(miners);
-    for(let creepName of miners)
-    {
-        let creep = Game.creeps[creepName];
-        fakeStores[creep.id] = new FakeStore(creep.store);
-        for(let r of creep.pos.lookFor(LOOK_RESOURCES))
-        {
-            if(fakeStores[creep.id][r.resourceType])
-            {
-                fakeStores[creep.id][r.resourceType] += r.amount;
-            }
-            else
-            {
-                fakeStores[creep.id][r.resourceType] = r.amount;
-            }
-            fakeStores[creep.id].total += r.amount;
-        }
-    }
-    for(let infra of spawnInfra)
-    {
-        RequestResource(colony,infra.id,RESOURCE_ENERGY,infra instanceof StructureSpawn?300:50,REQUEST_PRIORITY_FUNCTION);
-        fakeStores[infra.id] = new FakeStore(infra.store);
-    }
-    for(let tower of room.Structures(STRUCTURE_TOWER))
-    {
-        fakeStores[tower.id] = new FakeStore(tower.store);
-    }
 
-    for(let creepName of list)
-    {
-        Game.creeps[creepName].SimulateWork(fakeStores);
-    }
+    this.GenerateFakeStores(colony,fakeStores);
 
-    let fillReq = ColonyFindUnfilledToRequest(colony,fakeStores,new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),false,RESOURCE_ENERGY);
-
-    if(fillReq)
-    {
-        let furthest = 0;
-        let furthestCreep = false;
-        for(let creepName of list)
-        {
-            let creep = Game.creeps[creepName];
-            if(fakeStores[creep.id].Get(RESOURCE_ENERGY) && !creep.HasWork())
-            {
-                let dist = room.controller.pos.getRangeTo(creep.pos);
-                if(dist > furthest)
-                {
-                    furthest = dist;
-                    furthestCreep = creep;
-                }
-            }
-        }
-        if(furthestCreep)
-        {
-            let work = 
-            {
-                action:CREEP_TRANSFER,
-                target:fillReq.id,
-                arg1:RESOURCE_ENERGY
-            }
-            furthestCreep.EnqueueWork(work);
-            furthestCreep.SimulateWorkUnit(work,fakeStores);
-        }
-    }
-
+    let sites = room.find(FIND_CONSTRUCTION_SITES);
     let target = sites[0];
     for(let b of room.find(FIND_HOSTILE_STRUCTURES))
     {
@@ -700,149 +1601,42 @@ module.exports.Develop=function(colony)
     {
         let creepName = list[i];
         let creep = Game.creeps[creepName];
-        let power = 0;
-        for(let part of creep.body)
+        throughput += creep.getActiveBodyparts(WORK);
+        if(!creep.HasAtleast1TickWorthOfWork())
         {
-            if(part.type == WORK)
+            if(this.EnqueueWork(colony,room,fakeStores,creep,target,miners))
             {
-                power += UPGRADE_CONTROLLER_POWER;
-            }
-        }
-        throughput += power;
-        if(creep.HasWork())
-        {
-            if(!creep.DoWork())
-            {
+                miners.push(creepName);
+                list.splice(i,1);
                 continue;
             }
-            if(target instanceof ConstructionSite)
-            {
-                for(let s of room.lookForAtArea(
-                    LOOK_CONSTRUCTION_SITES,
-                    Math.max(2,creep.pos.y-3),
-                    Math.max(2,creep.pos.x-3),
-                    Math.min(48,creep.pos.y+3),
-                    Math.min(48,creep.pos.x+3),
-                    true))
-                {
-                    creep.build(s[LOOK_CONSTRUCTION_SITES]);
-                    break;   
-                }
-                creep.travelTo(target,{range:2});
-            }
-            else
-            {
-                creep.do(CREEP_UPGRADE_CONTROLLER,room.controller);
-            }
         }
-        else
+
+        if(colony.haulerpool.length != 0)
         {
-            if(creep.store.getUsedCapacity(RESOURCE_ENERGY) <= power)
-            {
-                let req = ColonyFindUnfilledFromRequest(colony,fakeStores,creep.pos);
-                if (creep.pos.roomName != room.name)
-                {
-                    creep.GoToRoom(room.name);
-                }
-                else if(req && req.resource == RESOURCE_ENERGY)
-                {
-                    let work = 
-                    {
-                        action:CREEP_WITHDRAW,
-                        target:req.id,
-                        arg1:RESOURCE_ENERGY
-                    };
-                    creep.EnqueueWork(work);
-                    creep.SimulateWorkUnit(work,fakeStores);
+            RequestResource(colony,creep.id,RESOURCE_ENERGY,creep.store.getCapacity(RESOURCE_ENERGY)-20,REQUEST_PRIORITY_AUXILIARY);
+        }
 
-                    creep.DoWork();
-                }
-                else if(colony.kickStart.miningSpace && miners.length < colony.kickStart.miningSpots.length * 1.5)
-                {
-                    miners.push(creepName);
-                    list.splice(i,1);
-                }
-                else if(!(target instanceof Structure))
-                {
-                    for(let source of room.sources)
-                    {
-                        if(creep.pos.getRangeTo(source.pos) > 8)
-                        {
-                            creep.travelTo(source.pos,{range:8,maxOps:20})
-                        }
-                        else
-                        {
-                            let count = 0;
-                            let all = 
-                            [
-                                creep.pos.offsetDirection(LEFT),
-                                creep.pos.offsetDirection(RIGHT),
-                                creep.pos.offsetDirection(TOP),
-                                creep.pos.offsetDirection(BOTTOM)
-                            ]
-                            for(let p of all)
-                            {
-                                if(p)
-                                {
-                                    count += p.lookFor(LOOK_CREEPS).length;
-                                }
-                            }
-
-                            if(count >= 2)
-                            {
-                                creep.move(ALL_DIRECTIONS[Game.time%8]);
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-
-            if((target instanceof Structure))
-            {
-                if(creep[CREEP_DISMANTLE](target) == ERR_NOT_IN_RANGE)
-                {
-                    creep.travelTo(target,{maxOps:20})
-                }
-            }
-            else if(creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
-            {
-                if(target instanceof ConstructionSite)
-                {
-                    for(let s of room.lookForAtArea(
-                        LOOK_CONSTRUCTION_SITES,
-                        Math.max(2,creep.pos.y-3),
-                        Math.max(2,creep.pos.x-3),
-                        Math.min(48,creep.pos.y+3),
-                        Math.min(48,creep.pos.x+3),
-                        true))
-                    {
-                        creep.build(s[LOOK_CONSTRUCTION_SITES]);
-                        break;   
-                    }
-                    creep.travelTo(target,{range:2});
-                }
-                else
-                {
-                    if(creep.pos.getRangeTo(room.controller.pos) > 2)
-                    {
-                        creep.travelTo(room.controller,{range:2,maxOps:20});
-                    }
-                    if(creep.pos.getRangeTo(room.controller.pos) < 4)
-                    {
-                        creep[CREEP_UPGRADE_CONTROLLER](room.controller);
-                    }
-                    
-                }
-            }
+        if(creep.HasWork())
+        {
+            creep.DoWork();
+        }
+        else if (creep.pos.roomName != room.name)
+        {
+            creep.GoToRoom(room.name);
         }
     }
 
-    if(throughput < Math.max(colony.kickStart.miningThoughput * 2,5))
+    if(sites.length > 0)
+    {
+        throughput *= (BUILD_POWER/UPGRADE_CONTROLLER_POWER);
+    }
+
+    if(room.energyCapacityAvailable == 0 || throughput < Math.max(colony.kickStart.miningThoughput * 1.5,20))
     {
         let found = false;
         deleteDead(miners);
-        if(throughput < 6)
+        if(room.energyCapacityAvailable == 0 || room.energyCapacityAvailable > room.energyAvaialable)
         {
             for(let i = miners.length - 1;i >= 0;i--)
             {
@@ -864,16 +1658,16 @@ module.exports.Develop=function(colony)
         }
         if(!found)
         {
+            colony.kickStart.wantMoreWorkers = true;
             let body = BODIES.LV1_WORKER;
-            if(room.energyCapacityAvailable > 500)
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
             {
                 body = BODIES.LV2_WORKER;
             }
-            if(room.energyCapacityAvailable > 750)
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
             {
                 body = BODIES.LV3_WORKER;
             }
-
             Colony.Helpers.SpawnCreep(
                 colony,
                 list,
@@ -886,5 +1680,199 @@ module.exports.Develop=function(colony)
                     extraList:colony.workersensus
                 });
         }
+    }
+}
+
+module.exports.Hauling=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    for(let s of room.Structures(STRUCTURE_SPAWN))
+    {
+        RequestResource(colony,s.id,RESOURCE_ENERGY,300,REQUEST_PRIORITY_FUNCTION);
+    }
+    for(let s of room.Structures(STRUCTURE_EXTENSION))
+    {
+        RequestResource(colony,s.id,RESOURCE_ENERGY,50,REQUEST_PRIORITY_FUNCTION);
+    }
+    for(let s of room.Structures(STRUCTURE_TOWER))
+    {
+        RequestResource(colony,s.id,RESOURCE_ENERGY,700,REQUEST_PRIORITY_PROGRESS);
+    }
+
+    for(let p of colony.kickStart.miningContainers)
+    {
+        for(let c of room.lookForAt(LOOK_STRUCTURES,p.pos.x,p.pos.y))
+        {
+            if(c.structureType == STRUCTURE_CONTAINER)
+            {
+                RequestEmptying(colony,c.id,RESOURCE_ENERGY,50,REQUEST_PRIORITY_FUNCTION);
+            }
+        }
+    }
+
+    if(colony.upgradePos)
+    {
+        for(let c of room.lookForAt(LOOK_STRUCTURES,colony.upgradePos.x,colony.upgradePos.y))
+        {
+            if(c.structureType == STRUCTURE_CONTAINER)
+            {
+                RequestResource(colony,c.id,RESOURCE_ENERGY,1500,REQUEST_PRIORITY_FUNCTION);
+            }
+        }
+    }
+
+    for(let source of Object.values(colony.kickStart.remoteSites))
+    {
+        if(source.enabled && source.containerPos)
+        {
+            for(let c of room.lookForAt(LOOK_STRUCTURES,source.containerPos.x,source.containerPos.y))
+            {
+                if(c.structureType == STRUCTURE_CONTAINER)
+                {
+                    RequestEmptying(colony,c.id,RESOURCE_ENERGY,50,REQUEST_PRIORITY_FUNCTION);
+                }
+            }
+        }
+    }
+
+    for(let c of room.lookForAt(LOOK_STRUCTURES,colony.pos.x,colony.pos.y+1))
+    {
+        if(c.structureType == STRUCTURE_CONTAINER)
+        {
+            room.storage = room.storage || c[LOOK_STRUCTURES];
+            break;
+        }
+    }
+}
+
+module.exports.EnqueuePickup=function(creep)
+{
+    if(creep.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
+    {
+        for(let r of creep.room.find(FIND_DROPPED_RESOURCES))
+        {
+            let work = 
+            {
+                action:CREEP_PICKUP,
+                target:r.id
+            };
+            creep.EnqueueWork(work);
+        }
+    }
+}
+
+module.exports.EnqueueHaulerWork = function(colony,containerId)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    let predicted = {};
+    this.GenerateFakeStores(colony,predicted);
+    for(let creepName of colony.haulerpool)
+    {
+        let creep = Game.creeps[creepName];
+        if(!creep.HasAtleast1TickWorthOfWork())
+        {
+            for(let creepName of colony.haulerpool)
+            {
+                let creep = Game.creeps[creepName];
+                if(!creep.HasAtleast1TickWorthOfWork())
+                {
+                    EnqueueToRequests(colony,containerId,creep,predicted);
+                }
+                if(!creep.HasAtleast1TickWorthOfWork())
+                {
+                    EnqueueFromRequests(colony,containerId,creep,predicted);
+                }
+                if(!creep.HasAtleast1TickWorthOfWork())
+                {
+                    this.EnqueuePickup(creep);
+                }
+                if(creep.memory._workQueue && creep.memory._workQueue.length > 200)
+                {
+                    console.log("infloop detected");
+                    delete creep.memory._workQueue;
+                }
+            }
+            break;
+        }
+    }
+}
+
+module.exports.FulfillRequests=function(colony)
+{    
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    if(!colony.requests)
+    {
+        return;
+    }
+    
+    deleteDead(colony.haulerpool);
+
+    let storageId = false;
+    for(let c of room.lookForAt(LOOK_STRUCTURES,colony.pos.x,colony.pos.y+1))
+    {
+        if(c.structureType == STRUCTURE_CONTAINER)
+        {
+            storageId = c.id;
+            break;
+        }
+    }
+    
+    this.EnqueueHaulerWork(colony,storageId);
+
+    let haulingPower = 0;
+
+    for(let creepName of colony.haulerpool)
+    {
+        let creep = Game.creeps[creepName];
+        haulingPower += creep.getActiveBodyparts(CARRY);
+        if(creep.HasWork())
+        {
+            creep.DoWork();
+        }
+        else
+        {
+            creep.say("idle")
+            creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),{range:6})
+        }
+    }
+
+    if(haulingPower < 20 + 10 * Object.keys(colony.kickStart.remoteSites).length)
+    {
+        if(colony.kickStart.wantMoreWorkers)
+        {
+            if(colony.level < 3 || colony.haulerpool.length > 1)
+            {
+                return;
+            }
+        }
+
+        let body = BODIES.LV1_HAULER;
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
+        {
+            body = BODIES.LV2_HAULER;
+        }
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
+        {
+            body = BODIES.LV3_HAULER;
+        }
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+        {
+            body = BODIES.LV4_HAULER;
+        }
+        Colony.Helpers.SpawnCreep(
+            colony,
+            colony.haulerpool,
+            body,
+            ROLE_HAULER);
     }
 }

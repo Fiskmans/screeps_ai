@@ -72,6 +72,16 @@ FakeStore.prototype.Transfer=function(other,type,amount)
     this.content[type] -= am;
 }
 
+FakeStore.prototype.Remove=function(res,amount)
+{
+    if(this.content[res])
+    {
+        let am = Math.min(this.Get(res),amount);
+        this.content[res] -= am;
+        this.total -= am;
+    }
+}
+
 MiningSpot = function(position)
 {
     if (position instanceof RoomPosition) 

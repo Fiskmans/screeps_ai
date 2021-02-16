@@ -52,7 +52,7 @@ ColonyUpgradeLinked=function(colony)
         return;
     }
 
-    RequestResource(colony,colony.sendLink,RESOURCE_ENERGY,600,REQUEST_PRIORITY_PROGRESS);
+    RequestResource(colony,colony.sendLink,RESOURCE_ENERGY,LINK_CAPACITY,REQUEST_PRIORITY_PROGRESS);
 
     if(link.store.getUsedCapacity(RESOURCE_ENERGY) < 200)
     {
@@ -60,19 +60,15 @@ ColonyUpgradeLinked=function(colony)
     }
 
 
-    for(var key in colony.workerpool)
+    for(var creep of Helpers.Creep.List(colony.workerpool))
     {
-        let creep = Game.creeps[colony.workerpool[key]];
-        if(creep)
+        if (creep.pos.roomName != colony.pos.roomName) 
         {
-            if (creep.pos.roomName != colony.pos.roomName) 
-            {
-                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
-            }
-            else
-            {
-                creep.smarterUpgradeLoop(link);
-            }
+            creep.GoToRoom(colony.pos.roomName);
+        }
+        else
+        {
+            creep.smarterUpgradeLoop(link);
         }
     }
 }
@@ -80,8 +76,8 @@ ColonyUpgradeLinked=function(colony)
 ColonyRespawnWorkers=function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
-    if(!colony.workerpool) {colony.workerpool = []};
-    if(!colony.workersensus) {colony.workersensus = []};
+    if(!colony.workerpool) { colony.workerpool = []};
+    if(!colony.workersensus) { colony.workersensus = []};
     deleteDead(colony.workersensus);
     
     let target = TARGET_WORKER_COUNT[colony.level];
@@ -91,44 +87,57 @@ ColonyRespawnWorkers=function(colony)
     {
         target++;
     }
-
-    let vis = new RoomVisual(colony.pos.roomName);
-    vis.text(count + " / " + target,25,3);
+    if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_WORKER_FREE_FOR_ALL_ENERGY_THRESHOLD)
+    {
+        target += 50;
+    }
 
     if (count < target)
     {
-        let list = [];
-        if(!InterShard.Transport.Adopt(list,ROLE_WORKER))
+        let body = BODIES.LV1_WORKER;
+
+        if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
         {
-            spawnRoleIntoList(room,colony.workerpool,ROLE_WORKER,{},colony.workersensus);
-            if (room.spawns.length == 0) 
+            body = BODIES.LV2_WORKER;
+        }
+
+        if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
+        {
+            body = BODIES.LV3_WORKER;
+        }
+        
+        if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT && colony.haulerpool.length != 0)
+        {
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
             {
-                let closest = FindClosestColony(colony.pos.roomName);
-                if (closest && closest.workerpool.length > 1) 
-                {
-                    let stolen = closest.workerpool.shift();
-                    if(stolen)
-                    {
-                        colony.workerpool.push(stolen);
-                        colony.workersensus.push(stolen);
-                        closest.workersensus = _.remove(closest.workersensus, function(c) {
-                            return c == stolen;
-                        });
-                        
-                        console.log(colony.pos.roomName + " stole a worker from " + closest.pos.roomName)
-                    }
-                }
-                else
-                {
-                    InterShard.Transport.Request(ROLE_WORKER);
-                }
+                body = BODIES.LV4_WORKER;
+            }
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[5])
+            {
+                body = BODIES.LV5_WORKER;
+            }
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
+            {
+                body = BODIES.LV6_WORKER;
+            }
+            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
+            {
+                body = BODIES.LV7_WORKER;
             }
         }
-        else
-        {
-            colony.workersensus = colony.workersensus.concat(list);
-            colony.workerpool = colony.workerpool.concat(list);
-        }
+
+        Colony.Helpers.SpawnCreep(
+            colony,
+            colony.workerpool,
+            body,
+            ROLE_WORKER,
+            {
+                extraList:colony.workersensus,
+                allowShards:true,
+                allowNearby:true,
+                nearbyRange:20,
+                nearbyBody:BODY_GROUPS.WORKERS
+            })
     }
 }
 
@@ -382,7 +391,7 @@ DeserializeLayout=function(layoutString,roomName)
         let x = layoutString.charAt(i+1);
         let y = layoutString.charAt(i+2);
 
-        layout.push({structure:CHAR_STRUCTURE[building],pos:new RoomPosition(BAKED_COORD["Decode"][x], BAKED_COORD["Decode"][y], roomName)});
+        layout.push({structure:CHAR_STRUCTURE[building],pos:new RoomPosition(COMPACT_NUMBER["Decode"][x], COMPACT_NUMBER["Decode"][y], roomName)});
     }
     return layout;
 }
@@ -394,8 +403,8 @@ SerializeLayout=function(layout)
     {
         result +=   
         STRUCTURE_CHAR[b.structure] + 
-        BAKED_COORD["Encode"][b.pos.x] + 
-        BAKED_COORD["Encode"][b.pos.y];
+        COMPACT_NUMBER["Encode"][b.pos.x] + 
+        COMPACT_NUMBER["Encode"][b.pos.y];
     }
     return result;
 }
@@ -559,7 +568,7 @@ ColonySelling=function(colony,terminal)
             if(err == OK)
             {   
                 terminal.cooldown = 11;
-                console.log(("Sold ".padEnd(10)) + (amount + " " + res).padEnd(20) + " from " + colony.pos.roomName + (" for " + order.price + " credits/unit").padEnd(26) + " total <font color=\"green\">" + (amount * order.price) + "<font>");
+                console.log(("Sold ".padEnd(10)) + "<img src='https://static.screeps.com/upload/mineral-icons/" + res + ".png'/>" + (amount + " ").padEnd(18) + " from " + colony.pos.roomName + (" for " + order.price + " credits/unit").padEnd(26) + " total <font color=\"green\">" + (amount * order.price) + "<font>");
                 order.amount -= amount;
             }
             else
@@ -578,12 +587,12 @@ ColonyMerchant=function(colony)
     if(!room) { return; }
     if(!colony.selling) { return; }
     let target = {};
-    target[RESOURCE_ENERGY] = MARKETING_STOCK_ENERGY;
+    target[RESOURCE_ENERGY] = TERMINAL_ENERGY_MIN;
     colony.selling.forEach((r) =>
     {
         if(r != RESOURCE_ENERGY)
         {
-            target[r] = MARGETING_STOCK_OTHER;
+            target[r] = TEMRINAL_RESOURCE_MIN;
         }
     });
     let terminal = room.terminal;
@@ -798,7 +807,7 @@ ColonyCollectPower=function(colony)
             {
                 spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.attackers,ROLE_BANK_ATTACKER);
             }
-            if(((target && target.hits < 200000) ||ruin ||pickup) && carryCapacity < exp.amount)
+            if(((target && target.hits < 200000) || ruin || pickup) && carryCapacity < exp.amount)
             {
                 for(let i = colony.haulerpool.length -1;i >= 0;i--)
                 {
@@ -899,33 +908,28 @@ ColonyBuildRamparts=function(colony)
 
     if(colony.buildRamparts && !hasBetterThingsToDo)
     {
-        if(!colony.rampartbuilders) {colony.rampartbuilders = []}
-        if(store.getUsedCapacity(RESOURCE_ENERGY) < RAMPART_DEACTIVATE_LIMIT)
+        Colony.Helpers.MaintainWorkers(colony,colony.rampartbuilders,colony.workersensus.length / 2);
+
+
+        let target = Game.getObjectById(colony.rapartTarget);
+        if(!target || Game.time % RAMPART_RETARGET_INTERVAL == 0)
         {
-            colony.workerpool.concat(colony.rampartbuilders);
-            colony.rampartbuilders = [];
-            delete colony.buildRamparts;
+            delete colony.rapartTarget;
         }
-        if(colony.rapartTarget && colony.workerpool.length > 1 && colony.workerpool[0])
-        {
-            colony.rampartbuilders.push(colony.workerpool.shift());
-        }
-        if(colony.workerpool.length == 0 && colony.rampartbuilders.length > 0)
-        {
-            colony.workerpool.push(colony.rampartbuilders.shift());
-        }
+
         if(!colony.rapartTarget)
         {
             colony.rapartTarget = ColonyFindMostDamagedRampart(colony,room);
         }
-        deleteDead(colony.rampartbuilders);
-
-        let target = Game.getObjectById(colony.rapartTarget);
-
-        colony.rampartbuilders.forEach((c) =>
+        
+        if(!colony.rapartTarget || store.getUsedCapacity(RESOURCE_ENERGY) < RAMPART_DEACTIVATE_LIMIT)
         {
-            let creep = Game.creeps[c];
+            delete colony.buildRamparts;
+            return;
+        }
 
+        for(let creep of Helpers.Creep.List(colony.rampartbuilders))
+        {
             creep.updateHarvestState()
             if (creep.memory.harvesting) 
             {
@@ -933,35 +937,24 @@ ColonyBuildRamparts=function(colony)
             }
             else
             {
-                if(target)
+                if(target instanceof StructureRampart)
                 {
-                    if(target instanceof StructureRampart)
-                    {
-                        creep.do('repair',target);
-                    }
-                    else
-                    {
-                        creep.do('build',target);
-                    }
+                    creep.do('repair',target);
+                }
+                else
+                {
+                    creep.do('build',target);
                 }
             }
-        })
-
-        if(!target || Game.time % RAMPART_RETARGET_INTERVAL == 0)
-        {
-            delete colony.rapartTarget;
         }
     }
     else
     {
-        if(store.getUsedCapacity(RESOURCE_ENERGY) > RAMPART_ACTIVATE_LIMIT)
+        Colony.Helpers.MaintainWorkers(colony,colony.rampartbuilders,0);
+
+        if(Game.time % RAMPART_RETARGET_INTERVAL == 0 && store.getUsedCapacity(RESOURCE_ENERGY) > RAMPART_ACTIVATE_LIMIT)
         {
-            colony.rampartbuilders = [];
             colony.buildRamparts = 1;
-        }
-        if(colony.workerpool.length == 0 && colony.rampartbuilders.length > 0)
-        {
-            colony.workerpool.push(colony.rampartbuilders.shift());
         }
     }
 }

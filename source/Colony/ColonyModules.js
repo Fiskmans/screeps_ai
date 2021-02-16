@@ -29,3 +29,13 @@ module.exports.MaintainHighways=function(colony)
         maintain(colony.highways[key],colony)
     }
 }
+
+let _RemoteMining = function(colony)
+{
+    Colony.RemoteMining.Run(colony);
+}
+
+module.exports.RemoteMining=function(colony)
+{
+    Performance.Decisions.Run("remote_mining",_RemoteMining,colony);
+}

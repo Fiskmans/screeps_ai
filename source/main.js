@@ -1,7 +1,11 @@
+console.log("Recompiling...");
+let start = Game.cpu.getUsed();
+
 require('requires')
 
 module.exports.loop = function()
 {
+    defaultMemory();
     Performance.Intents.Reset();
     
     for(let room of Object.values(Game.rooms))
@@ -9,8 +13,6 @@ module.exports.loop = function()
         room.PopulateShorthands();
     }
     
-    defaultMemory();
-    applyFlags();
     
     Colony.Dispatcher.DispatchAll();
     PowerCreeps();
@@ -27,16 +29,20 @@ module.exports.loop = function()
     if (Game.cpu.bucket > 1000 && Game.cpu.getUsed() < Game.cpu.limit) 
     {
         Scouting();
-        deleteAllDead()
-        checkSomePlanned(500)
-        analyzeQueue()
+        deleteAllDead();
+        Helpers.Spawn.CleanMemory();
           
-        marketTracking()
+        marketTracking();
         
         InterShard.Transport.ActivateDeadShards();
     }
     
+    applyFlags();
     Market.Prices.Update();
+    Empire.Scouting.Update();
+    Empire.Expansion.Update();
+    Empire.DumbShit.Buzz();
+    Helpers.Spawn.Track();
     
     UpdateGrafanaStats();
     
@@ -54,3 +60,5 @@ module.exports.loop = function()
 
 Performance.Profiler.Register("main",module.exports);
 require('PerformanceProfilerRegistry')
+
+console.log("Recompile successfull in: " + (Game.cpu.getUsed() - start) + " cpu");

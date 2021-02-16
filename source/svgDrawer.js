@@ -250,7 +250,6 @@ let ParseSVG=function(fileName)
     {
         if(element.type == "element")
         {
-
             switch(element.tagName.replace("\n",""))
             {
             case "rect":
@@ -285,7 +284,6 @@ let ParseSVG=function(fileName)
                     
                     layer.fill = ParseColor(style.fill, style["fill-opacity"])
                     layer.opacity =  style["fill-opacity"]||1;
-                    console.log("base: " + style["fill-opacity"] + "\tloaded opacity: " + layer.opacity + "\tcolor: " + layer.fill)
                     layer.stroke = ParseColor(style.stroke, style["stroke-opacity"]);
                     
                     layer.strokeWidth = style["stroke-width"];
@@ -323,15 +321,15 @@ RoomVisual.prototype.DrawSvg=function(x,y,filePath,opt={})
     _.defaults(opt,{scale:1,alpha:1})
     if(!LoadedSVGS[filePath])
     {
-        if(Game.cpu.getUsed() > SVG_DRAWER_CPU_LIMIT && Game.cpu.bucket > SVG_DRAWER_BUCKET_LIMIT)
+        Performance.Decisions.Run("svg_streaming",function()
         {
             LoadedSVGS[filePath] = ParseSVG(filePath);
-            console.log("streaming " + filePath)
-        }
-        else
-        {
-            return;
-        }
+        })   
+    }
+    if(!LoadedSVGS[filePath])
+    {
+        this.text("no",x,y,{font:opt.scale});
+        this.text("cpu",x,y+opt.scale,{font:opt.scale});
     }
 
     LoadedSVGS[filePath].forEach((layer) =>

@@ -287,6 +287,12 @@ Unplan=function(flag)
     flag.remove();
 }
 
+EvaluateExpansion=function(flag)
+{
+    Empire.Expansion.StartEvaluate(flag.pos.roomName);
+    flag.remove();
+}
+
 FlagFunctions["Mine"] = Mine;
 FlagFunctions["Scout"] = Scout;
 FlagFunctions["Unplan"] = Unplan;
@@ -298,6 +304,7 @@ FlagFunctions["Disassemble"] = Disassemble;
 FlagFunctions["StartColony"] = StartColony;
 FlagFunctions["AbandonRoad"] = AbandonRoad;
 FlagFunctions["MarkAsOwned"] = MarkAsOwned;
+FlagFunctions["EvaluateExpansion"] = EvaluateExpansion;
 
 applyFlags=function()
 {

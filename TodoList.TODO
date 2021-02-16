@@ -9,6 +9,10 @@
 - Implement buildRequests
 - optimize kickstart to avoid tick losses
 - kickstart stomping deterent
+- Attack vector finder in Combat
+- Adaptive worker count based on income
+- Invadercore tracker
+- Mining income includes boosted sources
 
 Done
 - Redo market
@@ -17,3 +21,4 @@ Done
 - Migrate colonyPlanner to Colony.planner
 - Write own profiler in Performance.profile, hook intents?
 - Kickstart code for RCL<4 colonies
+- Remote mining

@@ -1,4 +1,4 @@
-Creep.prototype.do=function(action,target,arg1,arg2,arg3)
+Creep.prototype.do=function(action,target,...args)
 {
     if (typeof(target) === "string") 
     {
@@ -7,16 +7,16 @@ Creep.prototype.do=function(action,target,arg1,arg2,arg3)
     let err;
     if(action == CREEP_WITHDRAW && target instanceof Creep)
     {
-        err = target[CREEP_TRANSFER](this,arg1,arg2,arg3);
+        err = target[CREEP_TRANSFER](this,...args);
     }
     else
     {
-        err = this[action](target,arg1,arg2,arg3);
+        err = this[action](target,...args);
     }
     
     if(err == ERR_NOT_IN_RANGE)
     {
-        this.travelTo(target)
+        this.travelTo(target,{range:1})
     }
     return err;
 }
@@ -78,10 +78,6 @@ Creep.prototype.dumbUpgrade=function()
         this.travelTo(this.room.controller)
     }
 }
-Creep.prototype.scavenge = function()
-{
-    
-}
 
 Creep.prototype.dumbBuild=function()
 {
@@ -104,7 +100,7 @@ Creep.prototype.HasAtleast1TickWorthOfWork=function()
 
 Creep.prototype.OverWorked = function()
 {
-    return this.memory._workQueue && this.memory._workQueue.length > 30;
+    return this.memory._workQueue && this.memory._workQueue.length > 12;
 }
 
 Creep.prototype.EnqueueWork=function(work)
@@ -129,7 +125,7 @@ Creep.prototype._workPossible=function(work)
                 return false;
             }
             target = Game.getObjectById(work.target);
-            if(!target || target.store.getFreeCapacity(work.arg1) == 0)
+            if(!target || !target.store || target.store.getFreeCapacity(work.arg1) == 0)
             {
                 return false;
             }
@@ -140,7 +136,14 @@ Creep.prototype._workPossible=function(work)
                 return false;
             }
             target = Game.getObjectById(work.target);
-            if(!target || target.store.getUsedCapacity(work.arg1) == 0)
+            if(!target || !target.store || target.store.getUsedCapacity(work.arg1) == 0)
+            {
+                return false;
+            }
+            break;
+        case CREEP_REPAIR:
+            target = Game.getObjectById(work.target);
+            if(!target || target.hits == target.hitsMax)
             {
                 return false;
             }
@@ -186,7 +189,7 @@ Creep.prototype.DoWork=function()
             let nextTarget = Game.getObjectById(this.memory._workQueue[0].target);
             if(nextTarget && nextTarget.pos.getRangeTo(this.pos) > 1)
             {
-                this.travelTo(nextTarget);
+                this.travelTo(nextTarget,{range:1});
             }
         }
         return !this.HasWork();
@@ -222,8 +225,8 @@ Creep.prototype.DrawWork=function(vis,opt)
         let obj = Game.getObjectById(work.target)
         if(!obj)
         {
-            vis.line(lx + 0.5,ly + 0.5,lx - 0.5,ly - 0.5,{stroke:"#FF0000"});
-            vis.line(lx + 0.5,ly - 0.5,lx + 0.5,ly - 0.5,{stroke:"#FF0000"});
+            vis.line(lx + 0.5,ly + 0.5,lx - 0.5,ly - 0.5,{color:"#FF0000"});
+            vis.line(lx - 0.5,ly + 0.5,lx + 0.5,ly - 0.5,{color:"#FF0000"});
             break;
         }
         vis.circle(obj.pos,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
@@ -278,6 +281,15 @@ Creep.prototype.SimulateWorkUnit=function(workUnit,fakeStores)
             fakeStores[this.id].Transfer(fakeStores[workUnit.target],workUnit.arg1,workUnit.arg2);
         }
         break;
+    case CREEP_BUILD:
+        fakeStores[this.id].Remove(RESOURCE_ENERGY,this.getActiveBodyparts(WORK) * BUILD_POWER);
+        break;
+    case CREEP_REPAIR:
+        fakeStores[this.id].Remove(RESOURCE_ENERGY,this.getActiveBodyparts(WORK) * REPAIR_POWER * REPAIR_COST);
+        break;
+    case CREEP_UPGRADE_CONTROLLER:
+        fakeStores[this.id].Remove(RESOURCE_ENERGY,this.getActiveBodyparts(WORK) * UPGRADE_CONTROLLER_POWER);
+        break;
     }
 }
 
@@ -330,7 +342,35 @@ Creep.prototype.smarterUpgradeLoop=function(link)
 {
     this.updateHarvestState()
     if (this.memory.harvesting) {
-        this.do('withdraw',link,RESOURCE_ENERGY);
+        if(!this.HasAtleast1TickWorthOfWork())
+        {
+            if(link.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
+            {
+                this.EnqueueWork({
+                    action:CREEP_WITHDRAW,
+                    target:link.id,
+                    arg1:RESOURCE_ENERGY
+                });
+            }
+            else
+            {
+                for(let r of this.room.find(FIND_DROPPED_RESOURCES))
+                {
+                    if(r.resourceType == RESOURCE_ENERGY)
+                    {
+                        this.EnqueueWork({
+                            action:CREEP_PICKUP,
+                            target:r.id
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+        if(this.HasWork())
+        {
+            this.DoWork();
+        }
     }
     else
     {
@@ -448,5 +488,25 @@ Creep.prototype.Retire = function(roomName)
 
 Creep.prototype.GoToRoom=function(roomName)
 {
-    this.travelTo(new RoomPosition(25,25,roomName),{range:20});
+    this.travelTo(new RoomPosition(25,25,roomName),{range:20,preferHighway:true});
+}
+
+Creep.prototype.OpportuneRenew=function()
+{
+    if(this.pos.x < 4 || this.pos.x > 45 || this.pos.y < 4 || this.pos.y > 45)
+    {
+        return;
+    }
+    if(this.room.energyAvailable > 300 && this.ticksToLive < 1000)
+    {
+        for(let s of this.room.lookForAtArea(LOOK_STRUCTURES,this.pos.y-1,this.pos.x-1,this.pos.y+1,this.pos.x+1,true))
+        {
+            if(s[LOOK_STRUCTURES].structureType == STRUCTURE_SPAWN && s[LOOK_STRUCTURES].my && !s[LOOK_STRUCTURES].spawning)
+            {
+                this.say("Renewed");
+                s[LOOK_STRUCTURES].renewCreep(this);
+                s[LOOK_STRUCTURES].spawning = true;
+            }
+        }
+    }
 }

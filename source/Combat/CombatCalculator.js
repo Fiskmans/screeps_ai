@@ -30,8 +30,7 @@ module.exports.Damage=function(room,damageType,_x,_y,options)
         {
             dealers.push(tower);
 
-            let range = tower.pos.getRangeTo(pos);
-            damage += Math.round(lerp(TOWER_POWER_ATTACK,TOWER_POWER_ATTACK*(1-TOWER_FALLOFF), ((range - TOWER_OPTIMAL_RANGE)/(TOWER_FALLOFF_RANGE-TOWER_OPTIMAL_RANGE)).clamp(0,1)));
+            damage += Helpers.Tower.Effectivness(tower.pos.getRangeTo(pos),TOWER_ACTION_ATTACK);
         }
     }
 
@@ -113,12 +112,11 @@ module.exports.Heal=function(room,healType,_x,_y,options)
 
     for(let tower of options.towers || room.Structures(STRUCTURE_TOWER))
     {
-        if(tower.my == myState && tower.store.getUsedCapacity(RESOURCE_ENERGY) > TOWER_ENERGY_COST * 3 && !options.blacklist.includes(tower.id))
+        if(tower.my == myState && tower.store.getUsedCapacity(RESOURCE_ENERGY) > TOWER_ENERGY_COST && !options.blacklist.includes(tower.id))
         {
             dealers.push(tower);
 
-            let range = tower.pos.getRangeTo(pos);
-            heal += Math.round(lerp(TOWER_POWER_HEAL,TOWER_POWER_HEAL*(1-TOWER_FALLOFF), ((range - TOWER_OPTIMAL_RANGE)/(TOWER_FALLOFF_RANGE-TOWER_OPTIMAL_RANGE)).clamp(0,1)));
+            heal += Helpers.Tower.Effectivness(tower.pos.getRangeTo(pos),TOWER_ACTION_HEAL);
         }
     }
     
@@ -151,7 +149,7 @@ module.exports.Heal=function(room,healType,_x,_y,options)
                         let boost = 1;
                         if(part.boost)
                         {
-                            boost = BOOSTS[HEAL][part.boost].attack;
+                            boost = BOOSTS[HEAL][part.boost].heal;
                         }
                         healAmount += HEAL_POWER * boost;
                         can = true;
@@ -172,10 +170,23 @@ module.exports.Heal=function(room,healType,_x,_y,options)
             if(can)
             {
                 dealers.push(creep);
+                heal += healAmount
             }
-            heal += healAmount
         }
     }
 
     return {heal:heal,dealers:dealers};
+}
+
+module.exports.ResistanceCallback=function(roomName)
+{
+    let room = Game.rooms[roomName];
+    let matrix = new Pathfinder.CostMatrix();;
+    if(!room)
+    {
+        return matrix;
+    }
+
+
+    return matrix;
 }

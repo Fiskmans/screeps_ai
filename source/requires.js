@@ -1,5 +1,6 @@
 require('Globals')
 require('constants')
+require('functions')
 
 Colony      = require('ColonyRequires');
 InterShard  = require('InterShardRequires');
@@ -8,7 +9,7 @@ Market      = require('MarketRequires');
 Performance = require('PerformanceRequires');
 Helpers     = require('HelpersRequires');
 QuickFind   = require('QuickFindRequires');
-Empire      = require('EmpireExpansion');
+Empire      = require('EmpireRequires');
 
 require('traveler')
 
@@ -17,8 +18,6 @@ require('requirePrototypes')
 require('customprototypes')
 require('svgDrawer')
 
-require('functions')
-require('expansionplanner')
 require("layouts")
 
 require('colony')

@@ -277,7 +277,7 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
     let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos,storageId);
     if(req)
     {
-        if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < req.targetAmount - predicted[req.id].Get(req.resource))
+        if(storageId && predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < req.targetAmount - predicted[req.id].Get(req.resource))
         {
             for(let r of Object.keys(predicted[creep.id].content))
             {
@@ -289,7 +289,7 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
                 }
             }
         }
-        if(predicted[creep.id].Get(req.resource) < req.targetAmount - predicted[req.id].Get(req.resource))
+        if(storageId && predicted[creep.id].Get(req.resource) < req.targetAmount - predicted[req.id].Get(req.resource))
         {
             if(predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].Get(req.resource) > 49)
             {
@@ -339,10 +339,15 @@ EnqueueToRequests=function(colony,storageId,creep,predicted)
 
 EnqueueFromRequests=function(colony,storageId,creep,predicted)
 {
+    if(creep.spawning)
+    {
+        return;
+    }
+
     let req = ColonyFindUnfilledFromRequest(colony,predicted,creep.pos);
     if(req)
     {
-        if(predicted[creep.id].total > 0)
+        if(storageId && predicted[creep.id].total > 0)
         {
             for(let r of Object.keys(predicted[creep.id].content))
             {
@@ -354,26 +359,28 @@ EnqueueFromRequests=function(colony,storageId,creep,predicted)
                 }
             }
         }
-        
-        let work = {action:CREEP_WITHDRAW,target:req.id,arg1:req.resource};
-        creep.EnqueueWork(work);
-        creep.SimulateWorkUnit(work,predicted);
-
-        let lastTarget = Game.getObjectById(req.id);
-        let req2 = ColonyFindUnfilledFromRequest(colony,predicted,lastTarget.pos);
-
-        while(req2 && predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total > 0)
+        if(predicted[creep.id].total < creep.carry.getCapacity(RESOURCE_ENERGY))
         {
-            let work = {action:CREEP_WITHDRAW,target:req2.id,arg1:req2.resource};
+            let work = {action:CREEP_WITHDRAW,target:req.id,arg1:req.resource};
             creep.EnqueueWork(work);
             creep.SimulateWorkUnit(work,predicted);
-            
-            lastTarget = Game.getObjectById(req2.id);
-            req2 = ColonyFindUnfilledFromRequest(colony,predicted,lastTarget.pos);
-
-            if(creep.OverWorked())
+    
+            let lastTarget = Game.getObjectById(req.id);
+            let req2 = ColonyFindUnfilledFromRequest(colony,predicted,lastTarget.pos);
+    
+            while(req2 && predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total > 0)
             {
-                break;
+                let work = {action:CREEP_WITHDRAW,target:req2.id,arg1:req2.resource};
+                creep.EnqueueWork(work);
+                creep.SimulateWorkUnit(work,predicted);
+                
+                lastTarget = Game.getObjectById(req2.id);
+                req2 = ColonyFindUnfilledFromRequest(colony,predicted,lastTarget.pos);
+    
+                if(creep.OverWorked())
+                {
+                    break;
+                }
             }
         }
     }

@@ -527,35 +527,55 @@ GetRoomDiamondDistance=function(roomName1,roomName2)
 DefendColony=function(colony)
 {
     let room = Game.rooms[colony.pos.roomName]
-    if (room) {
-        let targets = room.hostiles();
+    if (!room) 
+    {
+        return;
+    }
+    let targets = room.hostiles();
 
-        targets = _.filter(targets,(t)=>
+    targets = _.filter(targets,(t)=>
+    {
+        if((t instanceof Creep))
         {
-            if((t instanceof Creep))
+            if(t.pos.inRangeTo(colony.pos.x+5,colony.pos.y+5,6))
             {
-                if(t.pos.inRangeTo(colony.pos.x+5,colony.pos.y+5,6))
-                {
-                    return true;
-                }
-                if (t.getActiveBodyparts(WORK) + t.getActiveBodyparts(ATTACK) + t.getActiveBodyparts(RANGED_ATTACK) > 0) 
-                {
-                    return true
-                }
+                return true;
             }
-            else
+            if (t.getActiveBodyparts(WORK) + t.getActiveBodyparts(ATTACK) + t.getActiveBodyparts(RANGED_ATTACK) > 0) 
             {
                 return true
             }
-            return false;
-        })
-        
-        let turrets = room.towers;
-        
-        if(targets.length > 0)
+        }
+        else
         {
-            if (turrets.length > 0) {
-                FireTurrets(targets,turrets);
+            return true
+        }
+        return false;
+    })
+    
+    if(targets.length > 0)
+    {
+        if (room.towers.length > 0) 
+        {
+            FireTurrets(targets,room.towers);
+        }
+    }
+    else
+    {
+        for(let c of room.find(FIND_MY_CREEPS))
+        {
+            if(c.hits < c.hitsMax)
+            {
+                for(let t of room.towers)
+                {
+                    if(c.hits >= c.hitsMax)
+                    {
+                        break;
+                    }
+                    t.heal(c);
+                    c.hits += Helpers.Tower.Effectivness((c.pos.getRangeTo(t.pos),TOWER_ACTION_HEAL));
+                }
+                break;
             }
         }
     }
@@ -634,18 +654,6 @@ marketTracking=function()
     }
     
     //console.log(JSON.stringify(orders));
-}
-
-fireAllTurrets=function()
-{
-    _(Game.rooms).filter(r => _.get(r, ['controller', 'my'])
-    .forEach(r => {_(r.find(FIND_MY_STRUCTURES))
-    .filter('structureType', STRUCTURE_TOWER)
-    .shuffle()
-    .zip(_(r.find(FIND_HOSTILE_CREEPS)
-    .filter(x => {return _.some(x.body, y => [ATTACK, WORK, RANGED_ATTACK, CARRY].includes(y.type));})
-    .shuffle().value()))
-    .forEach(t => {!_.some(t, x => !x) &&t[0].attack(t[1])})}))
 }
 
 colonize=function(colony)
@@ -852,9 +860,21 @@ pointat=function(roomName,target)
 
 digAllMines=function(colony)
 {
-    for(let i in colony.miningSpots)
+    if(Game.time % REFRESH_INCOME_INTERVAL == 0)
     {
-        digMine(colony,colony.miningSpots[i])
+        Colony.Helpers.SetIncome(colony,'local_mining',0);
+        for(let spot of colony.miningSpots)
+        {
+            if(spot.type != 'mineral')
+            {
+                Colony.Helpers.IncrementIncome(colony,'local_mining',10);
+            }
+        }
+    }
+
+    for(let spot of colony.miningSpots)
+    {
+        digMine(colony,spot)
     }
 }
 
@@ -1244,22 +1264,6 @@ spawnRoleIntoList=function(room,list,role,options={},additionalList)
     
 }
 
-spawnUsingFirst=function(spawns,list,body,name,options={})
-{
-    var spawns = _.filter(spawns,(s) => {return !s.spawning})
-    if (spawns.length > 0) {
-        options = _.defaults(options,{directions:_.first(spawns).memory.preferredDirections,forcename:false});
-        var code = _.first(spawns).spawnCreep(body,name + (options.forcename ? "" : Memory.creepid),options);
-        if (code == OK) {
-            list.push(name+ (options.forcename ? "" : Memory.creepid));
-            Memory.creepid += 1;
-        }
-        return code
-    }
-    //all spawns busy
-    return ERR_BUSY
-}
-
 dopath=function(Highway)
 {
     if (Highway.start && Highway.end) 
@@ -1510,7 +1514,7 @@ MaintainColonydynamic=function(colony)
                 let x = colony.layout.charAt(colony.at*3+1);
                 let y = colony.layout.charAt(colony.at*3+2);
 
-                let pos = new RoomPosition(BAKED_COORD["Decode"][x], BAKED_COORD["Decode"][y], colony.pos.roomName);
+                let pos = new RoomPosition(COMPACT_NUMBER.Decode[x], COMPACT_NUMBER.Decode[y], colony.pos.roomName);
                 let wantedstruct = CHAR_STRUCTURE[building]
 
                 if (creep.pos.roomName != pos.roomName || creep.pos.getRangeTo(pos.x,pos.y) > 2) // path to current structure
@@ -1836,67 +1840,6 @@ Scavange=function(colony)
     
 }
 
-TrackAllDelta=function()
-{
-    for(let i in Memory.colonies)
-    {
-        TrackDelta(Memory.colonies[i]);
-    }
-}
-
-CostOfBody=function(body)
-{
-    let result = 0;
-    for(let i in body)
-    {
-        result += BODYPART_COST[body[i].type];
-    }
-    return result;
-}
-
-TrackDelta=function(colony)
-{
-    let delta = 0;
-    let allCreeps = [];
-    allCreeps = allCreeps.concat(colony.workerpool);
-    allCreeps = allCreeps.concat(colony.haulerpool);
-    
-    if (colony.worker) {
-        allCreeps.push(colony.worker)
-    }
-    if (colony.builder) {
-        allCreeps.push(colony.builder)
-    }
-    if (colony.scavenger) {
-        allCreeps.push(colony.scavenger)
-    }
-    
-    for(let i in colony.highways)
-    {
-        if (colony.highways[i].worker) {
-            allCreeps.push(colony.highways[i].worker)
-        }
-    }
-    for(let i in allCreeps)
-    {
-        let creep = Game.creeps[allCreeps[i]];
-        if (creep) {
-            delta -= CostOfBody(creep.body)/CREEP_LIFE_TIME
-        }
-    }
-    
-    let room = Game.rooms[colony.pos.roomName];
-    if (room) {
-        delta += room.find(FIND_SOURCES).length * 10;
-    }
-    
-    let roads = room.roads;
-    for(let i in roads)
-    {
-        delta -= roads[i].hitsMax/ROAD_DECAY_TIME/50/10;
-    }
-}
-
 ExtractContentOfStore=function(store)
 {
     return Object.keys(store);
@@ -1943,7 +1886,6 @@ ImportResources=function(terminal,items)
         }
     })
 }
-
 
 BezierInterpolate=function(points,part)
 {

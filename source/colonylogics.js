@@ -1,13 +1,9 @@
 colonyLogic=
 {
-    0:function(colony)
+    //level 4
+    4:function(colony)
     {
-        Colony.Planner.Expand(colony);
-        colonize(colony);
-    },
-    //level 1
-    1:function(colony)
-    {
+        DefendColony(colony);
         Colony.Planner.Expand(colony);
         GuardSpawningColony(colony);
         ColonyRespawnWorkers(colony);
@@ -16,11 +12,6 @@ colonyLogic=
         PerformAttacks(colony);
         Colony.Modules.MaintainHighways(colony);
         colonyMiningSpots(colony);
-    },
-    //level 2
-    2:function(colony)
-    {
-        this[1](colony);
         StartMining(colony);
         ColonyMining(colony);
         ColonyHauling(colony);
@@ -28,21 +19,11 @@ colonyLogic=
         ColonyEmptyMines(colony);
         colonyDismantle(colony);
         maintainColony(colony);
-    },
-    //level 3
-    3:function(colony)
-    {
-        DefendColony(colony);
-        this[2](colony)
         maintainall(colony)
-    },
-    //level 4
-    4:function(colony)
-    {
-        this[3](colony)
         ColonyDismantleAll(colony);
         ColonyBuildRamparts(colony);
         ColonyRequestRefill(colony);
+        Colony.Modules.RemoteMining(colony);
     },
     //level 5
     5:function(colony)

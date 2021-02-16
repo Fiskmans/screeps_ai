@@ -26,6 +26,18 @@ drawColony=function(colony)
             align:"right"
         });
 
+    let controllerDelta = room.controller.progress - colony.lastProgress || 0;
+    vis.text(
+        "+" + controllerDelta,
+        room.controller.pos.x + 1.9,
+        room.controller.pos.y + 0.4,
+        {
+            font:0.3,
+            color:"#" + lerpColor(0xFFAAAA,0xAAFFAA,controllerPercent).toString(16),
+            align:"right"
+        });
+
+    colony.lastProgress = room.controller.progress;
     if(colony.layout)
     {
         let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);

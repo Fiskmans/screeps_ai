@@ -28,12 +28,16 @@ module.exports.Dispatch=function(colony)
     {
         colony.level = 0;
     }
-    if(!room || !room.storage || !room.storage.isActive())
+    if(!room || !room.storage || !room.storage.my || !room.storage.isActive())
     {
         Colony.KickStart.Main(colony);
     }
     else
     {
+        if(colony.kickStart)
+        {
+            delete colony.kickStart;
+        }
         colonyLogic[colony.level](colony);
     }
     drawColony(colony)

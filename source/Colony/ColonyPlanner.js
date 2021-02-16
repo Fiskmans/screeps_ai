@@ -99,29 +99,8 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
     return matrix;
 }
 
-module.exports.InvalidatePathMatrixes=function()
-{
-    this.stashedRoad = {};
-}
-
 module.exports.MatrixRoadPreferFuture=function(roomName)
 {
-    if(!this.stashedRoad)
-    {
-        this.stashedRoad = {};
-    }
-    if(this.stashedRoad[roomName])
-    {
-        if(Game.time - this.stashedRoad[roomName].at < STALE_PLANNER_COSTMATRIX_THRESHOLD)
-        {
-            return this.stashedRoad[roomName].value;
-        }
-        else
-        {
-            delete this.stashedRoad[roomName].value;
-        }
-    }
-
     let matrix = new PathFinder.CostMatrix();
     if(Game.shard.name == "shard3" && roomName == Memory.mainColony)
     {
@@ -161,7 +140,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
     {
         if(colony.pos.roomName == roomName)
         {
-            for(let d = -50;d < 50;d++)
+            for(let d = -12;d < 12;d++)
             {
                 let p = 
                 [
@@ -229,9 +208,26 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
                 }
             }
         }
+        if(colony.remotes)
+        {
+            let blob = colony.remotes[roomName];
+            if(blob)
+            {
+                if(blob.layout)
+                {
+                    let buildings = DeserializeLayout(blob.layout,roomName);
+                    for(let b of buildings)
+                    {
+                        if(b.structure == STRUCTURE_ROAD)
+                        {
+                            matrix.set(b.pos.x,b.pos.y,1);
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    this.stashedRoad[roomName] = {at:Game.time,value:matrix};
     return matrix;
 }
 
@@ -296,7 +292,7 @@ module.exports.BlankQueue = function()
     {
         for(let y = 1;y < 49;y++)
         {
-            val += BAKED_COORD.Encode[x] + BAKED_COORD.Encode[y];
+            val += COMPACT_NUMBER.Encode[x] + COMPACT_NUMBER.Encode[y];
         }
     }
     return val;
@@ -378,8 +374,8 @@ module.exports.Place=function(colony,tag,layout,allowance)
         {
             break;
         }
-        let x = BAKED_COORD.Decode[stash.queue.charAt(0)];
-        let y = BAKED_COORD.Decode[stash.queue.charAt(1)];
+        let x = COMPACT_NUMBER.Decode[stash.queue.charAt(0)];
+        let y = COMPACT_NUMBER.Decode[stash.queue.charAt(1)];
 
         let pos = new RoomPosition(x,y,colony.pos.roomName);
 

@@ -14,4 +14,13 @@ defaultMemory=function()
     if(!Memory.portals) { Memory.portals = {} }
     if(!Memory.interShard) { Memory.interShard = { to:{} } }
     if(!Memory.orphans) { Memory.orphans = {} }
+    if(!Memory.empire) { Memory.empire = {} }
+
+    if(!Memory.empire.scouting) { Memory.empire.scouting = {}; }
+    if(!Memory.empire.scouting.idleScouts) { Memory.empire.scouting.idleScouts = []; }
+    if(!Memory.empire.scouting.rooms) { Memory.empire.scouting.rooms = {}; }
+
+    if(!Memory.empire.expansion) { Memory.empire.expansion = {}; }
+    if(!Memory.empire.expansion.rooms) {Memory.empire.expansion.rooms = {}; }
+    if(!Memory.empire.expansion.finalized) {Memory.empire.expansion.finalized = []; }
 }

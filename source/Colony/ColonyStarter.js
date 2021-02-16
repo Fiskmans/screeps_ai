@@ -9,6 +9,8 @@ module.exports.Generate=function(pos)
             miningSpots : [],
             constructionsite : false,
             workerpool : [],
-            lastmaintained : 0
-        })
+            lastmaintained : 0,
+            income:{},
+            expenses:{}
+        });
 }

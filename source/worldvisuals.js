@@ -363,9 +363,49 @@ let visuals =
         {
             return;
         }
-        if(Memory.performancedecisions && Memory.performancedecisions.average)
+        Performance.Decisions.Draw(vis);
+        Empire.Expansion.Draw(Memory.lastViewed.room)
+    },
+    QRCode:function()
+    {
+        let flag = Game.flags["QR"];
+        if(flag && flag.color != COLOR_RED)
         {
-            vis.text(Memory.performancedecisions.average.toFixed(2) + " cpu" ,49.4,0,{align:"right",font:0.4});
+            if(Helpers.Externals.IsRoomVisible(flag.pos.roomName))
+            {
+                let vis = new RoomVisual(flag.pos.roomName);
+                for(let y in RICK_QR_CODE)
+                {
+                    for(let x = 0; x < RICK_QR_CODE[y].length; x++)
+                    {
+                        if(RICK_QR_CODE[y].charAt(x) == '1')
+                        {
+                            vis.symbol(
+                                flag.pos.x + x, 
+                                flag.pos.y - -y,
+                                STRUCTURE_WALL,
+                                {scale:1.2})
+                        }
+                        else
+                        {
+                            vis.symbol(
+                                flag.pos.x + x, 
+                                flag.pos.y - -y,
+                                STRUCTURE_RAMPART)
+                        }
+
+                        //vis.rect(
+                        //    flag.pos.x + x-0.5, 
+                        //    flag.pos.y - -y-0.5,
+                        //    1,
+                        //    1,
+                        //    { 
+                        //        fill:RICK_QR_CODE[y].charAt(x) == '1' ? "#000000" : "#FFFFFF",
+                        //        opacity:1
+                        //    });
+                    }
+                }
+            }
         }
     }
 }
@@ -380,6 +420,7 @@ worldVisuals=function()
     visuals.resourceDemo();
     visuals.damage();
     visuals.hud();
+    visuals.QRCode();
     
     if(Game.flags["Start"] && Game.flags["End"])
     {
@@ -396,7 +437,7 @@ worldVisuals=function()
 
     //if(Game.shard.name == "shard2")
     //{
-    //   let vis = new RoomVisual("W33S38");
-    //   vis.CostMatrix("W33S38",Colony.Planner.MatrixRoadPreferFuture("W33S38"));
+    //   let vis = new RoomVisual("W37S47");
+    //   vis.CostMatrix("W37S47",Colony.Planner.MatrixRoadPreferFuture("W37S47"));
     //}
 }

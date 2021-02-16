@@ -1,6 +1,5 @@
 
-
-module.exports.SpawnCreep=function(colony,list,body,role,options)
+module.exports.SpawnCreep=function(colonyOrRoomName,list,body,role,options)
 {
     if(!options) {options = {}}
     _.defaults(options,
@@ -11,30 +10,46 @@ module.exports.SpawnCreep=function(colony,list,body,role,options)
             nearbyBody:[]
         });
 
-    let room = Game.rooms[colony.pos.roomName];
+    let roomName = false;
+    if(typeof(colonyOrRoomName) === 'string')
+    {
+        roomName = colonyOrRoomName;
+    }
+    else
+    {
+        roomName = colonyOrRoomName.pos.roomName;
+    }
+    
+    let room = Game.rooms[roomName];
+
     let cost = Helpers.Resources.BodyCost(body);
     if((!room || room.energyCapacityAvailable < cost))
     {
         if(options.allowNearby)
         {
+            let closest =  options.nearbyRange + 1;
             for(let c of Object.values(Memory.colonies))
             {
-                if(Game.map.getRoomLinearDistance(colony.pos.roomName,c.pos.roomName) <= options.nearbyRange)
+                let d = Game.map.getRoomLinearDistance(roomName,c.pos.roomName);
+                if(d <= options.nearbyRange)
                 {
-                    let r2 = Game.rooms[c.pos.roomName]
-                    if(r2 && r2.energyCapacityAvailable >= cost)
+                    if(d < closest)
                     {
-                        room = r2;
-                        for(let b of options.nearbyBody)
+                        closest = d;
+                        let r2 = Game.rooms[c.pos.roomName]
+                        if(r2 && r2.energyCapacityAvailable >= cost)
                         {
-                            let bcost = Helpers.Resources.BodyCost(b);
-                            if(bcost <= r2.energyCapacityAvailable)
+                            room = r2;
+                            for(let b of options.nearbyBody)
                             {
-                                cost = bcost;
-                                body = b;
+                                let bcost = Helpers.Resources.BodyCost(b);
+                                if(bcost <= r2.energyCapacityAvailable)
+                                {
+                                    cost = bcost;
+                                    body = b;
+                                }
                             }
                         }
-                        break;
                     }
                 }
             }
@@ -54,7 +69,7 @@ module.exports.SpawnCreep=function(colony,list,body,role,options)
         }
     }
 
-    if(cost > room.energyAvailable)
+    if(!room || cost > room.energyAvailable)
     {
         return ERR_NOT_ENOUGH_ENERGY;
     }
@@ -64,7 +79,7 @@ module.exports.SpawnCreep=function(colony,list,body,role,options)
         if(!spawn.spawning)
         {
             let name = (SHARD_CREEP_NAME_PREFIXES[Game.shard.name] || '?' ) + (ROLE_PREFIXES[role] || '?') + Memory.creepid;
-            if(spawn.spawnCreep(body,name,{memory:{home:colony.pos.roomName}}) == OK)
+            if(spawn.spawnCreep(body,name,{memory:{home:roomName}}) == OK)
             {
                 spawn.spawning = true;
                 list.push(name);
@@ -78,4 +93,78 @@ module.exports.SpawnCreep=function(colony,list,body,role,options)
             }
         }
     }
+}
+
+
+module.exports.MaintainWorkers=function(colony,list,amount)
+{
+    
+    while(list.length > amount)
+    {
+        colony.workerpool.push(list.shift());
+    }
+    while(list.length < amount && colony.workerpool.length > 0)
+    {
+        list.push(colony.workerpool.shift());
+    }
+}
+
+module.exports.ReduceLayout=function(layout)
+{
+    let out = "";
+    let exists = [];
+    for(let i = 0; i < layout.length;i += 3)
+    {
+        let part = layout.substring(i,i+3);
+        if(!exists.includes(part))
+        {
+            exists.push(part);
+            out += part;
+        }
+    }
+    return out;
+}
+
+module.exports.ReduceSubLayouts=function(colony)
+{
+    for(let tag in colony.subLayouts)
+    {
+        colony.subLayouts[tag] = this.ReduceLayout(colony.subLayouts[tag]);
+    }
+}
+
+module.exports.IncrementExpense=function(colony,tag,amount)
+{
+    if(!colony.expenses[tag]) { colony.expenses[tag] = 0; }
+    colony.expenses[tag] += amount;
+}
+
+module.exports.DecrementExpense=function(colony,tag,amount)
+{
+    if(!colony.expenses[tag]) { colony.expenses[tag] = 0; }
+    colony.expenses[tag] -= amount;
+    colony.expenses[tag].clamp(0,Infinity)
+}
+
+module.exports.SetExpense=function(colony,tag,amount)
+{
+    colony.expenses[tag] = amount;
+}
+
+module.exports.IncrementIncome=function(colony,tag,amount)
+{
+    if(!colony.income[tag]) { colony.income[tag] = 0; }
+    colony.income[tag] += amount;
+}
+
+module.exports.DecrementIncome=function(colony,tag,amount)
+{
+    if(!colony.income[tag]) { colony.income[tag] = 0; }
+    colony.income[tag] -= amount;
+    colony.income[tag].clamp(0,Infinity);
+}
+
+module.exports.SetIncome=function(colony,tag,amount)
+{
+    colony.income[tag] = amount;
 }
