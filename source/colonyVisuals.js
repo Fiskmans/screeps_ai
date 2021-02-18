@@ -123,6 +123,13 @@ drawColony=function(colony)
             Game.creeps[cname].DrawWork(vis,{baseRoom:colony.pos.roomName});
         }
     }
+    for(let list of Object.values(colony.workerRoster))
+    {
+        for(let creep of Helpers.Creep.List(list))
+        {
+            creep.DrawWork(vis,{baseRoom:colony.pos.roomName});
+        }
+    }
     if(colony.kickStart)
     {
         for(let cname of colony.kickStart.workers)

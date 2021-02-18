@@ -870,6 +870,22 @@ digAllMines=function(colony)
                 Colony.Helpers.IncrementIncome(colony,'local_mining',10);
             }
         }
+        Colony.Helpers.SetExpense(colony,'local_mining',0);
+        for(let spot of colony.miningSpots)
+        {
+            if(spot.type == 'mineral')
+            {
+                let obj = Game.getObjectById(spot.target)
+                if(obj && obj.mineralAmount > 0)
+                {
+                    Colony.Helpers.IncrementExpense(colony,'local_mining',Helpers.Creep.BodyCost(BODIES.LOCAL_MINERAL_MINER)/1500);
+                }
+            }
+            else
+            {
+                Colony.Helpers.IncrementExpense(colony,'local_mining',Helpers.Creep.BodyCost(BODIES.LOCAL_MINER)/1500);
+            }
+        }
     }
 
     for(let spot of colony.miningSpots)

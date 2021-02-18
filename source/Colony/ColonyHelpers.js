@@ -107,6 +107,18 @@ module.exports.MaintainWorkers=function(colony,list,amount)
     {
         list.push(colony.workerpool.shift());
     }
+
+    return Helpers.Creep.List(list);
+}
+
+module.exports.Roster=function(colony,tag,amount)
+{
+    if(!colony.workerRoster) { colony.workerRoster = {}; }
+    if(!colony.workerRoster[tag])
+    {
+        colony.workerRoster[tag] = [];
+    }
+    return this.MaintainWorkers(colony,colony.workerRoster[tag],amount);
 }
 
 module.exports.ReduceLayout=function(layout)
@@ -143,7 +155,6 @@ module.exports.DecrementExpense=function(colony,tag,amount)
 {
     if(!colony.expenses[tag]) { colony.expenses[tag] = 0; }
     colony.expenses[tag] -= amount;
-    colony.expenses[tag].clamp(0,Infinity)
 }
 
 module.exports.SetExpense=function(colony,tag,amount)
@@ -161,7 +172,6 @@ module.exports.DecrementIncome=function(colony,tag,amount)
 {
     if(!colony.income[tag]) { colony.income[tag] = 0; }
     colony.income[tag] -= amount;
-    colony.income[tag].clamp(0,Infinity);
 }
 
 module.exports.SetIncome=function(colony,tag,amount)

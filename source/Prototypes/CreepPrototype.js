@@ -217,9 +217,26 @@ Creep.prototype.DrawWork=function(vis,opt)
 
     vis.circle(lx,ly,{radius:options.radius,fill:"#00000000",stroke:stroke,strokewidth:0.1,opacity:0.8});
 
+    let lastAction = false;
+    let lastTarget = false;
+    let repeatCount = 1;
+
     for(let i in this.memory._workQueue)
     {
         let work = this.memory._workQueue[i];
+        if(lastAction == work.action && lastTarget == work.target)
+        {
+            repeatCount++;
+            continue;
+        }
+        lastAction = work.action;
+        lastTarget = work.target;
+        if(repeatCount > 1)
+        {
+            vis.text("x"+repeatCount, lx,ly+0.1,{align:'left',font:0.27});
+            repeatCount = 1;
+        }
+
         stroke = "#" + lerpColor(options.strokeStart,options.strokeEnd,(i - -1)/this.memory._workQueue.length).toString(16);
 
         let obj = Game.getObjectById(work.target)
@@ -262,7 +279,10 @@ Creep.prototype.DrawWork=function(vis,opt)
         lx = ox;
         ly = oy;
     }
-
+    if(repeatCount > 1)
+    {
+        vis.text("x"+repeatCount, lx,ly+0.1,{align:'left',font:0.27});
+    }
 }
 
 Creep.prototype.SimulateWorkUnit=function(workUnit,fakeStores)

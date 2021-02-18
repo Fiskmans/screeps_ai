@@ -30,7 +30,7 @@ let C =
     STATE_PAUSED            :"Paused",
 
     MINER_SPAWN_GRACE_PERIOD:10,
-    REBUILD_INTERVAL:       1000
+    REBUILD_INTERVAL        :1000
 }
 
 
@@ -155,14 +155,6 @@ let Setup=function(colony,roomName,blob)
                 }
             }
             vis.poly(pathResult.path,{stroke:"#00FF00"});
-
-
-            if(s.type != C.MINING_TYPE_MINERAL)
-            {
-                Colony.Helpers.IncrementIncome(colony,C.TAG,C.OUTPUT[s.type]);
-            }
-
-
 
             s.distance = pathResult.path.length;
             s.miners = [];
@@ -567,6 +559,7 @@ let Mine = function(colony,roomName,blob)
     if(blob.isSK && colony.level < 7)
     {
         blob.state = C.STATE_WAIT_LV7;
+        console.log("remote " + roomName + " is waiting for RCL7 because it's a sk room");
         Colony.Helpers.DecrementIncome(colony,C.TAG,blob.income);
         Colony.Helpers.DecrementExpense(colony,C.TAG,blob.expense);
         return;
@@ -880,15 +873,14 @@ module.exports.Run=function(colony)
             {
                 score += 1/s.distance;
             }
-            console.log(room + ": " + score);
             return score;
         }).reverse();
 
-        console.log("sorted: " + JSON.stringify(active))
         while(active.length > 2)
         {
             let r = active.pop();
             colony.remotes[r].state = C.STATE_WAIT_LV7;
+            console.log("remote " + r + " is waiting for RCL7 to not overwhelm colony");
             Colony.Helpers.DecrementIncome(colony,C.TAG,colony.remotes[r].income);
             Colony.Helpers.DecrementExpense(colony,C.TAG,colony.remotes[r].expense);
         }

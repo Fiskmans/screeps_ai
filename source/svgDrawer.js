@@ -330,6 +330,7 @@ RoomVisual.prototype.DrawSvg=function(x,y,filePath,opt={})
     {
         this.text("no",x,y,{font:opt.scale});
         this.text("cpu",x,y+opt.scale,{font:opt.scale});
+        return;
     }
 
     LoadedSVGS[filePath].forEach((layer) =>

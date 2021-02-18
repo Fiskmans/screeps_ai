@@ -4,13 +4,24 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "push to screeps",
+            "label": "push to mmo",
             "type": "shell",
-            "command": "grunt screeps",
+            "command": "grunt screeps --server=mmo",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "push to seasonal",
+            "type": "shell",
+            "command": "grunt screeps --server=season",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }

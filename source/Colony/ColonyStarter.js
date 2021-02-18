@@ -11,6 +11,7 @@ module.exports.Generate=function(pos)
             workerpool : [],
             lastmaintained : 0,
             income:{},
-            expenses:{}
+            expenses:{},
+            workerRoster:{}
         });
 }

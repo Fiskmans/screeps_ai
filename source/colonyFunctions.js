@@ -952,7 +952,7 @@ ColonyBuildRamparts=function(colony)
     {
         Colony.Helpers.MaintainWorkers(colony,colony.rampartbuilders,0);
 
-        if(Game.time % RAMPART_RETARGET_INTERVAL == 0 && store.getUsedCapacity(RESOURCE_ENERGY) > RAMPART_ACTIVATE_LIMIT)
+        if(Game.time % RAMPART_RETARGET_INTERVAL == 0 && store.getUsedCapacity(RESOURCE_ENERGY) > RAMPART_ACTIVATE_LIMIT && !hasBetterThingsToDo)
         {
             colony.buildRamparts = 1;
         }

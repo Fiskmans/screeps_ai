@@ -11,6 +11,7 @@ colonyLogic=
         Colony.Modules.BasicWorkers(colony);
         PerformAttacks(colony);
         Colony.Modules.MaintainHighways(colony);
+        Colony.Modules.RepairDecay(colony);
         colonyMiningSpots(colony);
         StartMining(colony);
         ColonyMining(colony);
