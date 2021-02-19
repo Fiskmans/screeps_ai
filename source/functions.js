@@ -31,8 +31,6 @@ FindWorthWhileReactions=function()
 
 TrackCPU=function(current,level)
 {
-    //delete Memory.performance
-    
     if(!level) { level = 0 }
     
     if(typeof(Memory.performance) === 'undefined') { Memory.performance = [] }
@@ -82,11 +80,6 @@ FlagSwitch=function(flagname)
 {
     return !Game.flags[flagname] || Game.flags[flagname].color != COLOR_RED;
 }
-
-EnablePhone=function(state) 
-{
-  Memory.onPhone = state;
-} 
 
 RestartScouting=function()
 {
@@ -461,57 +454,6 @@ SegAndIndexFromPos=function(coords)
     ]
 }
 
-Digest=function()
-{
-    let digest = "";
-    digest = digest + "<p>Bucket: " + Game.cpu.bucket + "<p/>";
-    digest = digest + "<p>Colonies: " + Memory.colonies.length + "<p/>";
-    
-    Memory.colonies.forEach((c) =>
-    {
-        let colony = digestColony(c)
-        if((digest + colony).length > 800)
-        {
-            console.log(digest);
-            digest = "";
-        }
-        digest = digest + "<div>" + colony + "<div/>";
-    })
-    
-    console.log(digest);
-    console.log(digest.length);
-}
-
-digestColony=function(colony)
-{
-    let out = "";
-    let room = Game.rooms[colony.pos.roomName];
-    if (room) 
-    {
-        let storage = room.storage;
-        if (storage) 
-        {
-            out = out + "<p>Capacity: " + storage.store.getUsedCapacity() + "/" + storage.store.getCapacity() + "<p/>";
-            RESOURCES_ALL.forEach((type) =>
-            {
-                let amount = storage.store.getUsedCapacity(type);
-                if (amount > 0) {
-                    out = out + "<div style:\"float:left\"><img src=\"https://static.screeps.com/upload/mineral-icons/" + type + ".png\"/><p> " + storage.store.getUsedCapacity(type) + "<p/><div/>";
-                }
-            })
-        }
-        else
-        {
-            out = out + "<p>No storage<p/>";
-        }
-    }
-    else
-    {
-        out = out + "<h1>No vision on colony<h1/>";
-    }
-    return out;
-}
-
 setCharAt=function(str,index,chr) {
     if(index > str.length-1) return str;
     return str.substr(0,index) + chr + str.substr(index+1);
@@ -584,148 +526,6 @@ DefendColony=function(colony)
 FireTurrets=function(targets,turrets)
 {
     turrets.forEach((t) => {t.attack(targets[0])});
-}
-
-marketTracking=function()
-{
-    let cpu = Game.cpu;
-    if (cpu.bucket < 1000 || Game.time % MARKETPRICE_REFRESSRATE != 0) 
-    {
-        return;
-    }
-    if (!globalPrices.prices) {
-        globalPrices.prices = {}
-    }
-    if (!globalPrices.prices[ORDER_BUY]) {
-        globalPrices.prices[ORDER_BUY] = {}
-    }
-    if (!globalPrices.prices[ORDER_SELL]) {
-        globalPrices.prices[ORDER_SELL] = {}
-    }
-    
-    let now = Game.time;
-    let limit = now - MARKETPRICE_TIMEOUT;
-    [ORDER_BUY,ORDER_SELL].forEach((type) =>
-    {
-        for(let res in globalPrices.prices[type])
-        {
-            if(globalPrices.prices[type][res].time < limit || !Game.market.getOrderById(globalPrices.prices[type][res].id))
-            {
-                delete globalPrices.prices[type][res]
-            }
-        }
-    })
-
-    let market = Game.market;
-    let orders = market.getAllOrders((o) => 
-    {
-        return o.amount > 1000;
-    });
-    
-    for(let i in orders)
-    {
-        let order = orders[i];
-        if (order.type == ORDER_BUY) 
-        {
-            if(!globalPrices.prices[ORDER_BUY][order.resourceType])
-            {
-                globalPrices.prices[ORDER_BUY][order.resourceType] = {}
-            }
-            if (!globalPrices.prices[ORDER_BUY][order.resourceType].price || globalPrices.prices[ORDER_BUY][order.resourceType].price < order.price) 
-            {
-                globalPrices.prices[ORDER_BUY][order.resourceType].price = order.price;
-                globalPrices.prices[ORDER_BUY][order.resourceType].time = now;
-                globalPrices.prices[ORDER_BUY][order.resourceType].id = order.id
-            }
-        }
-        else
-        {
-            if(!globalPrices.prices[ORDER_SELL][order.resourceType])
-            {
-                globalPrices.prices[ORDER_SELL][order.resourceType] = {}
-            }
-            if (!globalPrices.prices[ORDER_SELL][order.resourceType].price || globalPrices.prices[ORDER_SELL][order.resourceType].price > order.price) 
-            {
-                globalPrices.prices[ORDER_SELL][order.resourceType].price = order.price;
-                globalPrices.prices[ORDER_SELL][order.resourceType].time = now;
-                globalPrices.prices[ORDER_SELL][order.resourceType].id = order.id
-            }
-        }
-    }
-    
-    //console.log(JSON.stringify(orders));
-}
-
-colonize=function(colony)
-{
-    if (!colony.claimer) {
-        colony.claimer = [];
-    }
-    deleteDead(colony.claimer);
-    if(colony.colonizeWaitUntil > Game.time)
-    {
-        colony.claimer.forEach((c) => 
-        {
-            Game.creeps[c].Retire(Memory.creeps[c].home);
-        })
-        return;
-    }
-    if (colony.claimer[0]) {
-        let creep = Game.creeps[colony.claimer[0]]
-        if (creep) 
-        {
-            let room = Game.rooms[colony.pos.roomName]
-            if (room) 
-            {
-                if(room.controller.level == 0)
-                {
-                    creep.do('claimController',room.controller);
-                }
-                else if (!room.controller.my)
-                {
-                    if(creep.do('attackController',room.controller) == OK)
-                    {
-                        colony.colonizeWaitUntil = Game.time + 1000 - creep.body.length*3;
-                    }
-                }
-            }
-            else
-            {
-                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
-            }
-        }
-        else
-        {
-            colony.claimer.shift();
-        }
-    }
-    else
-    {
-        let closest = FindClosestColony(colony.pos.roomName,false,3);
-        
-        if (closest) 
-        {
-            let room = Game.rooms[closest.pos.roomName];
-            if (room) 
-            {
-                if(spawnRoleIntoList(room,colony.claimer,ROLE_CLAIMER) == OK)
-                {
-                    console.log(room.name + " is seeding colony " + colony.pos.roomName);
-                }
-            }
-            else
-            {
-                Game.notify("No vision on seedling colony for " + colony.pos.roomName);
-            }
-        }
-        else
-        {
-            if(!InterShard.Transport.Adopt(colony.claimer,ROLE_CLAIMER))
-            {
-                InterShard.Transport.Request(ROLE_CLAIMER);
-            }
-        }
-    }
 }
 
 FindClosestColony=function(roomName,includeSelf,atleastLevel)
@@ -831,31 +631,6 @@ PerformAttacks=function(colony)
         delete colony.attacker; 
         colony.attacking = false;
     }
-}
-
-pointat=function(roomName,target)
-{
-    let room = Game.rooms[roomName];
-    let vis;
-    if(room)
-    {
-        vis = room.vis;
-    }
-    if (!vis) 
-    {
-        vis = new RoomVisual(roomName);
-    }
-    console.log(vis.roomName)
-    if (typeof target == 'string') {
-        target = Game.getObjectById(target);
-    }
-    
-    for (var x = 0; x < 50; x=x+4) {
-        for (var y = 0; y < 50; y=y+4) {
-            vis.line(new RoomPosition(x,y,roomName),target.pos);
-        }
-    }
-    return(target.pos);
 }
 
 digAllMines=function(colony)
@@ -1110,49 +885,6 @@ digMine=function(colony,miningSpot)
     }
 }
 
-analyzeRoom=function(roomName)
-{
-    console.log("Analysing " + roomName)
-    var terrain = new Room.Terrain(roomName)
-    if(!Memory.data) {Memory.data = {}}
-    if(!Memory.data.pexpansions) { Memory.data.pexpansions = []}
-    var count = 0
-    for (var x = 1; x < 49; x++) {
-        for (var y = 1; y < 49; y++) { // all tiles
-            if (terrain.get(x,y) != TERRAIN_MASK_WALL) //where not wall 
-            {
-                Memory.data.pexpansions.push({x:x,y:y,checklevel:1,roomName:roomName});
-                count += 1
-            }
-        }
-    }
-    return count
-}
-
-analyzeRegion=function(_x,_y,w,h)
-{
-    if(!Memory.data) {Memory.data = {}}
-    if(!Memory.data.panalyze) { Memory.data.panalyze = []}
-    
-    var prehor = "W"
-    var prever = "N"
-    if (_x < 0) {
-        _x = 1-_x
-        prehor = "E"
-    }
-    if(_y < 0)
-    {
-        _y = 1-_y
-        prever = "S"
-    }
-    for (var x = _x; x < _x+w; x++) {
-        for (var y = _y; y < _y+h; y++) {
-            Memory.data.panalyze.push(prehor+x+prever+y);
-        }
-    }
-    
-}
-
 PrettySerialize=function(obj,ignoreFalse,depth)
 {
     if(!depth){depth = 0}
@@ -1211,8 +943,8 @@ deleteAllDead=function()
             delete Memory.creeps[key]
         }
     }
-        
 }
+
 spawnRoleIntoList=function(room,list,role,options={},additionalList)
 {
     if (typeof(room) === 'string') {

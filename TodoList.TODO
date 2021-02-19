@@ -10,11 +10,19 @@
 - optimize kickstart to avoid tick losses
 - kickstart stomping deterent
 - Attack vector finder in Combat
-- Adaptive worker count based on income
 - Invadercore tracker
 - Mining income includes boosted sources
+- replace all uses of spawnRoleIntoList() to Colony.Helpers.SpawnCreep()
+- remove Highways
+- remove old Maintain code
+- move Power creep code to new module
+- move bezier stuff to some place more fitting
+- remove MiningSpot from code
+- Rampart hole filler
+- hauler taskplanner followup based on exxpected position not target position offset 1 towards last target enough
 
 Done
+- Adaptive worker count based on income
 - Redo market
 - Implement Performance enable/disable 
 - make planner independent of builder

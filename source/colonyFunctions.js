@@ -14,19 +14,15 @@ ColonyIdleWorkers=function(colony)
 
 ColonyIdleWorkersDumb=function(colony)
 {
-    for(var key in colony.workerpool)
+    for(var creep of Helpers.Creep.List(colony.workerpool))
     {
-        let creep = Game.creeps[colony.workerpool[key]];
-        if(creep)
+        if (creep.pos.roomName != colony.pos.roomName) 
         {
-            if (creep.pos.roomName != colony.pos.roomName) 
-            {
-                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
-            }
-            else
-            {
-                creep.dumbUpgradeLoop()
-            }
+            creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
+        }
+        else
+        {
+            creep.dumbUpgradeLoop()
         }
     }
 }
@@ -80,7 +76,9 @@ ColonyRespawnWorkers=function(colony)
     if(!colony.workersensus) { colony.workersensus = []};
     deleteDead(colony.workersensus);
     
-    let target = TARGET_WORKER_COUNT[colony.level];
+    
+    let target = Math.ceil((_.sum(colony.income) - _.sum(colony.expenses)) / WORKER_PARTS_AT_LEVEL[colony.level]);
+    colony.targetWorkers = target;
     let count = colony.workersensus.length;
 
     if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_EXTRA_WORKER_THRESHOLD)
@@ -121,6 +119,25 @@ ColonyRespawnWorkers=function(colony)
                 body = BODIES.LV6_WORKER;
             }
             if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
+            {
+                body = BODIES.LV7_WORKER;
+            }
+        }
+        else
+        {
+            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+            {
+                body = BODIES.LV4_WORKER;
+            }
+            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[5])
+            {
+                body = BODIES.LV5_WORKER;
+            }
+            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
+            {
+                body = BODIES.LV6_WORKER;
+            }
+            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
             {
                 body = BODIES.LV7_WORKER;
             }

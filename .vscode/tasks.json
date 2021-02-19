@@ -6,7 +6,7 @@
         {
             "label": "push to mmo",
             "type": "shell",
-            "command": "grunt screeps --server=mmo",
+            "command": "grunt screeps --server=persistent",
             "group": {
                 "kind": "build",
                 "isDefault": true

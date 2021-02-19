@@ -248,7 +248,7 @@ drawColony=function(colony)
     vis.symbol(pos.x,pos.y-3,RESOURCE_ENERGY,{scale:2})
 
     {
-        let target = TARGET_WORKER_COUNT[colony.level];
+        let target = colony.targetWorkers || "?";
         let count = colony.workersensus.length;
         vis.text("🧱" + count + "/" + target,pos.x-0.5,pos.y-0.75,{align:'left',color:"#FFFFFF"});
     }

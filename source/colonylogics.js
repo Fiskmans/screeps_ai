@@ -5,9 +5,7 @@ colonyLogic=
     {
         DefendColony(colony);
         Colony.Planner.Expand(colony);
-        GuardSpawningColony(colony);
         ColonyRespawnWorkers(colony);
-        colonyDumbRefill(colony);
         Colony.Modules.BasicWorkers(colony);
         PerformAttacks(colony);
         Colony.Modules.MaintainHighways(colony);
@@ -59,9 +57,7 @@ colonyLogic=
     {
         Colony.Planner.Expand(colony);
         DefendColony(colony);
-        GuardSpawningColony(colony)
         ColonyRespawnWorkers(colony);
-        colonyDumbRefill(colony);
         Colony.Modules.BasicWorkers(colony);
         PerformAttacks(colony);
         StartMining(colony)

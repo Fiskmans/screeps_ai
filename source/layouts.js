@@ -182,7 +182,7 @@ colonyBuildingsPerLevel =
         [STRUCTURE_EXTENSION]: 40,
         [STRUCTURE_STORAGE]: 1,
         [STRUCTURE_TERMINAL]: 1,
-        [STRUCTURE_LINK]: 2
+        [STRUCTURE_LINK]: 1
     },
     7: {
         [STRUCTURE_SPAWN]: 2,

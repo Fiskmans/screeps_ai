@@ -32,7 +32,6 @@ module.exports.loop = function()
         deleteAllDead();
         Helpers.Spawn.CleanMemory();
           
-        marketTracking();
         
         InterShard.Transport.ActivateDeadShards();
     }

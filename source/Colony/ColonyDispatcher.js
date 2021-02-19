@@ -40,5 +40,7 @@ module.exports.Dispatch=function(colony)
         }
         colonyLogic[colony.level](colony);
     }
+    
+    Colony.Modules.CompactifyLayout(colony);
     drawColony(colony)
 }

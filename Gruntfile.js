@@ -3,18 +3,17 @@ module.exports = function(grunt) {
 	grunt.log.error(process.cwd())
 	let options = require('./Credentials.json');
 	
-	let server = grunt.option('server') || "mmo";
-	console.log("pusing to " + server);
+	let server = grunt.option('server') || "persistent";
+	console.log("pushing to " + server);
 	
     grunt.loadNpmTasks('grunt-screeps');
     grunt.initConfig({
         screeps: {
             options: {
-                email: options.email,
-                password: options.password,
+                token: options.token,
                 branch: options.branch,
                 ptr: options.ptr,
-				server: options.server
+				server: server
             },
             source: {
                 files: [

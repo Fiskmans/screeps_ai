@@ -1,119 +1,12 @@
 
 
-colonyDumbRefill=function(colony)
-{
-    if(!colony.refillers) {colony.refillers = []}
-    if(!colony.crefillers) {colony.crefillers = []}
-    deleteDead(colony.refillers)
-    deleteDead(colony.crefillers)
-    let room = Game.rooms[colony.pos.roomName];
-    
-    let limit = 0;
-    if(!room.storage && room.energyAvailable < room.energyCapacityAvailable)
-    {
-        limit = Math.ceil(colony.workersensus.length / 3.0)
-    }
-    
-
-    if (limit > 0 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 1000) 
-    {
-        if (colony.crefillers.length < limit) 
-        {
-            if (colony.haulerpool.length > 1 || (colony.haulerpool.length == 1 && limit > 2)) 
-            {
-                colony.crefillers.push(colony.haulerpool.shift())
-            }
-            else if (colony.workerpool.length > 0) 
-            {
-                colony.refillers.push(colony.workerpool.shift())
-            }
-        }
-    }
-    else
-    {   
-        for(let i in colony.crefillers)
-        {
-            let creep = Game.creeps[colony.crefillers[i]];
-            if (creep) 
-            {
-                if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0 || limit == 0) 
-                {
-                    colony.haulerpool.push(colony.crefillers.splice(i,1)[0])   
-                }
-            }
-            else
-            {
-                colony.crefillers.splice(i,1);
-            }
-        }
-    }
-    if (limit > 0) 
-    {
-        if (colony.refillers.length + colony.crefillers.length < limit) 
-        {
-            if (colony.workerpool.length > 0) 
-            {
-                colony.refillers.push(colony.workerpool.shift())
-            }
-        }
-    }
-    else
-    {
-        while (colony.refillers.length > 0) 
-        {
-            colony.workerpool.push(colony.refillers.shift())
-        }
-    }
-    for(let index in colony.refillers)
-    {
-        let creep = Game.creeps[colony.refillers[index]];
-        if (creep) 
-        {
-            if(creep.pos.roomName != colony.pos.roomName)
-            {
-                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName));
-            }
-            creep.dumbRefillLoop()
-        }
-    }
-    for(let index in colony.crefillers)
-    {
-        let creep = Game.creeps[colony.crefillers[index]];
-        if (creep) 
-        {
-            if(creep.pos.roomName != colony.pos.roomName)
-            {
-                creep.travelTo(new RoomPosition(25,25,colony.pos.roomName));
-            }
-            creep.dumbRefillLoop()
-        }
-    }
-}
-
-
 colonyDismantle=function(colony)
 {
     if(!colony.dimantlers) {colony.dimantlers = []}
     if(!colony.disTargets) {colony.disTargets = []}
-    deleteDead(colony.dimantlers)
 
-    if (colony.disTargets.length > 0) 
+    for(let creep of Colony.Helpers.MaintainWorkers(colony.dimantlers,colony.disTargets.length > 0 ? 1 : 0))
     {
-        if (colony.dimantlers.length < 1 && colony.workerpool.length > 0) 
-        {
-            colony.dimantlers.push(colony.workerpool.shift())
-        }
-    }
-    else
-    {
-        if(colony.dimantlers.length > 0)
-        {
-            colony.workerpool.push(colony.dimantlers.shift())
-        }
-    }
-    for(let index in colony.dimantlers)
-    {
-        let creep = Game.creeps[colony.dimantlers[index]];
         let target = Game.getObjectById(colony.disTargets[0])
         if (target) 
         {
@@ -273,64 +166,6 @@ colonyMiningSpots=function(colony)
                 }
             }
         }
-    }
-}
-
-GuardSpawningColony=function(colony)
-{
-    if (Game.rooms[colony.pos.roomName].towers.length == 0) 
-    {
-        if (!colony.guards) 
-        {
-            colony.guards = [];
-        }
-        if (colony.guards.length < 1) 
-        {
-            let room = Game.rooms[colony.pos.roomName];
-            if(!room)
-            {
-                return;
-            }
-            if (room.spawns.length == 0) 
-            {
-                let closest = FindClosestColony(colony.pos.roomName);
-                if(!closest)
-                {
-                    return;
-                }
-                room = Game.rooms[closest.pos.roomName];
-            }
-            if (room) {
-                spawnRoleIntoList(room,colony.guards,ROLE_GUARD);
-            }
-        }
-        deleteDead(colony.guards);
-        colony.guards.forEach((name) =>
-        {
-            let creep = Game.creeps[name];
-            if(creep)
-            {
-                let targets = creep.room.hostiles();
-                if (targets.length > 0) 
-                {
-                    creep.do('attack',targets[0]);
-                    if (creep.hits < creep.hitsMax)
-                    {
-                        creep.heal(creep);
-                    }
-                }
-                else
-                {
-                    let heal = _.filter(creep.room.find(FIND_CREEPS), (c) => { return c.hits < c.hitsmax});
-                    if(heal.length > 0)
-                    {
-                        creep.do("heal",heal[0]);
-                    }
-
-                    creep.travelTo(new RoomPosition(colony.pos.x-1,colony.pos.y-1,colony.pos.roomName),{movingTarget:true})
-                }
-            }
-        })
     }
 }
 

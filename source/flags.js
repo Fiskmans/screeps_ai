@@ -108,12 +108,6 @@ Discard=function(flag)
     flag.remove();
 }
 
-Analyze=function(flag)
-{
-    analyzeRoom(flag.pos.roomName);
-    flag.remove();
-}
-
 Scout=function(flag)
 {
     let roomName = "";
@@ -298,7 +292,6 @@ FlagFunctions["Scout"] = Scout;
 FlagFunctions["Unplan"] = Unplan;
 FlagFunctions["Abandon"] = Abandon;
 FlagFunctions["Discard"] = Discard;
-FlagFunctions["Analyze"] = Analyze;
 FlagFunctions["RemoveMine"] = RemoveMine;
 FlagFunctions["Disassemble"] = Disassemble;
 FlagFunctions["StartColony"] = StartColony;
