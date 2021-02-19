@@ -1,4 +1,64 @@
 
+let C =
+{
+    
+    BUILDINGS_AT_LEVEL:
+    {
+        0: {},
+        1: {
+            [STRUCTURE_SPAWN]: 1
+        },
+        2: {
+            [STRUCTURE_SPAWN]: 1,
+            [STRUCTURE_EXTENSION]: 5
+        },
+        3: {
+            [STRUCTURE_SPAWN]: 1,
+            [STRUCTURE_TOWER]: 1,
+            [STRUCTURE_EXTENSION]: 10
+        },
+        4: {
+            [STRUCTURE_SPAWN]: 1,
+            [STRUCTURE_TOWER]: 1,
+            [STRUCTURE_EXTENSION]: 20,
+            [STRUCTURE_STORAGE]: 1
+        },
+        5: {
+            [STRUCTURE_SPAWN]: 1,
+            [STRUCTURE_TOWER]: 2,
+            [STRUCTURE_EXTENSION]: 30,
+            [STRUCTURE_STORAGE]: 1,
+            [STRUCTURE_LINK]: 1
+        },
+        6: {
+            [STRUCTURE_SPAWN]: 1,
+            [STRUCTURE_TOWER]: 2,
+            [STRUCTURE_EXTENSION]: 40,
+            [STRUCTURE_STORAGE]: 1,
+            [STRUCTURE_TERMINAL]: 1,
+            [STRUCTURE_LINK]: 1
+        },
+        7: {
+            [STRUCTURE_SPAWN]: 2,
+            [STRUCTURE_TOWER]: 3,
+            [STRUCTURE_EXTENSION]: 50,
+            [STRUCTURE_STORAGE]: 1,
+            [STRUCTURE_TERMINAL]: 1,
+            [STRUCTURE_FACTORY]: 1,
+            [STRUCTURE_LINK]: 2
+        },
+        8: {
+            [STRUCTURE_SPAWN]: 3,
+            [STRUCTURE_TOWER]: 6,
+            [STRUCTURE_EXTENSION]: 60,
+            [STRUCTURE_STORAGE]: 1,
+            [STRUCTURE_TERMINAL]: 1,
+            [STRUCTURE_FACTORY]: 1,
+            [STRUCTURE_POWER_SPAWN]: 1,
+            [STRUCTURE_LINK]: 2
+        }
+    }
+}
 
 module.exports.BuildPlannerAllPlanned=function(roomName)
 {
@@ -511,7 +571,7 @@ let ExpandColony=function(colony)
     }
     let mainBuildings = DeserializeLayout(colony.layout,colony.pos.roomName);
     let buildings = [].concat(mainBuildings);
-    let unplaced = JSON.parse(JSON.stringify(colonyBuildingsPerLevel[colony.level]))
+    let unplaced = JSON.parse(JSON.stringify(C.BUILDINGS_AT_LEVEL[colony.level]))
 
     for(let building of mainBuildings)
     {

@@ -5,7 +5,7 @@ colonyDismantle=function(colony)
     if(!colony.dimantlers) {colony.dimantlers = []}
     if(!colony.disTargets) {colony.disTargets = []}
 
-    for(let creep of Colony.Helpers.MaintainWorkers(colony.dimantlers,colony.disTargets.length > 0 ? 1 : 0))
+    for(let creep of Colony.Helpers.MaintainWorkers(colony.dimantlers,colony.disTargets.length > 0))
     {
         let target = Game.getObjectById(colony.disTargets[0])
         if (target) 
