@@ -60,4 +60,4 @@ module.exports.loop = function()
 Performance.Profiler.Register("main",module.exports);
 require('PerformanceProfilerRegistry')
 
-console.log("Recompile successfull in: " + (Game.cpu.getUsed() - start) + " cpu");
+console.log("Recompile successfull in: " + (Game.cpu.getUsed() - start).toFixed(2) + " cpu");

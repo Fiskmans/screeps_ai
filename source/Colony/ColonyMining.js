@@ -214,7 +214,7 @@ let SpawnCreeps = function(colony,blob)
         let body = blob.type == C.MINING_TYPE_SOURCE ? BODIES.LOCAL_MINER : BODIES.LOCAL_MINERAL_MINER;
         let dummyList = [];
         
-        if(room.energyCapacityAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] || !room.storage ||  room.storage.store.getUsedCapacity(RESOURCE_ENERGY) <= ENERGY_CAPACITY_AT_LEVEL[3])
+        if(room.energyCapacityAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] || (room.energyAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] && (!room.storage ||  room.storage.store.getUsedCapacity(RESOURCE_ENERGY) <= ENERGY_CAPACITY_AT_LEVEL[3])))
         {
             body = [WORK,WORK,MOVE,MOVE];
         }
@@ -243,7 +243,7 @@ let RefreshIncome=function(colony)
         {
             if(site.type == C.MINING_TYPE_MINERAL)
             {
-                let obj = Game.getObjectById(spot.target)
+                let obj = Game.getObjectById(site.id)
                 if(obj && obj.mineralAmount > 0)
                 {
                     Colony.Helpers.IncrementExpense(colony,'local_mining',Helpers.Creep.BodyCost(BODIES.LOCAL_MINERAL_MINER)/1450);
@@ -290,5 +290,5 @@ module.exports.Update=function(colony)
     {
         Mine(colony,site);
     }
-    RefreshIncome();
+    RefreshIncome(colony);
 }
