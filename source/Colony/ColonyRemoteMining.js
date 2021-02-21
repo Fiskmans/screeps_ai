@@ -210,7 +210,7 @@ let Setup=function(colony,roomName,blob)
 let HaulSource = function(colony,roomName,blob,s)
 {
     let colonyRoom = Game.rooms[colony.pos.roomName];
-    if(!colonyRoom ||! colonyRoom.storage)
+    if(!colonyRoom || !colonyRoom.storage)
     {
         return;   
     }
@@ -245,10 +245,26 @@ let HaulSource = function(colony,roomName,blob,s)
 
     let partsNeeded = s.distance/50 * 2 * C.OUTPUT[s.type];
 
+    let shuttingDown = false;
+    
+    if(s.type == C.MINING_TYPE_MINERAL)
+    {
+        let target = Game.getObjectById(s.id);
+        if(target.mineralAmount == 0)
+        {
+            shuttingDown = true;
+        }
+    }
+
+    if(shuttingDown)
+    {
+        partsNeeded = 0;
+    }
+
     for(let creep of Helpers.Creep.List(s.hauler))
     {
         partsNeeded -= creep.getActiveBodyparts(CARRY);
-        if(!creep.HasAtleast1TickWorthOfWork())
+        if(!creep.HasAtleast1TickWorthOfWork() && !shuttingDown)
         {
             creep.EnqueueWork({
                 action:CREEP_TRANSFER,
@@ -265,6 +281,11 @@ let HaulSource = function(colony,roomName,blob,s)
         if(creep.HasWork())
         {
             creep.DoWork();
+        }
+        else if(shuttingDown)
+        {
+            creep.Retire(colony.pos.RoomName);
+            continue;
         }
 
         creep.OpportuneRenew();
@@ -301,6 +322,19 @@ let HaulSource = function(colony,roomName,blob,s)
 
 let MineSource = function(colony,roomName,blob,s)
 {
+    if(s.type == C.MINING_TYPE_MINERAL)
+    {
+        let target = Game.getObjectById(s.id);
+        if(target.mineralAmount == 0)
+        {
+            for(let creep of Helpers.Creep.List(s.miners))
+            {
+                creep.Retire(colony.pos.roomName);
+            }
+            return;
+        }
+    }
+
     let needReplacementMiner = true;
     for(let creep of Helpers.Creep.List(s.miners))
     {
@@ -785,6 +819,16 @@ let Pause = function(colony,roomName,blob)
     }
 }
 
+let WaitLvl7 = function(colony,roomName,blob)
+{
+    if(colony.level >= 7)
+    {
+        blob.state = C.STATE_BUILD;
+        Colony.Helpers.IncrementIncome(colony,C.TAG,blob.income);
+        Colony.Helpers.IncrementExpense(colony,C.TAG,blob.expense);
+    }
+}
+
 let Draw=function(colony,roomName,blob)
 {
     if(!Helpers.Externals.IsRoomVisible(roomName))
@@ -844,6 +888,9 @@ module.exports.Run=function(colony)
             case C.STATE_PAUSED:
                 Pause(colony,room,blob);
                 active++;
+                break;
+            case C.STATE_WAIT_LV7:
+                WaitLvl7(colony,room,blob);
                 break;
         }
 

@@ -19,7 +19,7 @@
 - move bezier stuff to some place more fitting
 - remove MiningSpot from code
 - Rampart hole filler
-- hauler taskplanner followup based on exxpected position not target position offset 1 towards last target enough
+- hauler taskplanner followup based on expected position not target position offset 1 towards last target enough
 
 Done
 - Adaptive worker count based on income

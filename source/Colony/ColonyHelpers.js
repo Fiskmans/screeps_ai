@@ -98,7 +98,10 @@ module.exports.SpawnCreep=function(colonyOrRoomName,list,body,role,options)
 
 module.exports.MaintainWorkers=function(colony,list,amount)
 {
-    
+    if(typeof(amount) !== 'number')
+    {
+        amount = amount ? 1 : 0;
+    }
     while(list.length > amount)
     {
         colony.workerpool.push(list.shift());

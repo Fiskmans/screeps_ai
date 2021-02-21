@@ -55,30 +55,9 @@ colonyLogic=
     //level 8
     8:function(colony)
     {
-        Colony.Planner.Expand(colony);
-        DefendColony(colony);
-        ColonyRespawnWorkers(colony);
-        Colony.Modules.BasicWorkers(colony);
-        PerformAttacks(colony);
-        StartMining(colony)
-        ColonyMining(colony)
-        ColonyHauling(colony)
-        digAllMines(colony);
-        ColonyEmptyMines(colony);
-        colonyDismantle(colony)
-        FindColonyLinks(colony)
-        ColonyMaintainUpgradeSite(colony)
-        ColonyMerchant(colony);
-        ColonyTerminalTraffic(colony);
-        ColonyCrafting(colony);
-        maintainall(colony)
-        maintainColony(colony)
-        ColonyDismantleAll(colony);
-        ColonyBuildRamparts(colony);
+        this[7](colony)
         ColonyLookForPower(colony);
         ColonyCollectPower(colony);
         ColonyProcessPower(colony);
-        Colony.Modules.MaintainHighways(colony);
-        colonyMiningSpots(colony);
     }
 }
