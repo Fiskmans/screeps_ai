@@ -200,7 +200,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
     {
         if(colony.pos.roomName == roomName)
         {
-            for(let d = -12;d < 12;d++)
+            for(let d = -5;d < 5;d++)
             {
                 let p = 
                 [

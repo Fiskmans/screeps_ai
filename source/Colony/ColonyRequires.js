@@ -7,3 +7,4 @@ module.exports.Modules      = require('ColonyModules');
 module.exports.KickStart    = require('ColonyKickStart');
 module.exports.Helpers      = require('ColonyHelpers');
 module.exports.RemoteMining = require('ColonyRemoteMining');
+module.exports.Mining       = require('ColonyMining');

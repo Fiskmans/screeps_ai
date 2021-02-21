@@ -48,6 +48,11 @@ module.exports.RemoteMining=function(colony)
     Performance.Decisions.Run("remote_mining",_RemoteMining,colony);
 }
 
+module.exports.Mining=function(colony)
+{
+    Colony.Mining.Update(colony);
+}
+
 let FillRepairQueue=function(colony,room)
 {
     let buildings = [];

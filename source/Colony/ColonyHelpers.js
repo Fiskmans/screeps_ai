@@ -162,6 +162,7 @@ module.exports.DecrementExpense=function(colony,tag,amount)
 
 module.exports.SetExpense=function(colony,tag,amount)
 {
+    if(!colony.expenses[tag]) { colony.expenses[tag] = 0; }
     colony.expenses[tag] = amount;
 }
 
@@ -179,5 +180,6 @@ module.exports.DecrementIncome=function(colony,tag,amount)
 
 module.exports.SetIncome=function(colony,tag,amount)
 {
+    if(!colony.income[tag]) { colony.income[tag] = 0; }
     colony.income[tag] = amount;
 }

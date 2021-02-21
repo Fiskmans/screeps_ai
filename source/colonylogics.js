@@ -14,7 +14,6 @@ colonyLogic=
         StartMining(colony);
         ColonyMining(colony);
         ColonyHauling(colony);
-        digAllMines(colony);
         ColonyEmptyMines(colony);
         colonyDismantle(colony);
         maintainColony(colony);
@@ -23,6 +22,7 @@ colonyLogic=
         ColonyBuildRamparts(colony);
         ColonyRequestRefill(colony);
         Colony.Modules.RemoteMining(colony);
+        Colony.Modules.Mining(colony);
     },
     //level 5
     5:function(colony)

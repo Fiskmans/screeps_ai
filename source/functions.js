@@ -473,13 +473,11 @@ DefendColony=function(colony)
     {
         return;
     }
-    let targets = room.hostiles();
-
-    targets = _.filter(targets,(t)=>
+    targets = room.find(FIND_HOSTILE_CREEPS,{filter:(t)=>
     {
         if((t instanceof Creep))
         {
-            if(t.pos.inRangeTo(colony.pos.x+5,colony.pos.y+5,6))
+            if(t.pos.inRangeTo(colony.pos.x,colony.pos.y,colony.level*2+3))
             {
                 return true;
             }
@@ -493,13 +491,19 @@ DefendColony=function(colony)
             return true
         }
         return false;
-    })
+    }});
     
     if(targets.length > 0)
     {
-        if (room.towers.length > 0) 
+        let c = targets[Math.floor(Math.random() * targets.length)];
+        for(let t of room.towers)
         {
-            FireTurrets(targets,room.towers);
+            if(c.hits <= 0)
+            {
+                break;
+            }
+            t.attack(c);
+            c.hits -= Helpers.Tower.Effectivness((c.pos.getRangeTo(t.pos),TOWER_ACTION_HEAL));
         }
     }
     else
@@ -630,258 +634,6 @@ PerformAttacks=function(colony)
     {
         delete colony.attacker; 
         colony.attacking = false;
-    }
-}
-
-digAllMines=function(colony)
-{
-    if(Game.time % REFRESH_INCOME_INTERVAL == 0)
-    {
-        Colony.Helpers.SetIncome(colony,'local_mining',0);
-        for(let spot of colony.miningSpots)
-        {
-            if(spot.type != 'mineral')
-            {
-                Colony.Helpers.IncrementIncome(colony,'local_mining',10);
-            }
-        }
-        Colony.Helpers.SetExpense(colony,'local_mining',0);
-        for(let spot of colony.miningSpots)
-        {
-            if(spot.type == 'mineral')
-            {
-                let obj = Game.getObjectById(spot.target)
-                if(obj && obj.mineralAmount > 0)
-                {
-                    Colony.Helpers.IncrementExpense(colony,'local_mining',Helpers.Creep.BodyCost(BODIES.LOCAL_MINERAL_MINER)/1500);
-                }
-            }
-            else
-            {
-                Colony.Helpers.IncrementExpense(colony,'local_mining',Helpers.Creep.BodyCost(BODIES.LOCAL_MINER)/1500);
-            }
-        }
-    }
-
-    for(let spot of colony.miningSpots)
-    {
-        digMine(colony,spot)
-    }
-}
-
-digMine=function(colony,miningSpot)
-{
-    if (miningSpot.target)
-    {
-        if (miningSpot.type == 'mineral') 
-        {
-            let room = Game.rooms[miningSpot.myPosition.roomName];
-            if (room)
-            {
-                if(room.controller.level < 6) 
-                {
-                    return;
-                }
-                else if(!room.storage || room.storage.store.getFreeCapacity() < 100000)
-                {
-                    return;
-                }
-                else
-                {
-                    if (miningSpot.target) 
-                    {
-                        let mineral = Game.getObjectById(miningSpot.target)
-                        if (mineral && mineral.mineralAmount == 0) 
-                        {
-                            deleteDead(miningSpot.miners)
-                            miningSpot.miners.forEach((name) => {
-                                Game.creeps[name].Retire(colony.pos.roomName);
-                            })
-                            return;
-                        }
-                    }
-                    if (miningSpot.extractor) 
-                    {
-                        let extractor = Game.getObjectById(miningSpot.extractor);
-                        if (extractor) 
-                        {
-                            if (extractor.cooldown) 
-                            {
-                                return
-                            }
-                        }
-                        else
-                        {
-                            delete miningSpot.extractor;
-                        }
-                    }
-                    else
-                    {
-                        let items = room.lookAt(miningSpot.myPosition.x,miningSpot.myPosition.y);
-                        items.forEach((i) => {
-                            if (i.structure && i.structure.structureType == STRUCTURE_EXTRACTOR) 
-                            {
-                                miningSpot.extractor = i.structure.id;
-                            }
-                        })
-                    }
-                }
-            }
-        }
-        if(!miningSpot.miners){miningSpot.miners=[]}
-        deleteDead(miningSpot.miners)
-        let needReplacement = true;
-        miningSpot.miners.forEach((name) =>
-        {
-            let creep = Game.creeps[name]
-            if(creep)
-            {
-                if(creep.ticksToLive > MINER_REPLACEMENT_TIMER || creep.spawning)
-                {
-                    needReplacement = false;
-                }
-                if (miningSpot.digPos) 
-                {
-                    if ((creep.pos.x != miningSpot.digPos.x || creep.pos.y != miningSpot.digPos.y || creep.pos.roomName != miningSpot.digPos.roomName)) 
-                    {
-                        creep.travelTo(new RoomPosition(miningSpot.digPos.x,miningSpot.digPos.y,miningSpot.digPos.roomName));
-                        return;
-                    }
-                }
-                else
-                {
-                    creep.travelTo(new RoomPosition(25,25,miningSpot.myPosition.roomName))
-                    return;
-                }
-                
-                creep.say("⛏️");
-                let target = Game.getObjectById(miningSpot.target);
-                if(!target)
-                {
-                    delete miningSpot.target;
-                }
-                creep.harvest(target);
-                if (miningSpot.link) 
-                {
-                    if (creep.store.getUsedCapacity(RESOURCE_ENERGY) > MINE_LINK_TRANSFERLIMIT) 
-                    {
-                        let link = Game.getObjectById(miningSpot.link)
-                        if (link)
-                        {
-                            creep.transfer(link,RESOURCE_ENERGY);
-                        }
-                        else
-                        {
-                            delete miningSpot.link
-                        }
-                    }
-                    if (colony.recievelink) 
-                    {
-                        let link = Game.getObjectById(miningSpot.link)
-                        if (link) 
-                        {
-                            if (link.store.getUsedCapacity(RESOURCE_ENERGY) >= MINE_LINK_TRANSFERLIMIT) 
-                            {
-                                let target = Game.getObjectById(colony.recievelink)
-                                if (target) 
-                                {
-                                    link.transferEnergy(target);
-                                }
-                                else
-                                {
-                                    delete colony.recievelink
-                                }
-                            }
-                        }
-                        else
-                        {
-                            delete miningSpot.link
-                        }
-                    }
-                }
-                if(Game.time % MINE_STATUS_REFRESHRATE == 0)
-                {
-                    creep.room.lookAt(creep.pos).forEach((s) => {
-                        if (s.type == 'structure' && s.structure.structureType == STRUCTURE_CONTAINER) 
-                        {
-                            miningSpot.status = s.structure.store.getUsedCapacity();
-                        }
-                    })
-                }
-            }
-        })
-        if (needReplacement) 
-        {
-            let room = Game.rooms[colony.pos.roomName]
-            if (room) 
-            {
-                if (miningSpot.type == 'source') 
-                {
-                    if (miningSpot.link) 
-                    {
-                        let boost = 0;
-                        if(Memory.boostedSource[miningSpot.target])
-                        {
-                            boost = Memory.boostedSource[miningSpot.target];
-                        }
-                        switch(boost)
-                        {
-                            case 0:
-                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINER)
-                                break;
-                            case 1:
-                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST1)
-                                break;
-                            case 2:
-                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST2)
-                                break;
-                            case 3:
-                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST3)
-                                break;
-                            case 4:
-                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST4)
-                                break;
-                            case 5:
-                                spawnRoleIntoList(room,miningSpot.miners,ROLE_LINKEDMINERBOOST5)
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        spawnRoleIntoList(room,miningSpot.miners,ROLE_MINER)
-                    }
-                }
-                else
-                {
-                    spawnRoleIntoList(room,miningSpot.miners,ROLE_MINERALMINER)
-                }
-            }
-        }
-    }
-    else
-    {
-        let room = Game.rooms[miningSpot.myPosition.roomName];
-        if (room) 
-        {
-            let results = room.lookAt(miningSpot.myPosition.x,miningSpot.myPosition.y);
-            results.forEach((r) => 
-            {
-                if (r.type == 'mineral') 
-                {
-                    miningSpot.target = r.mineral.id;
-                    return;
-                }
-                if (r.type == 'source') 
-                {
-                    miningSpot.target = r.source.id;
-                    return;
-                }
-            })
-            if (!miningSpot.target) 
-            {
-                miningSpot.target = 'invalid'
-            }
-        }
     }
 }
 
