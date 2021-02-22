@@ -20,6 +20,7 @@
 - remove MiningSpot from code
 - Rampart hole filler
 - hauler taskplanner followup based on expected position not target position offset 1 towards last target enough
+- Memhack
 
 Done
 - Adaptive worker count based on income

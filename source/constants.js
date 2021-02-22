@@ -19,7 +19,6 @@ COLONY_EXTRA_WORKER_THRESHOLD       = 600000;
 COLONY_WORKER_FREE_FOR_ALL_ENERGY_THRESHOLD = 800000;
 RCL_MAX                             = 8;
 CPU_BUCKET_MAX                      = 10000;
-INTENT_CPU_COST                     = 0.2;
 ROOM_WIDTH                          = 50;
 ROOM_HEIGHT                         = 50;
 

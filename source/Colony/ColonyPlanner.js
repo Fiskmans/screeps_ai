@@ -1,7 +1,6 @@
 
 let C =
 {
-    
     BUILDINGS_AT_LEVEL:
     {
         0: {},
@@ -861,4 +860,15 @@ module.exports.Expand = function(colony)
     {
         Performance.Decisions.Run("planner",ExpandColony,colony)
     }
+}
+
+module.exports.BuildingsAvailable=function(colony,structure)
+{
+    let available = CONTROLLER_STRUCTURES[structure][colony.level];
+    if(structure == STRUCTURE_LINK)
+    {
+        available -= 1; //upgrade link
+    }
+    available -= C.BUILDINGS_AT_LEVEL[colony.level][structure] || 0;
+    return available;
 }

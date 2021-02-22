@@ -21,7 +21,10 @@ let Setup = function(colony)
     {
         return false;
     }
-    let terrain = new Room.Terrain(colony.pos.roomName);
+    if(colony.subLayouts["local_mining"])
+    {
+        delete colony.subLayouts["local_mining"];
+    }
     let vis = new RoomVisual(colony.pos.roomName);
 
     let buildings = [];
@@ -257,6 +260,7 @@ let RefreshIncome=function(colony)
     }
 }
 
+
 let Mine=function(colony,blob)
 {
     let room = Game.rooms[colony.pos.roomName];
@@ -277,6 +281,98 @@ let Mine=function(colony,blob)
     SpawnCreeps(colony,blob);
 }
 
+let AddLinks = function(colony,blob)
+{
+    if(!blob.linkCount)
+    {
+        blob.linkCount = 0;
+    }
+    if(blob.linkCount == 2)
+    {
+        return;
+    }
+    let available = Colony.Planner.BuildingsAvailable(colony,STRUCTURE_LINK);
+    if(available > blob.linkCount)
+    {
+        let furthest = false;
+        let distance = 0;
+        let colonyPos = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
+        for(let site of blob.sites)
+        {
+            if(site.hasLink || site.type == C.MINING_TYPE_MINERAL)
+            {
+                continue;
+            }
+            let pos = new RoomPosition(site.pos.x,site.pos.y,site.pos.roomName);
+            let d = pos.getRangeTo(colonyPos);
+            if(d > distance)
+            {
+                furthest = site;
+                distance = d;
+            }
+        }
+
+        if(furthest)
+        {
+            let pos = new RoomPosition(furthest.pos.x,furthest.pos.y,furthest.pos.roomName);
+            let buildings = [];
+            if(colony.layout)
+            {
+                buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+            }
+            for(let layout of Object.values(colony.subLayouts))
+            {
+                buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
+            }
+            let terrain = new Room.Terrain(colony.pos.roomName);
+            let closest = false;
+            let distance = Infinity;
+            for(let dir of ALL_DIRECTIONS)
+            {
+                let p = pos.offsetDirection(dir);
+                if(terrain.get(p.x,p.y) != TERRAIN_MASK_WALL)
+                {
+                    let d = p.getRangeTo(colonyPos);
+                    if(d < distance)
+                    {
+                        let busy = false;
+                        for(let b of buildings)
+                        {
+                            if(b.pos.x == p.x && b.pos.y == p.y)
+                            {
+                                busy = true;
+                                break;
+                            }
+                        }
+                        if(busy)
+                        {
+                            continue;
+                        }
+
+                        distance = d;
+                        closest = p;
+                    }
+                }
+            }
+            if(closest)
+            {
+                furthest.hasLink = true;
+                furthest.linkPos = closest;
+                colony.subLayouts["local_mining"] += SerializeLayout([{
+                    pos:closest,
+                    structure:STRUCTURE_LINK
+                }])
+                blob.linkCount++;
+            }
+            else
+            {
+                site.hasLink = "no-space";
+                Helpers.External.Notify("No link could be added around " + pos + " as there is no space",true);
+            }
+        }
+    }
+}
+
 module.exports.Update=function(colony)
 {
     if(!colony.mining)
@@ -291,4 +387,5 @@ module.exports.Update=function(colony)
         Mine(colony,site);
     }
     RefreshIncome(colony);
+    AddLinks(colony,colony.mining);
 }

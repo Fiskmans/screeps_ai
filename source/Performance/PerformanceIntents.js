@@ -1,4 +1,8 @@
 
+let C =
+{
+    INTENT_CPU_COST:0.2
+}
 
 module.exports._intentCost = 0;
 module.exports._mappings = []
@@ -11,7 +15,7 @@ module.exports.Reset=function()
 
 module.exports.Add=function()
 {
-    this._intentCost += INTENT_CPU_COST;
+    this._intentCost += C.INTENT_CPU_COST;
 }
 
 module.exports.GetUsed=function()
