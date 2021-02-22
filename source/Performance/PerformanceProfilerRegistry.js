@@ -48,6 +48,8 @@ Performance.Profiler.Register("Colony.Dispatcher"   , require('ColonyDispatcher'
 Performance.Profiler.Register("Colony.Helpers"      , require('ColonyHelpers'));
 Performance.Profiler.Register("Colony.KickStart"    , require('ColonyKickStart'));
 Performance.Profiler.Register("Colony.Modules"      , require('ColonyModules'));
+Performance.Profiler.Register("Colony.Mining"       , require('ColonyMining'));
+Performance.Profiler.Register("Colony.RemoteMining" , require('ColonyRemoteMining'));
 Performance.Profiler.Register("Colony.Planner"      , require('ColonyPlanner'));
 Performance.Profiler.Register("Colony.Labs"         , require('ColonyLabProduction'));
 Performance.Profiler.Register("Combat.Calculator"   , require('CombatCalculator'));

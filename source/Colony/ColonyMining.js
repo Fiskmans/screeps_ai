@@ -7,7 +7,10 @@ let C =
     MINING_TYPE_SOURCE      :"Source",
     MINING_TYPE_MINERAL     :"Mineral",
 
-    SOURCE_OUTPUT: SOURCE_ENERGY_CAPACITY/ENERGY_REGEN_TIME
+    SOURCE_OUTPUT: SOURCE_ENERGY_CAPACITY/ENERGY_REGEN_TIME,
+
+    LINK_STATE_HAS          :"has",
+    LINK_STATE_NO_SPACE     :"no-space"
 }
 
 let Setup = function(colony)
@@ -149,6 +152,10 @@ let CreepActions=function(colony,blob,target)
                 creep.travelTo(targetPos);
             }
             creep[CREEP_HARVEST](target);
+            if(blob.link == C.LINK_STATE_HAS && blob.linkId && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0 && creep.store.getFreeCapacity(RESOURCE_ENERGY) < creep.getActiveBodyparts(WORK) * HARVEST_POWER * 2)
+            {
+                creep[CREEP_TRANSFER](Game.getObjectById(blob.linkId),RESOURCE_ENERGY);
+            }
 
             if(creep.ticksToLive <= 1)
             {
@@ -213,8 +220,20 @@ let SpawnCreeps = function(colony,blob)
     if(needMiner)
     {
         let room = Game.rooms[colony.pos.roomName];
+        let body = [];
 
-        let body = blob.type == C.MINING_TYPE_SOURCE ? BODIES.LOCAL_MINER : BODIES.LOCAL_MINERAL_MINER;
+        if(blob.type == C.MINING_TYPE_SOURCE)
+        {
+            body = BODIES.LOCAL_MINER;
+            if(blob.link == C.LINK_STATE_HAS)
+            {
+                body = BODIES.LOCAL_LINKED_MINER;
+            }
+        }
+        else
+        {
+            body = BODIES.LOCAL_MINERAL_MINER;
+        }
         let dummyList = [];
         
         if(room.energyCapacityAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] || (room.energyAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] && (!room.storage ||  room.storage.store.getUsedCapacity(RESOURCE_ENERGY) <= ENERGY_CAPACITY_AT_LEVEL[3])))
@@ -277,6 +296,17 @@ let Mine=function(colony,blob)
             return;
         }
     }
+    if(blob.link == C.LINK_STATE_HAS && !blob.linkId)
+    {
+        for(let s of room.lookForAt(LOOK_STRUCTURES,blob.linkPos.x,blob.linkPos.y))
+        {
+            if(s.structureType == STRUCTURE_LINK)
+            {
+                blob.linkId = s.id;
+                break;
+            }
+        }
+    }
     CreepActions(colony,blob,target);
     SpawnCreeps(colony,blob);
 }
@@ -299,7 +329,7 @@ let AddLinks = function(colony,blob)
         let colonyPos = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
         for(let site of blob.sites)
         {
-            if(site.hasLink || site.type == C.MINING_TYPE_MINERAL)
+            if(site.link || site.type == C.MINING_TYPE_MINERAL)
             {
                 continue;
             }
@@ -356,7 +386,7 @@ let AddLinks = function(colony,blob)
             }
             if(closest)
             {
-                furthest.hasLink = true;
+                furthest.link = C.LINK_STATE_HAS;
                 furthest.linkPos = closest;
                 colony.subLayouts["local_mining"] += SerializeLayout([{
                     pos:closest,
@@ -366,11 +396,79 @@ let AddLinks = function(colony,blob)
             }
             else
             {
-                site.hasLink = "no-space";
+                site.link = C.LINK_STATE_NO_SPACE;
                 Helpers.External.Notify("No link could be added around " + pos + " as there is no space",true);
             }
         }
     }
+}
+
+let LinkTransfer = function(colony,blob)
+{
+    let target = false;
+    if(colony.recievelink)
+    {
+        let l = Game.getObjectById(colony.recievelink);
+        if(l)
+        {
+            if(l.store.getFreeCapacity(RESOURCE_ENERGY) > 200)
+            {
+                target = l;
+            }
+        }
+        else
+        {
+            delete colony.recievelink;
+        }
+    }
+    if(!target && colony.upgradeLink)
+    {
+        let l = Game.getObjectById(colony.upgradeLink);
+        if(l)
+        {
+            if(l.store.getFreeCapacity(RESOURCE_ENERGY) > 200)
+            {
+                target = l;
+            }
+        }
+        else
+        {
+            delete colony.upgradeLink;
+        }
+    }
+    if(!target && colony.sendLink)
+    {
+        let l = Game.getObjectById(colony.sendLink);
+        if(l)
+        {
+            if(l.store.getFreeCapacity(RESOURCE_ENERGY) > 200)
+            {
+                target = l;
+            }
+        }
+        else
+        {
+            delete colony.sendLink;
+        }
+    }
+    if(target)
+    {
+
+        for(let site of blob.sites)
+        {
+            if(site.link == C.LINK_STATE_HAS && site.linkId)
+            {
+                let link = Game.getObjectById(site.linkId);
+                if(!link)
+                {
+                    delete site.linkId;
+                    continue;
+                }
+                
+                link.TransferOptimal(target);
+            }
+        }
+    }   
 }
 
 module.exports.Update=function(colony)
@@ -388,4 +486,5 @@ module.exports.Update=function(colony)
     }
     RefreshIncome(colony);
     AddLinks(colony,colony.mining);
+    LinkTransfer(colony,colony.mining);
 }

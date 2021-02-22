@@ -88,7 +88,7 @@ let Pop=function()
 
 let HookAll=function(profiler)
 {
-    console.log('hooking: ' + Object.keys(profiler._mappings).length);
+    console.log('hooking: ' + Object.keys(profiler._mappings).length + " functions");
     for(let mapping of profiler._mappings)
     {
         let object = mapping.obj;
@@ -112,7 +112,7 @@ let HookAll=function(profiler)
 
 let UnHookAll=function(profiler)
 {
-    console.log('unhooking: ' + Object.keys(profiler._mappings).length);
+    console.log('unhooking: ' + Object.keys(profiler._mappings).length + " functions");
     for(let mapping of profiler._mappings)
     {
         let object = mapping.obj;
