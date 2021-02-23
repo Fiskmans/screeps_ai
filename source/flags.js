@@ -28,28 +28,6 @@ StartColony=function(flag)
     flag.remove();
 }
 
-AbandonRoad=function(flag)
-{
-    
-    let pos = flag.pos;
-    Memory.colonies.forEach(colony => 
-        {
-            for(let wayIndex in colony.highways)
-            {
-                for(let pathIndex in colony.highways[wayIndex].path)
-                {
-                    let pos2 = new RoomPosition(colony.highways[wayIndex].path[pathIndex].x,colony.highways[wayIndex].path[pathIndex].y,colony.highways[wayIndex].path[pathIndex].roomName);
-                    if (pos.x == pos2.x && pos.y == pos2.y && pos.roomName == pos2.roomName) 
-                    {
-                        console.log("removing road number " + wayIndex + " from " + colony.pos.roomName);
-                        colony.highways.splice(wayIndex,1);
-                        break;
-                    }
-                }
-            }
-        });
-    flag.remove()
-}
 
 Discard=function(flag)
 {
@@ -247,7 +225,6 @@ FlagFunctions["Abandon"] = Abandon;
 FlagFunctions["Discard"] = Discard;
 FlagFunctions["Disassemble"] = Disassemble;
 FlagFunctions["StartColony"] = StartColony;
-FlagFunctions["AbandonRoad"] = AbandonRoad;
 FlagFunctions["MarkAsOwned"] = MarkAsOwned;
 FlagFunctions["EvaluateExpansion"] = EvaluateExpansion;
 
@@ -267,39 +244,6 @@ applyFlags=function()
         }
     }
 
-    if(flags["StartRoad"] && flags["EndRoad"])
-    {
-        let startflag = flags["StartRoad"];
-        let endflag = flags["EndRoad"];
-        
-        if (startflag.color != COLOR_RED && endflag.color != COLOR_RED) 
-        {
-            let startpos = startflag.pos;
-            let endpos = endflag.pos;
-            let col = false;
-            
-            for(let id in Memory.colonies)
-            {
-                let colony = Memory.colonies[id];
-                if (startpos.roomName == colony.pos.roomName) 
-                {
-                    col = colony;
-                    break;
-                }
-            }
-            if (col) 
-            {
-                col.highways.push(new Highway(startpos,endpos));
-                startflag.remove();
-                endflag.remove();
-            }
-            else
-            {
-                startflag.setColor(COLOR_RED);
-                endflag.setColor(COLOR_RED);
-            }
-        }
-    }
     
     if(flags["StartAttack"],flags["Attack"])
     {

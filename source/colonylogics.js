@@ -8,7 +8,6 @@ colonyLogic=
         Colony.Modules.Spawning.Update(colony);
         Colony.Modules.Misc.BasicWorkers(colony);
         PerformAttacks(colony);
-        Colony.Modules.Misc.MaintainHighways(colony);
         Colony.Modules.Misc.RepairDecay(colony);
         ColonyHauling(colony);
         colonyDismantle(colony);

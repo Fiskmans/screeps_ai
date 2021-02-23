@@ -142,55 +142,6 @@ drawColony=function(colony)
         }
     }
     
-    
-    let visuals = []
-    visuals.push(vis)
-    let roadPanels = [];
-    for(let h in colony.highways)
-    {
-        roadPanels.push([])
-        let highway = colony.highways[h]
-        for(let p in highway.path)
-        {
-            let pos = highway.path[p]
-            if (_.last(visuals).roomName != pos.roomName) 
-            {
-                visuals.push(new RoomVisual(pos.roomName))
-            }
-            else
-            {
-                if(p < highway.path.length/2)
-                {
-                    roadPanels[h] = [pos.x,pos.y];
-                }
-            }
-            let roadroom = Game.rooms[pos.roomName];
-            let road = false;
-            if (roadroom) 
-            {
-                let structs = roadroom.lookForAt(LOOK_STRUCTURES,pos.x,pos.y)
-                for(let s of structs)
-                {
-                    if (s.structureType == STRUCTURE_ROAD) 
-                    {
-                        road = true
-                        break;
-                    }
-                }
-            }
-            
-            if (!road) 
-            {
-                _.last(visuals).symbol(pos.x,pos.y,STRUCTURE_ROAD)
-            }
-        }
-    }
-    
-    for(var key in visuals)
-    {
-        visuals[key].connectRoads()
-    }
-    
     if (room.storage) 
     {
         vis.stock(pos.x + 12,pos.y+2,room.storage,{scale:0.7,name:"Storage",showPrice:true})

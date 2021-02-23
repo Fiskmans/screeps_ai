@@ -28,14 +28,6 @@ module.exports.BasicWorkers=function(colony)
     }
 }
 
-module.exports.MaintainHighways=function(colony)
-{
-    for(var key in colony.highways)
-    {
-        dopath(colony.highways[key])
-        maintain(colony.highways[key],colony)
-    }
-}
 
 let FillRepairQueue=function(colony,room)
 {

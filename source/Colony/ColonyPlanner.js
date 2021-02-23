@@ -124,22 +124,6 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
                     }
                 }
             }
-            if(colony.highways)
-            {
-                for(let highway of colony.highways)
-                {
-                    if(highway.path)
-                    {
-                        for(let p of highway.path)
-                        {
-                            if(p.roomName == roomName)
-                            {
-                                matrix.set(p.x,p.y,255);
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -225,22 +209,6 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
                     for(let b of buildings)
                     {
                         matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
-                    }
-                }
-            }
-            if(colony.highways)
-            {
-                for(let highway of colony.highways)
-                {
-                    if(highway.path)
-                    {
-                        for(let p of highway.path)
-                        {
-                            if(p.roomName == roomName)
-                            {
-                                matrix.set(p.x,p.y,1);
-                            }
-                        }
                     }
                 }
             }
@@ -819,19 +787,6 @@ let IsValidSpot=function(colony,terrain,buildings,x,y,centerPos)
         }
     })
     
-    for(let highway of colony.highways)
-    {
-        if(highway.path)
-        {
-            for(let p of highway.path)
-            {
-                if(p.x == x && p.y == y && p.roomName == centerPos.roomName)
-                {
-                    return false;
-                }
-            }
-        }
-    }
     return !blocks;
 }
 

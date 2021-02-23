@@ -5,7 +5,6 @@ module.exports.Generate=function(pos)
     Memory.colonies.push(
         {
             pos : pos,
-            highways : [],
             constructionsite : false,
             workerpool : [],
             lastmaintained : 0,

@@ -764,33 +764,6 @@ spawnRoleIntoList=function(room,list,role,options={},additionalList)
     
 }
 
-dopath=function(Highway)
-{
-    if (Highway.start && Highway.end) 
-    {
-        var start = new RoomPosition(Highway.start.x,Highway.start.y,Highway.start.roomName)
-        var end = new RoomPosition(Highway.end.x,Highway.end.y,Highway.end.roomName)
-        
-        var room = Game.rooms[start.roomName]
-        if (room) 
-        {
-            var ret = PathFinder.search(start,[{pos:end,range:1}],{roomCallback:avoidColonyLayout,swampCost:1,plainCost:1,ignoreCreeps:true})
-            if (!ret.incomplete) {
-                Highway.path = Highway.path.concat(ret.path)
-                delete Highway.start
-                delete Highway.end
-            }
-            else
-            {
-                Highway.path = Highway.path.concat(ret.path)
-                Highway.path.pop();
-                Highway.start = _.last(ret.path)
-            }
-        }
-        //else no vision
-    }
-}
-
 avoidColonyLayout=function(roomName)
 {
     var matrix = new PathFinder.CostMatrix();
@@ -942,93 +915,6 @@ MaintainColonydynamic=function(colony)
         else
         {
             colony.worker = false
-        }
-    }
-}
-
-
-maintain=function(Highway,colony)
-{
-    if (Game.time - Highway.lastmaintained > ROAD_MAINTAIN_INTERVAL) 
-    {
-        if(!Highway.at) { Highway.at = 0 } //if 'at' doesn't resolve start at 0
-        if(!Highway.worker) { Highway.worker = colony.workerpool.shift() } //if no worker steal one from the worker pool
-        if(Highway.worker) // state can change, cant use an else
-        {
-            if(Highway.at >= Highway.path.length) //if one past the last reset and reset maintain timer 
-            {
-                Highway.at = false
-                colony.workerpool.push(Highway.worker)
-                Highway.worker = false
-                Highway.lastmaintained = Game.time
-                return;
-            }
-            
-            let creep = Game.creeps[Highway.worker]
-            if(creep)
-            {
-                if (creep.memory.harvesting) 
-                {
-                    creep.dumbHarvest()
-                }
-                else
-                {
-                    let pos = Highway.path[Highway.at];
-                    if (creep.pos.roomName != pos.roomName || creep.pos.getRangeTo(pos.x,pos.y) > 2) // path to current road
-                    {
-                        creep.travelTo(new RoomPosition(pos.x,pos.y,pos.roomName))
-                    }
-                    let room = Game.rooms[pos.roomName]
-                    let road = false
-                    if (room) {
-                        let structures = room.lookForAt(LOOK_STRUCTURES,pos.x,pos.y) //look for road object
-                        for (let s of structures)
-                        {
-                            if (s.structureType == STRUCTURE_ROAD) 
-                            {
-                                road = s;
-                                break;
-                            }
-                        }
-                        if (!road) 
-                        {
-                            let constructions = room.lookForAt(LOOK_CONSTRUCTION_SITES,pos.x,pos.y) //look for constructionssite
-                            for(let c of constructions)
-                            {
-                                if (c instanceof ConstructionSite) 
-                                {
-                                    road = c
-                                }
-                            }
-                            if (!road) 
-                            {
-                                let result = new RoomPosition(pos.x,pos.y,pos.roomName).createConstructionSite(STRUCTURE_ROAD);
-                                if (result == ERR_INVALID_TARGET) 
-                                {
-                                    Highway.path.splice(Highway.at,1);
-                                }
-                            }
-                        }
-                    }
-                    if (road instanceof Structure) //repair if road build if construction
-                    {
-                        creep.do("repair",road)
-                        if (road.hits == road.hitsMax) //if road and fully healed continue to next roadsegment
-                        {    
-                            Highway.at += 1
-                        }
-                    }
-                    else
-                    {
-                        creep.do("build",road)
-                    }
-                }
-                creep.updateHarvestState()
-            }
-            else
-            {
-                Highway.worker = false // creep's dead or invalid
-            }
         }
     }
 }

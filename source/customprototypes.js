@@ -1,22 +1,3 @@
-Highway = function(start,end)
-{
-    if(start instanceof RoomPosition && end instanceof RoomPosition)
-    {
-        this.start = start
-        this.end = end
-    }
-    this.path = []
-    this.lastmaintained = 0;
-}
-Highway.prototype.dopath=function()
-{
-    doPath(this)
-}
-Highway.prototype.maintain=function(colony)
-{
-    maintain(this,colony)
-}
-
 
 FakeStore = function(store)
 {

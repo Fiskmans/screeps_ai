@@ -12,14 +12,12 @@
 - Invadercore tracker
 - Mining income includes boosted sources
 - replace all uses of spawnRoleIntoList() to Colony.Helpers.SpawnCreep()
-- remove Highways
 - remove old Maintain code
 - move Power creep code to new module
 - move bezier stuff to some place more fitting
 - Rampart hole filler
 - hauler taskplanner followup based on expected position not target position offset 1 towards last target enough
 - Memhack
-- move mining and remote mining into colony.modules.*
 
 Done
 - Adaptive worker count based on income
@@ -32,3 +30,5 @@ Done
 - Remote mining
 - Move mining spot over to Planner/sublayout
 - remove MiningSpot from code
+- move mining and remote mining into colony.modules.*
+- remove Highways
