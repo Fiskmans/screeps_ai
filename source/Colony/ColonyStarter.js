@@ -6,7 +6,6 @@ module.exports.Generate=function(pos)
         {
             pos : pos,
             highways : [],
-            miningSpots : [],
             constructionsite : false,
             workerpool : [],
             lastmaintained : 0,

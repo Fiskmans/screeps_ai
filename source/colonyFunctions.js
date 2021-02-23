@@ -69,117 +69,6 @@ ColonyUpgradeLinked=function(colony)
     }
 }
 
-ColonyRespawnWorkers=function(colony)
-{
-    let room = Game.rooms[colony.pos.roomName];
-    if(!colony.workerpool) { colony.workerpool = []};
-    if(!colony.workersensus) { colony.workersensus = []};
-    deleteDead(colony.workersensus);
-    
-    
-    let target = Math.ceil((_.sum(colony.income) - _.sum(colony.expenses)) / WORKER_PARTS_AT_LEVEL[colony.level]);
-    colony.targetWorkers = target;
-    let count = colony.workersensus.length;
-
-    if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_EXTRA_WORKER_THRESHOLD)
-    {
-        target++;
-    }
-    if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_WORKER_FREE_FOR_ALL_ENERGY_THRESHOLD)
-    {
-        target += 50;
-    }
-
-    if (count < target)
-    {
-        let body = BODIES.LV1_WORKER;
-
-        if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
-        {
-            body = BODIES.LV2_WORKER;
-        }
-
-        if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
-        {
-            body = BODIES.LV3_WORKER;
-        }
-        
-        if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT && colony.haulerpool.length != 0)
-        {
-            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
-            {
-                body = BODIES.LV4_WORKER;
-            }
-            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[5])
-            {
-                body = BODIES.LV5_WORKER;
-            }
-            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
-            {
-                body = BODIES.LV6_WORKER;
-            }
-            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
-            {
-                body = BODIES.LV7_WORKER;
-            }
-        }
-        else
-        {
-            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
-            {
-                body = BODIES.LV4_WORKER;
-            }
-            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[5])
-            {
-                body = BODIES.LV5_WORKER;
-            }
-            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
-            {
-                body = BODIES.LV6_WORKER;
-            }
-            if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
-            {
-                body = BODIES.LV7_WORKER;
-            }
-        }
-
-        Colony.Helpers.SpawnCreep(
-            colony,
-            colony.workerpool,
-            body,
-            ROLE_WORKER,
-            {
-                extraList:colony.workersensus,
-                allowShards:true,
-                allowNearby:true,
-                nearbyRange:20,
-                nearbyBody:BODY_GROUPS.WORKERS
-            })
-    }
-}
-
-ColonyMining=function(colony)
-{
-    let room = Game.rooms[colony.pos.roomName]
-    if (room && room.storage) 
-    {
-        if(!colony.haulerpool) {colony.haulerpool = []}
-        if(!colony.haulersensus) {colony.haulersensus = []}
-        deleteDead(colony.haulersensus);
-        let limit = 2;
-        limit += Math.max(0,colony.miningSpots.length-3);
-        if(colony.level > 6)
-        {
-            limit /= 2;
-        }
-        if (colony.haulersensus.length < limit) 
-        {
-            spawnRoleIntoList(Game.rooms[colony.pos.roomName],colony.haulerpool,ROLE_HAULER,{},colony.haulersensus)
-        }
-        MaintainMiningSpots(colony)
-    }
-}
-
 FindLinkInColonyLayout=function(colony,blackList)
 {
     let room = Game.rooms[colony.pos.roomName]
@@ -265,22 +154,6 @@ FindColonyLinks=function(colony)
         {
             colony.recievelink = id;
             console.log("colony " + colony.pos.roomName + " found rec link with id: " + id);
-        }
-    }
-}
-
-StartMining=function(colony)
-{
-    if (colony.miningSpots && colony.miningSpots.length == 0) 
-    {
-        let room = Game.rooms[colony.pos.roomName];
-        if (room) 
-        {
-            let sources = room.find(FIND_SOURCES).concat(room.find(FIND_MINERALS))
-            sources.forEach((s) =>
-            {
-                AddMiningSpot(colony,new MiningSpot(s.pos));
-            })
         }
     }
 }
@@ -1218,9 +1091,8 @@ ColonyHauling=function(colony)
 let EnqueueWork = function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
-    for(let creepName of colony.haulerpool)
+    for(let creep of Helpers.Creep.List(colony.haulerpool))
     {
-        let creep = Game.creeps[creepName];
         if(!creep.HasAtleast1TickWorthOfWork())
         {
             let predicted = {};
@@ -1276,6 +1148,11 @@ ColonyFulfillRequests=function(colony)
         {
             creep.DoWork();
         }
+
+        if(_.sum(creep.body,b => { return b.type == CARRY ? 1 : 0}) >= HAULER_PARTS_AT_LEVEL[colony.level])
+        {
+            creep.OpportuneRenew();
+        }
     }
 }
     
@@ -1306,58 +1183,6 @@ ColonyRequestRefill=function(colony)
         RequestResource(colony,room.powerSpawn.id,RESOURCE_POWER,80,REQUEST_PRIORITY_AUXILIARY)
     }
 
-}
-
-
-ColonyEmptyMines=function(colony)
-{
-    if(colony.recievelink)
-    {
-        RequestEmptying(colony,colony.recievelink,RESOURCE_ENERGY,100,REQUEST_PRIORITY_FUNCTION);
-    }
-
-    for(let spot of colony.miningSpots)
-    {
-        if(!spot.container && spot.digPos)
-        {
-            for(let t of new RoomPosition(spot.digPos.x,spot.digPos.y,spot.digPos.roomName).lookFor(LOOK_STRUCTURES))
-            {
-                if(t.structureType == STRUCTURE_CONTAINER)
-                {
-                    spot.container = t.id;
-                    break;
-                }
-            }
-        }
-        
-        if(spot.container)
-        {
-            let obj = Game.getObjectById(spot.container);
-            if(obj)
-            {
-                let resources = ExtractContentOfStore(obj.store);
-                if(resources.length == 0)
-                {
-                    //Noop
-                } 
-                else if(resources.length == 1)
-                {
-                    RequestEmptying(colony,spot.container,resources[0],MINING_CONTAINER_EMPTY_THRESHOLD,REQUEST_PRIORITY_FUNCTION);
-                }   
-                else
-                {
-                    for(let r of resources)
-                    {
-                        RequestEmptying(colony,spot.container,r,1,REQUEST_PRIORITY_PROGRESS);
-                    }
-                }
-            }
-            else
-            {
-                delete spot.container;
-            }
-        }
-    }
 }
 
 ColonyTerminalTraffic=function(colony)

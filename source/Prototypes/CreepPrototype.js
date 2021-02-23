@@ -523,7 +523,7 @@ Creep.prototype.OpportuneRenew=function()
         {
             if(s[LOOK_STRUCTURES].structureType == STRUCTURE_SPAWN && s[LOOK_STRUCTURES].my && !s[LOOK_STRUCTURES].spawning)
             {
-                this.say("Renewed");
+                this.say("✨");
                 s[LOOK_STRUCTURES].renewCreep(this);
                 s[LOOK_STRUCTURES].spawning = true;
             }

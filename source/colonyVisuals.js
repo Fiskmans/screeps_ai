@@ -142,21 +142,6 @@ drawColony=function(colony)
         }
     }
     
-    for(let miningSpot in colony.miningSpots)
-    {
-        let spot = colony.miningSpots[miningSpot];
-        let missing = findMissing(spot.myPosition.x - 1, spot.myPosition.y - 1, spot.myPosition.roomName, spot.layout)
-        
-        let mvis = vis;
-        if (colony.pos.roomName != spot.myPosition.roomName) 
-        {
-            mvis = new RoomVisual(spot.myPosition.roomName);
-        }
-        if(missing)
-        {
-            mvis.plan(spot.myPosition.x - 1, spot.myPosition.y - 1, missing)
-        }
-    }
     
     let visuals = []
     visuals.push(vis)
@@ -255,16 +240,11 @@ drawColony=function(colony)
 
     {
         
-        let target = 2;
-        target += Math.max(0,colony.miningSpots.length-3);
-        if(colony.level > 6)
-        {
-            target /= 2;
-        }
-        let count = 0;
+        let target = colony.targetHaulers || "?";
+        let count = "?";
         if(colony.haulersensus)
         {
-            count += colony.haulersensus.length;
+            count = colony.haulersensus.length;
         }
         vis.text(count + "/" + target + "📦",pos.x+10.5,pos.y-0.75,{align:'right',color:"#FFFFFF"});
     }
@@ -283,27 +263,6 @@ drawColony=function(colony)
     {
         recievelink = Game.getObjectById(colony.recievelink);
     }
-    
-    colony.miningSpots.forEach((spot) =>
-    {
-        if(spot.type == 'mineral')
-        {
-            let buildings = room.lookForAt(LOOK_STRUCTURES,spot.myPosition.x,spot.myPosition.y);
-            if(buildings)
-            {
-                buildings.forEach((s) =>
-                {
-                    if(s.structureType == STRUCTURE_EXTRACTOR)
-                    {
-                        if(s.cooldown > 0)
-                        {s
-                            vis.Timer(s.pos.x,s.pos.y,s.cooldown,5,{color:"#ffff00",scale:0.5})
-                        }
-                    }
-                })
-            }
-        }
-    })
 
     if(colony.expedition)
     {

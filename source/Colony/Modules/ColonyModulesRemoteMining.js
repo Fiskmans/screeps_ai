@@ -933,3 +933,13 @@ module.exports.Run=function(colony)
         }
     }
 }
+
+let _RemoteMining = function(colony)
+{
+    Colony.Modules.RemoteMining.Run(colony);
+}
+
+module.exports.Update=function(colony)
+{
+    Performance.Decisions.Run("remote_mining",_RemoteMining,colony);
+}

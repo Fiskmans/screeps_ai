@@ -81,16 +81,3 @@ FakeStore.prototype.Remove=function(res,amount)
         this.total -= am;
     }
 }
-
-MiningSpot = function(position)
-{
-    if (position instanceof RoomPosition) 
-    {
-        this.myPosition = position;
-    }
-    else
-    {
-        this.myPosition = new RoomPosition( position.myPosition.x,position.myPosition.y,position.myPosition.roomName);
-    }
-}
-

@@ -36,6 +36,11 @@ module.exports._conditions =
     {
         enabled: false,
         threshold: 0.90
+    },
+    "normal_mode":
+    {
+        enabled: true,
+        threshold: 0.90
     }
 }
 module.exports.UpdateAverage=function()

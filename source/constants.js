@@ -250,6 +250,18 @@ REMOTE_HAULER_CARRY_PARTS_AT_LEVEL =
     [7]:33
 }
 
+HAULER_PARTS_AT_LEVEL =
+{
+    [1]:3,
+    [2]:5,
+    [3]:8,
+    [4]:13,
+    [5]:18,
+    [6]:23,
+    [7]:25,
+    [8]:25
+}
+
 WORKER_PARTS_AT_LEVEL = 
 {
     [1]:1,

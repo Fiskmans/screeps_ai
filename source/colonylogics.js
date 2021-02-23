@@ -5,24 +5,20 @@ colonyLogic=
     {
         DefendColony(colony);
         Colony.Planner.Expand(colony);
-        ColonyRespawnWorkers(colony);
-        Colony.Modules.BasicWorkers(colony);
+        Colony.Modules.Spawning.Update(colony);
+        Colony.Modules.Misc.BasicWorkers(colony);
         PerformAttacks(colony);
-        Colony.Modules.MaintainHighways(colony);
-        Colony.Modules.RepairDecay(colony);
-        colonyMiningSpots(colony);
-        StartMining(colony);
-        ColonyMining(colony);
+        Colony.Modules.Misc.MaintainHighways(colony);
+        Colony.Modules.Misc.RepairDecay(colony);
         ColonyHauling(colony);
-        ColonyEmptyMines(colony);
         colonyDismantle(colony);
         maintainColony(colony);
         maintainall(colony)
         ColonyDismantleAll(colony);
         ColonyBuildRamparts(colony);
         ColonyRequestRefill(colony);
-        Colony.Modules.RemoteMining(colony);
-        Colony.Modules.Mining(colony);
+        Colony.Modules.RemoteMining.Update(colony);
+        Colony.Modules.Mining.Update(colony);
     },
     //level 5
     5:function(colony)

@@ -51,52 +51,6 @@ AbandonRoad=function(flag)
     flag.remove()
 }
 
-RemoveMine=function(flag)
-{
-    let pos = flag.pos;
-    Memory.colonies.forEach(colony => 
-        {
-            for(let index in colony.miningSpots)
-            {
-                let pos2 = new RoomPosition(colony.miningSpots[index].myPosition.x,colony.miningSpots[index].myPosition.y,colony.miningSpots[index].myPosition.roomName);
-                if (pos.x == pos2.x && pos.y == pos2.y && pos.roomName == pos2.roomName) 
-                {
-                    console.log("removing mine number " + index + " from " + colony.pos.roomName);
-                    colony.miningSpots.splice(index,1);
-                    break;
-                }
-            }
-        })
-        flag.remove()
-}
-
-Mine=function(flag)
-{
-    let colony = FindClosestColony(flag.pos.roomName,true)
-    if (colony) 
-    {
-        let room = flag.room;
-        if (room) 
-        {
-            AddMiningSpot(colony,new MiningSpot(flag.pos));
-            flag.remove();
-        }
-        else
-        {
-            if (!Memory.scouting[flag.pos.roomName]) 
-            {
-                console.log("scouting " + flag.pos.roomName + " to start mining");
-                Memory.scouting[flag.pos.roomName] = false;
-            }
-            
-        }
-    }
-    else
-    {
-        console.log("Could not find colony for mine flag")
-    }
-}
-
 Discard=function(flag)
 {
     
@@ -287,12 +241,10 @@ EvaluateExpansion=function(flag)
     flag.remove();
 }
 
-FlagFunctions["Mine"] = Mine;
 FlagFunctions["Scout"] = Scout;
 FlagFunctions["Unplan"] = Unplan;
 FlagFunctions["Abandon"] = Abandon;
 FlagFunctions["Discard"] = Discard;
-FlagFunctions["RemoveMine"] = RemoveMine;
 FlagFunctions["Disassemble"] = Disassemble;
 FlagFunctions["StartColony"] = StartColony;
 FlagFunctions["AbandonRoad"] = AbandonRoad;

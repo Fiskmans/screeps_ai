@@ -2,7 +2,6 @@
 - update worker creeps to new DoWork structure
 - Migrate old code to module based system
 - Fix recipie visual, commodity/chemical different?
-- Move mining spot over to Planner/sublayout
 - Hauler performance measurer and adaptive hauler count
 - Deposit mining
 - smarter Tower code
@@ -17,10 +16,10 @@
 - remove old Maintain code
 - move Power creep code to new module
 - move bezier stuff to some place more fitting
-- remove MiningSpot from code
 - Rampart hole filler
 - hauler taskplanner followup based on expected position not target position offset 1 towards last target enough
 - Memhack
+- move mining and remote mining into colony.modules.*
 
 Done
 - Adaptive worker count based on income
@@ -31,3 +30,5 @@ Done
 - Write own profiler in Performance.profile, hook intents?
 - Kickstart code for RCL<4 colonies
 - Remote mining
+- Move mining spot over to Planner/sublayout
+- remove MiningSpot from code
