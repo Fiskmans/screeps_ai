@@ -24,6 +24,7 @@ let Setup = function(colony)
     let room = Game.rooms[colony.pos.roomName];
     if(!room)
     {
+        console.log("mining setup failed on no vision");
         return false;
     }
     if(colony.subLayouts["local_mining"])
@@ -53,6 +54,7 @@ let Setup = function(colony)
         if(pathResult.incomplete)
         {
             vis.poly(pathResult.path,{stroke:"#FF0000"});
+            console.log("mining setup failed on incomplete path to " + source.pos);
             return false;
         }
         vis.poly(pathResult.path,{stroke:"#00FF00"});
@@ -88,6 +90,7 @@ let Setup = function(colony)
         if(pathResult.incomplete)
         {
             vis.poly(pathResult.path,{stroke:"#FF0000"});
+            console.log("mining setup failed on incomplete path to " + mineral.pos);
             return false;
         }
         vis.poly(pathResult.path,{stroke:"#00FF00"});
@@ -231,13 +234,21 @@ let SpawnCreeps = function(colony,blob)
             {
                 body = BODIES.LOCAL_LINKED_MINER;
             }
+            if(!Performance.Decisions.Enabled("normal_mode"))
+            {
+                body = BODIES.LOW_CPU_MINER;
+            }
         }
         else
         {
             body = BODIES.LOCAL_MINERAL_MINER;
+            
+            if(!Performance.Decisions.Enabled("normal_mode"))
+            {
+                return;
+            }
         }
         let dummyList = [];
-        
         if(room.energyCapacityAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] || (room.energyAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] && (!room.storage ||  room.storage.store.getUsedCapacity(RESOURCE_ENERGY) <= ENERGY_CAPACITY_AT_LEVEL[3])))
         {
             body = [WORK,WORK,MOVE,MOVE];

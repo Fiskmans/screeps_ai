@@ -197,18 +197,7 @@ ColonyFindBuildingWork=function(colony)
         return;
     }
 
-    if(Game.shard.name == "shard3" && Memory.mainColony == colony.pos.roomName)
-    {
-        let room = Game.rooms[colony.pos.roomName];
-        if(room)
-        {
-            ColonyBuildStatic(colony,layout.structures[room.controller.level])
-        }
-    }
-    else
-    {
-        ColonyBuildDynamic(colony);
-    }
+    ColonyBuildDynamic(colony);
 }
 
 ColonyBuildStatic=function(colony,plan)

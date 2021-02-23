@@ -78,17 +78,6 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
     }
 
     let matrix = new PathFinder.CostMatrix();
-    if(Game.shard.name == "shard3" && roomName == Memory.mainColony)
-    {
-        for(let x = 0;x < 50;x++)
-        {
-            for(let y = 0;y < 50;y++)
-            {
-                matrix.set(x,y,256);
-            }
-        }
-        return matrix;
-    }
 
     let terrain = new Room.Terrain(roomName);
 
@@ -161,17 +150,6 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
 module.exports.MatrixRoadPreferFuture=function(roomName)
 {
     let matrix = new PathFinder.CostMatrix();
-    if(Game.shard.name == "shard3" && roomName == Memory.mainColony)
-    {
-        for(let x = 0;x < 50;x++)
-        {
-            for(let y = 0;y < 50;y++)
-            {
-                matrix.set(x,y,256);
-            }
-        }
-        return matrix;
-    }
 
     let terrain = new Room.Terrain(roomName);
 
@@ -331,6 +309,10 @@ module.exports.CanLayoutFit=function(center,layout)
 
     for(let b of buildings)
     {
+        if(b.pos.getRangeTo(colony.pos.x,colony.pos.y) < 3)
+        {
+            return false;
+        }
         if(terrain.get(b.pos.x,b.pos.y) == TERRAIN_MASK_WALL)
         {
             return false;
@@ -508,6 +490,19 @@ module.exports.Waiting=function(colony,tag)
 
 module.exports.PlanLayout=function(colony,tag,layout)
 {
+    if(!colony.mainPlanner)
+    {
+        return;
+    }
+    if(colony.mainPlanner.stage == PLANNER_STAGE_PLACE)
+    {
+        return;
+    }
+    if(colony.mainPlanner.stage == PLANNER_STAGE_WAITING && colony.mainPlanner.level < colony.level)
+    {
+        return;
+    }
+
     if(!colony.planner) { colony.planner = {}; }
 
     if(!colony.planner[tag])
@@ -871,4 +866,22 @@ module.exports.BuildingsAvailable=function(colony,structure)
     }
     available -= C.BUILDINGS_AT_LEVEL[colony.level][structure] || 0;
     return available;
+}
+
+module.exports.Reset=function(colony)
+{
+    if(colony.mainPlanner)
+    {
+        delete colony.mainPlanner
+    }
+    for(let tag of Object.keys(colony.planner))
+    {
+        if(colony.subLayouts[tag])
+        {
+            delete colony.subLayouts[tag];
+        }
+    }
+    colony.layout = "";
+    colony.planner = {};
+
 }

@@ -800,43 +800,20 @@ avoidColonyLayout=function(roomName)
         var pos = col.pos
         if (pos.roomName == roomName) 
         {
-            if(Game.shard.name == "shard3" && roomName == Memory.mainColony)
+            if(col.layout)
             {
-                var blocked = getBlocked(pos.x,pos.y,roomName,layout.structures[8])
-                for(var b in blocked)
+                let buildings = DeserializeLayout(col.layout,roomName);
+                buildings.forEach((b) =>
                 {
-                    var bpos = blocked[b]
-                    matrix.set(bpos.x,bpos.y,512);
-                }
-            }
-            else
-            {
-                if(col.layout)
-                {
-                    let buildings = DeserializeLayout(col.layout,roomName);
-                    buildings.forEach((b) =>
+                    if(b.structure != STRUCTURE_ROAD && b.structure != STRUCTURE_RAMPART)
                     {
-                        if(b.structure != STRUCTURE_ROAD && b.structure != STRUCTURE_RAMPART)
-                        {
-                            matrix.set(b.pos.x,b.pos.y,512);
-                        }
-                    })
-                }
+                        matrix.set(b.pos.x,b.pos.y,512);
+                    }
+                })
             }
         }
     }
     return matrix
-}
-
-maintainall=function(colony)
-{
-    if(Game.shard.name == "shard3" && Memory.mainColony == colony.pos.roomName)
-    {
-        for(let highway of colony.highways)
-        {
-            maintain(highway,colony)
-        }
-    }
 }
 
 AllCorridorsWithinRange = function(roomName,range) 
@@ -874,110 +851,7 @@ maintainColony=function(colony)
 {
     if (Game.time - colony.lastmaintained > COLONY_MAINTAIN_INTERVAL) 
     {
-        if(Game.shard.name == "shard3" && Memory.mainColony == colony.pos.roomName)
-        {   
-            MaintainColonystatic(colony);
-        }
-        else
-        {
-            MaintainColonydynamic(colony);
-        }
-    }
-}
-
-MaintainColonystatic=function(colony)
-{
-    let room = Game.rooms[colony.pos.roomName]
-    if(!room) 
-    {
-        Game.notify("No vision on colony " + colony.pos.roomName); 
-        return
-    }
-    if(!colony.at) { colony.at = 0 } //if 'at' doesn't resolve start at 0
-    if(!colony.worker) { colony.worker = colony.workerpool.shift() } //if no worker take one from the worker pool
-    if(colony.worker) // state can change, cant use an else
-    {
-        let creep = Game.creeps[colony.worker]
-        if(creep)
-        {
-            if (creep.memory.harvesting) 
-            {
-                creep.dumbHarvest()
-            }
-            else
-            {
-                let dx = colony.at%11
-                let dy = Math.floor(colony.at/11)
-                if(dy >= layout.structures[room.controller.level].length) //if one past the last reset and reset maintain timer 
-                {
-                    colony.at = false
-                    colony.workerpool.push(colony.worker)
-                    colony.worker = false
-                    colony.lastmaintained = Game.time
-                    return;
-                }
-                
-                let pos = new RoomPosition(colony.pos.x + dx,colony.pos.y + dy,colony.pos.roomName)
-                let wantedstruct = layout.structures[room.controller.level][dy][dx]
-                if(!wantedstruct) 
-                {
-                    colony.at += 1
-                }
-                else
-                {
-                    if (creep.pos.roomName != pos.roomName || creep.pos.getRangeTo(pos.x,pos.y) > 2) // path to current structure
-                    {
-                        creep.travelTo(new RoomPosition(pos.x,pos.y,pos.roomName))
-                    }
-                    let struct = false
-                    if (room) {
-                        for (let s of pos.lookFor(LOOK_STRUCTURES))
-                        {
-                            if (s.structureType == wantedstruct) 
-                            {
-                                struct = s;
-                                break;
-                            }
-                        }
-                        if(!struct)
-                        {
-                            for(let site of pos.lookFor(LOOK_CONSTRUCTION_SITES))
-                            {
-                                if (site.structureType == wantedstruct) 
-                                {
-                                    struct = site;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (struct)
-                    {
-                        if (struct instanceof Structure) //repair if road build if construction
-                        {
-                            creep.do("repair",struct)
-                            if (struct.hits == struct.hitsMax) //if road and fully healed continue to next roadsegment
-                            {    
-                                colony.at += 1
-                            }
-                        }
-                        else
-                        {
-                            creep.do("build",struct)
-                        }
-                    }
-                    else
-                    {
-                        pos.createConstructionSite(wantedstruct);
-                    }
-                }
-            }
-            creep.updateHarvestState()
-        }
-        else
-        {
-            colony.worker = false
-        }
+        MaintainColonydynamic(colony);
     }
 }
 

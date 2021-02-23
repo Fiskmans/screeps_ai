@@ -10,7 +10,7 @@ module.exports._conditions =
     "planner":
     {
         enabled: false,
-        threshold: 0.8
+        threshold: 0.95
     },
     "expansion":
     {

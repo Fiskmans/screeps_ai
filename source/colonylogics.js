@@ -13,7 +13,6 @@ colonyLogic=
         ColonyHauling(colony);
         colonyDismantle(colony);
         maintainColony(colony);
-        maintainall(colony)
         ColonyDismantleAll(colony);
         ColonyBuildRamparts(colony);
         ColonyRequestRefill(colony);

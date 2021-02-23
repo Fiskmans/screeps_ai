@@ -11,6 +11,7 @@ module.exports.Generate=function(pos)
             lastmaintained : 0,
             income:{},
             expenses:{},
-            workerRoster:{}
+            workerRoster:{},
+            subLayouts:{}
         });
 }

@@ -50,7 +50,7 @@ UpdateGrafanaStats=function()
           let store = room.storage.store;
           Memory.stats['rooms.' + roomName + '.storage.energy'] = store.getUsedCapacity(RESOURCE_ENERGY);
           Memory.stats['rooms.' + roomName + '.storage.other'] = store.getUsedCapacity() - store.getUsedCapacity(RESOURCE_ENERGY);
-          RESOURCES_ALL.forEach((r) =>
+          Object.keys(store).forEach((r) =>
           {
             let amount = store.getUsedCapacity(r)
             if(amount > 0)  

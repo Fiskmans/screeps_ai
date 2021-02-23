@@ -198,7 +198,7 @@ drawColony=function(colony)
     if(room.terminal)
     {
         vis.stock(pos.x - 5.4,pos.y+2,room.terminal,{scale:0.7,name:"Terminal",showPrice:true})
-        if(colony.selling.length > 0)
+        if(colony.selling && colony.selling.length > 0)
         {
             vis.text("📦",pos.x-5.2,pos.y+1.3);
             let x = pos.x - 4.5
