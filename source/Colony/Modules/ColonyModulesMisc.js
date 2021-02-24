@@ -11,8 +11,8 @@ module.exports.BasicWorkers=function(colony)
 {
     if(!colony.constructionsite || colony.refreshDowngrade)
     {
-        ColonyIdleWorkers(colony)
-        ColonyFindBuildingWork(colony)
+        ColonyIdleWorkers(colony);
+        ColonyFindBuildingWork(colony);
         if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade > CONTROLLER_MAX_DOWNGRADE)
         {
             delete colony.refreshDowngrade
@@ -20,7 +20,7 @@ module.exports.BasicWorkers=function(colony)
     }
     else
     {
-        colonyConstruct(colony)
+        colonyConstruct(colony);
         if (Game.rooms[colony.pos.roomName].controller.ticksToDowngrade < CONTROLLER_MIN_DOWNGRADE)
         {
             colony.refreshDowngrade = true
