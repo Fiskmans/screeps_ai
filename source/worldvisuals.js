@@ -2,19 +2,6 @@ let LastTickBucket = 0;
 
 let visuals = 
 {
-    colony: function()
-    {
-        if (Game.flags["Colony"])
-        {
-            var vis = new RoomVisual(Game.flags["Colony"].pos.roomName)
-            //vis.blocked(getBlocked(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,Game.flags["Colony"].pos.roomName,layout.structures[7]),{fill:"#FF0000"})
-            var missing = findMissing(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,Game.flags["Colony"].pos.roomName, layout.structures[8])
-            if (missing) {
-                vis.plan(Game.flags["Colony"].pos.x,Game.flags["Colony"].pos.y,missing,{alpha:1,scale:0.5 + Game.time%100/200})
-            }
-            vis.connectRoads()
-        }
-    },
     expansionPlanner:function()
     {
         
@@ -412,7 +399,6 @@ let visuals =
 
 worldVisuals=function()
 {
-    visuals.colony();
     visuals.expansionPlanner();
     visuals.map();
     visuals.cpu();

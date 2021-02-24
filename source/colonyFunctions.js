@@ -805,7 +805,7 @@ FindUpgradePosition=function(colony)
 
     let vis = new RoomVisual(colony.pos.roomName);
 
-    let start = new RoomPosition(colony.pos.x + guaranteedEmpty.x,colony.pos.y + guaranteedEmpty.y,colony.pos.roomName);
+    let start = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
     let target = room.controller.pos;
 
     vis.circle(start,{radius:0.4,fill:"#FF5555",opacity:1})
@@ -880,7 +880,7 @@ FindOrCreateUpgradeLink=function(colony)
     let vis = new RoomVisual(colony.pos.roomName);
 
     let center = new RoomPosition(colony.upgradePos.x,colony.upgradePos.y,colony.upgradePos.roomName);
-    let target = new RoomPosition(colony.pos.x + guaranteedEmpty.x,colony.pos.y + guaranteedEmpty.y,colony.pos.roomName);
+    let target = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
 
     vis.circle(target,{radius:0.4,fill:"#AAFFAA"})
 

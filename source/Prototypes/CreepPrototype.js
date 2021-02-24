@@ -365,15 +365,26 @@ Creep.prototype.smarterUpgradeLoop=function(link)
             }
             else
             {
-                for(let r of this.room.find(FIND_DROPPED_RESOURCES))
+                if(creep.room.storage && creep.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > UPGRADE_FROM_STORAGE_MIN_ENERGY)
                 {
-                    if(r.resourceType == RESOURCE_ENERGY)
+                    this.EnqueueWork({
+                        action:CREEP_WITHDRAW,
+                        target:creep.room.storage.id,
+                        arg1:RESOURCE_ENERGY
+                    });
+                }
+                else
+                {
+                    for(let r of this.room.find(FIND_DROPPED_RESOURCES))
                     {
-                        this.EnqueueWork({
-                            action:CREEP_PICKUP,
-                            target:r.id
-                        });
-                        break;
+                        if(r.resourceType == RESOURCE_ENERGY)
+                        {
+                            this.EnqueueWork({
+                                action:CREEP_PICKUP,
+                                target:r.id
+                            });
+                            break;
+                        }
                     }
                 }
             }
