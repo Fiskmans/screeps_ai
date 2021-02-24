@@ -71,39 +71,18 @@ ColonyUpgradeLinked=function(colony)
 
 FindLinkInColonyLayout=function(colony,blackList)
 {
-    let room = Game.rooms[colony.pos.roomName]
-    if(colony.layout)
+    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    for(let b of buildings)
     {
-        let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
-        for(let b of buildings)
+        if(b.structure == STRUCTURE_LINK)
         {
-            if(b.structure == STRUCTURE_LINK)
+            for(let s of b.pos.lookFor(LOOK_STRUCTURES))
             {
-                for(let s of b.pos.lookFor(LOOK_STRUCTURES))
+                if(s.structureType == STRUCTURE_LINK && !blackList.includes(s.id))
                 {
-                    if(s.structureType == STRUCTURE_LINK && !blackList.includes(s.id))
-                    {
-                        console.log("found link: " + s);
-                        return s.id;
-                    }
+                    console.log("found link: " + s);
+                    return s.id;
                 }
-            }
-        }
-    }
-    else
-    {
-        for(let r of room.lookAt(colony.pos.x + 6,colony.pos.y + 5))
-        {
-            if (r.type == 'structure' && r.structure instanceof StructureLink && !blackList.includes(r.structure.id)) 
-            {
-                return r.structure.id;
-            }
-        }
-        for(let r of room.lookAt(colony.pos.x + 4,colony.pos.y + 5))
-        {
-            if (r.type == 'structure' && r.structure instanceof StructureLink && !blackList.includes(r.structure.id)) 
-            {
-                return r.structure.id;
             }
         }
     }
@@ -200,67 +179,6 @@ ColonyFindBuildingWork=function(colony)
     ColonyBuildDynamic(colony);
 }
 
-ColonyBuildStatic=function(colony,plan)
-{
-    let room = Game.rooms[colony.pos.roomName];
-    var missing = findMissing(colony.pos.x,colony.pos.y,colony.pos.roomName,plan)
-    var prio = Priorotized(colony.pos.x,colony.pos.y,colony.pos.roomName,missing)
-    if (prio) 
-    {
-        if (room.controller && room.controller.level > 5 && room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < CONSTRUCTION_COST[prio.struct] && Prioroties[prio.struct] > 5) 
-        {
-            return;
-        }
-        let err = prio.pos.createConstructionSite(prio.struct);
-        if (err == OK)
-        {
-            console.log("Starting work on " + prio.struct + " at " + prio.pos.x + " " + prio.pos.y + " " + prio.pos.roomName)
-            colony.constructionsite = prio.pos
-        }
-        else if(err == ERR_RCL_NOT_ENOUGH)
-        {
-            if(colony.disTargets.length == 0)
-            {
-                let wrong = ColonyFindMisplaced(colony,prio.struct,plan);
-                if(wrong) 
-                {
-                    colony.disTargets.push(wrong.id);
-                }
-                else
-                {
-                    console.log("Could not find a wrongly placed structure but RLC is still to low for " + colony.pos.roomName + " [" + prio.struct + "]");
-                }
-                
-            }
-        }
-        else if (err == ERR_INVALID_TARGET)
-        {
-            prio.pos.look().forEach((thing) =>
-            {
-                if(thing.type == 'structure')
-                {
-                    colony.disTargets.push(thing.structure.id);
-                }
-            });
-        }
-        else
-        {
-            console.log("Could not create constructionsite got unkown error: " + err);
-        }
-    }
-    if(colony.subLayouts)
-    {
-        for(let layout of Object.values(colony.subLayouts))
-        {
-            let buildings2 = DeserializeLayout(layout,colony.pos.roomName);
-            if(BuildMissing(colony,buildings2))
-            {
-                return;
-            }
-        }
-    }
-}
-
 DeserializeLayout=function(layoutString,roomName)
 {
     let layout = [];
@@ -325,8 +243,6 @@ ColonyBuildDynamic=function(colony)
         return;
     }
 
-    if(!colony.layout) { colony.layout = ""; }
-
     let mainBuildings = DeserializeLayout(colony.layout,colony.pos.roomName);
 
     if(BuildMissing(colony,mainBuildings))
@@ -349,11 +265,6 @@ ColonyBuildDynamic=function(colony)
 
 FindMissplaced=function(colony,room,type)
 {
-    if(!colony.layout)
-    {
-        return;
-    }
-
     let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
     if(colony.subLayouts)
     {
@@ -862,61 +773,22 @@ ColonyFindMostDamagedRampart=function(colony,room)
         return lowest;
     }
 
-    if(colony.layout)
+    let buildings = DeserializeLayout(colony.layout,room.name);
+    for(let i in buildings)
     {
-        let buildings = DeserializeLayout(colony.layout,room.name);
-        for(let i in buildings)
+        let b = buildings[i];
+        let hasRampart = false;
+        b.pos.lookFor(LOOK_STRUCTURES).forEach((s) =>
         {
-            let b = buildings[i];
-            let hasRampart = false;
-            b.pos.lookFor(LOOK_STRUCTURES).forEach((s) =>
+            if(s.structureType == STRUCTURE_RAMPART)
             {
-                if(s.structureType == STRUCTURE_RAMPART)
-                {
-                    hasRampart = true;
-                }
-            })
-            if(!hasRampart)
-            {
-                b.pos.createConstructionSite(STRUCTURE_RAMPART);
-                break;
+                hasRampart = true;
             }
-        }
-    }
-    else
-    {
-        let done = false;
-        for(let x = 0; x < 11; x++)
+        })
+        if(!hasRampart)
         {
-            if(done)
-            {
-                break;
-            }
-            for(let y = 0; y < 12; y++)
-            {
-                if(done)
-                {
-                    break;
-                }
-                if(layout.structures[colony.level][y][x])
-                {
-                    let pos = new RoomPosition(x+colony.pos.x,y+colony.pos.y,colony.pos.roomName);
-                    let hasRampart = false;
-                    pos.lookFor(LOOK_STRUCTURES).forEach((s) =>
-                    {
-                        if(s.structureType == STRUCTURE_RAMPART)
-                        {
-                            hasRampart = true;
-                        }
-                    })
-                    if(!hasRampart)
-                    {
-                        pos.createConstructionSite(STRUCTURE_RAMPART);
-                        done = true;
-                        break;
-                    }
-                }
-            }
+            b.pos.createConstructionSite(STRUCTURE_RAMPART);
+            break;
         }
     }
 

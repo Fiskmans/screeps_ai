@@ -3,7 +3,7 @@ Unplan=function(flag)
     let pos = flag.pos;
     for (let colony of Memory.colonies) 
     {
-        if(colony.pos.roomName == pos.roomName && colony.layout)
+        if(colony.pos.roomName == pos.roomName)
         {
             let buildings = DeserializeLayout(colony.layout,pos.roomName);
             for(let i = 0;i < buildings.length;i++)

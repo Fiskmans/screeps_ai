@@ -11,7 +11,6 @@ colonyLogic=
         Colony.Modules.Misc.RepairDecay(colony);
         ColonyHauling(colony);
         colonyDismantle(colony);
-        maintainColony(colony);
         ColonyDismantleAll(colony);
         ColonyBuildRamparts(colony);
         ColonyRequestRefill(colony);

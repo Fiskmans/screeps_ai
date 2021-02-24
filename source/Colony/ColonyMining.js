@@ -10,9 +10,7 @@ let C =
     SOURCE_OUTPUT: SOURCE_ENERGY_CAPACITY/ENERGY_REGEN_TIME,
 
     LINK_STATE_HAS          :"has",
-    LINK_STATE_NO_SPACE     :"no-space",
-
-    EMPTY_TARGET            : 500
+    LINK_STATE_NO_SPACE     :"no-space"
 }
 
 let Setup = function(colony)
@@ -24,7 +22,6 @@ let Setup = function(colony)
     let room = Game.rooms[colony.pos.roomName];
     if(!room)
     {
-        console.log("mining setup failed on no vision");
         return false;
     }
     if(colony.subLayouts["local_mining"])
@@ -54,7 +51,6 @@ let Setup = function(colony)
         if(pathResult.incomplete)
         {
             vis.poly(pathResult.path,{stroke:"#FF0000"});
-            console.log("mining setup failed on incomplete path to " + source.pos);
             return false;
         }
         vis.poly(pathResult.path,{stroke:"#00FF00"});
@@ -90,7 +86,6 @@ let Setup = function(colony)
         if(pathResult.incomplete)
         {
             vis.poly(pathResult.path,{stroke:"#FF0000"});
-            console.log("mining setup failed on incomplete path to " + mineral.pos);
             return false;
         }
         vis.poly(pathResult.path,{stroke:"#00FF00"});
@@ -234,21 +229,13 @@ let SpawnCreeps = function(colony,blob)
             {
                 body = BODIES.LOCAL_LINKED_MINER;
             }
-            if(!Performance.Decisions.Enabled("normal_mode"))
-            {
-                body = BODIES.LOW_CPU_MINER;
-            }
         }
         else
         {
             body = BODIES.LOCAL_MINERAL_MINER;
-            
-            if(!Performance.Decisions.Enabled("normal_mode"))
-            {
-                return;
-            }
         }
         let dummyList = [];
+        
         if(room.energyCapacityAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] || (room.energyAvailable <= ENERGY_CAPACITY_AT_LEVEL[3] && (!room.storage ||  room.storage.store.getUsedCapacity(RESOURCE_ENERGY) <= ENERGY_CAPACITY_AT_LEVEL[3])))
         {
             body = [WORK,WORK,MOVE,MOVE];
@@ -292,34 +279,6 @@ let RefreshIncome=function(colony)
     }
 }
 
-let Empty = function(colony,blob)
-{
-    if(!blob.containterId)
-    {
-        for(let s of new RoomPosition(blob.pos.x,blob.pos.y,blob.pos.roomName).lookFor(LOOK_STRUCTURES))
-        {
-            if(s.structureType == STRUCTURE_CONTAINER)
-            {
-                blob.containterId = s.id;
-            }
-        }
-    }
-    if(!blob.containterId)
-    {
-        return;
-    }
-    let container = Game.getObjectById(blob.containterId);
-    if(!container)
-    {
-        delete blob.containterId;
-        return;
-    }
-    for(let res of ExtractContentOfStore(container.store))
-    {
-        RequestEmptying(colony,blob.containterId,res,res == RESOURCE_ENERGY ? C.EMPTY_TARGET : 1,REQUEST_PRIORITY_FUNCTION);
-    }
-
-}
 
 let Mine=function(colony,blob)
 {
@@ -350,7 +309,6 @@ let Mine=function(colony,blob)
     }
     CreepActions(colony,blob,target);
     SpawnCreeps(colony,blob);
-    Empty(colony,blob);
 }
 
 let AddLinks = function(colony,blob)
@@ -388,9 +346,9 @@ let AddLinks = function(colony,blob)
         {
             let pos = new RoomPosition(furthest.pos.x,furthest.pos.y,furthest.pos.roomName);
             let buildings = [];
-
+            
             buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
-
+            
             for(let layout of Object.values(colony.subLayouts))
             {
                 buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
@@ -528,9 +486,4 @@ module.exports.Update=function(colony)
     RefreshIncome(colony);
     AddLinks(colony,colony.mining);
     LinkTransfer(colony,colony.mining);
-    
-    if(colony.recievelink)
-    {
-        RequestEmptying(colony,colony.recievelink,RESOURCE_ENERGY,1,REQUEST_PRIORITY_FUNCTION);
-    }
 }

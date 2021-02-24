@@ -69,14 +69,8 @@ UpdateGrafanaStats=function()
               hits += s.hits;
             }
           )
-          if(colony.layout)
-          {
-            maxHits = colony.layout.length / 3 * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
-          }
-          else
-          {
-            maxHits = layout.rampartCount[colony.level] * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
-          }
+
+          maxHits = colony.layout.length / 3 * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
 
           Memory.stats['rooms.' + roomName + '.rampartshits'] = hits;
           Memory.stats['rooms.' + roomName + '.rampartshitsmax'] = maxHits;

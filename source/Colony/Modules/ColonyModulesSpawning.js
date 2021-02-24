@@ -25,10 +25,6 @@ let SpawnWorkers = function(colony)
     {
         target++;
     }
-    if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_WORKER_FREE_FOR_ALL_ENERGY_THRESHOLD)
-    {
-        target += 50;
-    }
     
     if(!Performance.Decisions.Enabled("normal_mode"))
     {
@@ -36,8 +32,13 @@ let SpawnWorkers = function(colony)
     }
     
     colony.targetWorkers = target;
+    if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_WORKER_FREE_FOR_ALL_ENERGY_THRESHOLD)
+    {
+        target += 50;
+        colony.targetWorkers = "♾️";
+    }
 
-    if (count < target)
+    if (count < target && (room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < SPAWNING_ENERGY_PANIC_AMOUNT || colony.haulerpool.length != 0))
     {
         let body = BODIES.LV1_WORKER;
 
@@ -121,7 +122,7 @@ let SpawnHaulers = function(colony)
     
     let toTransfer = _.sum(colony.income) + _.sum(colony.expenses); // + tranfer for extra stuff
     let target = Math.ceil(toTransfer / C.HAULING_EFFECTIVE_POWER);
-    colony.targetHaulers = target / HAULER_PARTS_AT_LEVEL[colony.level];
+    colony.targetHaulers = (target / HAULER_PARTS_AT_LEVEL[colony.level]).toFixed(2);
 
 
     if (parts < target && (room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT || parts == 0))
@@ -138,7 +139,8 @@ let SpawnHaulers = function(colony)
             body = BODIES.LV3_HAULER;
         }
         
-        if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT && colony.haulerpool.length != 0)
+
+        if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT && parts != 0)
         {
             if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
             {

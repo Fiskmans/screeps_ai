@@ -79,15 +79,6 @@ Creep.prototype.dumbUpgrade=function()
     }
 }
 
-Creep.prototype.dumbBuild=function()
-{
-    this.say("🏗️")
-    if(this.build(this.room.find(FIND_MY_CONSTRUCTION_SITES)[0]) == ERR_NOT_IN_RANGE)
-    {
-        this.travelTo(this.room.find(FIND_MY_CONSTRUCTION_SITES)[0])
-    }
-}
-
 Creep.prototype.HasWork=function()
 {
     return this.memory._workQueue && this.memory._workQueue.length > 0;
@@ -458,17 +449,6 @@ Creep.prototype.dumbDismantle = function(target)
     }
 }
 
-Creep.prototype.dumbBuildLoop=function()
-{
-    this.updateHarvestState()
-    if (this.memory.harvesting) {
-        this.dumbHarvest()
-    }
-    else
-    {
-        this.dumbBuild()
-    }
-}
 Creep.prototype.updateHarvestState=function()
 {
     if(this.store.getFreeCapacity() == 0)

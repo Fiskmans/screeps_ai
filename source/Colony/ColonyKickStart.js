@@ -1315,10 +1315,6 @@ module.exports.CreateSites=function(colony)
     {
         return;
     }
-    if(!colony.layout)
-    {
-        return;
-    }
 
     const NEEDED = [
         STRUCTURE_SPAWN,

@@ -5,24 +5,27 @@ colonyDismantle=function(colony)
     if(!colony.dimantlers) {colony.dimantlers = []}
     if(!colony.disTargets) {colony.disTargets = []}
 
-    for(let creep of Colony.Helpers.MaintainWorkers(colony.dimantlers,colony.disTargets.length > 0))
+    let target = Game.getObjectById(colony.disTargets[0])
+    if (target) 
     {
-        let target = Game.getObjectById(colony.disTargets[0])
+        if(target.my && target instanceof Structure)
+        {
+            target.destroy();
+            return;
+        }
+    }
+    else if(colony.disTargets.length > 0)
+    {
+        colony.disTargets.shift();
+        return;
+    }
+
+    for(let creep of Colony.Helpers.MaintainWorkers(colony,colony.dimantlers,!!target))
+    {
+        creep.say("💣");
         if (target) 
         {
-            if(target.my && target instanceof Structure)
-            {
-                target.destroy();
-            }
-
-            if (creep) 
-            {
-                creep.dismantleLoop(target)
-            }
-        }
-        else
-        {
-            colony.disTargets.shift();
+            creep.dismantleLoop(target)
         }
     }
 }

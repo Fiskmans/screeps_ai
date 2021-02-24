@@ -34,10 +34,7 @@ let FillRepairQueue=function(colony,room)
     let buildings = [];
     colony.repairQueue = [];
 
-    if(colony.layout)
-    {
-        buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
-    }
+    buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
 
     for(let layout of Object.values(colony.subLayouts))
     {
@@ -147,10 +144,7 @@ module.exports.CompactifyLayout=function(colony)
 {
     if(Game.time % C.COMPACTIFY_INTERVAL == 0)
     {
-        if(colony.layout)
-        {
-            colony.layout = Colony.Helpers.ReduceLayout(colony.layout);
-        }
+        colony.layout = Colony.Helpers.ReduceLayout(colony.layout);
         Colony.Helpers.ReduceSubLayouts(colony);
     }
 }

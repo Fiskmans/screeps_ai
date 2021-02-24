@@ -105,13 +105,10 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
     {
         if(colony.pos.roomName == roomName)
         {
-            if(colony.layout)
+            let buildings = DeserializeLayout(colony.layout,roomName);
+            for(let b of buildings)
             {
-                let buildings = DeserializeLayout(colony.layout,roomName);
-                for(let b of buildings)
-                {
-                    matrix.set(b.pos.x,b.pos.y,255);
-                }
+                matrix.set(b.pos.x,b.pos.y,255);
             }
             if(colony.subLayouts)
             {
@@ -193,13 +190,10 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
                     }
                 }
             }
-            if(colony.layout)
+            let buildings = DeserializeLayout(colony.layout,roomName);
+            for(let b of buildings)
             {
-                let buildings = DeserializeLayout(colony.layout,roomName);
-                for(let b of buildings)
-                {
-                    matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
-                }
+                matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
             }
             if(colony.subLayouts)
             {
@@ -331,14 +325,11 @@ module.exports.StampLayout=function(colony,tag,buildings)
     {
         left[key] = CONTROLLER_STRUCTURES[key][colony.level];
     }
-    if(colony.layout)
+    let i = 0;
+    while(i < colony.layout.length)
     {
-        let i = 0;
-        while(i < colony.layout.length)
-        {
-            left[CHAR_STRUCTURE[colony.layout.charAt(i)]]--;
-            i += 3;
-        }
+        left[CHAR_STRUCTURE[colony.layout.charAt(i)]]--;
+        i += 3;
     }
     if(colony.subLayouts)
     {
@@ -527,10 +518,7 @@ let ExpandColony=function(colony)
     {
         return;
     }
-    if(typeof colony.layout === 'undefined') 
-    {
-        colony.layout = ""; 
-    }
+    
     let mainBuildings = DeserializeLayout(colony.layout,colony.pos.roomName);
     let buildings = [].concat(mainBuildings);
     let unplaced = JSON.parse(JSON.stringify(C.BUILDINGS_AT_LEVEL[colony.level]))

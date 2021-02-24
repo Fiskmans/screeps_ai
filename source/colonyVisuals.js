@@ -38,30 +38,28 @@ drawColony=function(colony)
         });
 
     colony.lastProgress = room.controller.progress;
-    if(colony.layout)
+
+    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+    
+    let minx = 50;
+    let miny = 50;
+    
+    for(let b of buildings)
     {
-        let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
-        
-        let minx = 50;
-        let miny = 50;
-        
-        for(let b of buildings)
-        {
-            minx = Math.min(b.pos.x, minx);
-            miny = Math.min(b.pos.y, miny);
-        }
-        pos = new RoomPosition(minx,miny,colony.pos.roomName);
-        
-        if(colony.subLayouts)
-        {
-            for(let layout of Object.values(colony.subLayouts))
-            {
-                buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
-            }
-        }
-        
-        vis.layout(buildings);
+        minx = Math.min(b.pos.x, minx);
+        miny = Math.min(b.pos.y, miny);
     }
+    pos = new RoomPosition(minx,miny,colony.pos.roomName);
+    
+    if(colony.subLayouts)
+    {
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
+        }
+    }
+    
+    vis.layout(buildings);
     
     if(colony.requests)
     {

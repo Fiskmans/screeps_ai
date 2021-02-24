@@ -11,6 +11,7 @@ module.exports.Generate=function(pos)
             income:{},
             expenses:{},
             workerRoster:{},
-            subLayouts:{}
+            subLayouts:{},
+            layout:""
         });
 }
