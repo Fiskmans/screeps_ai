@@ -298,13 +298,13 @@ module.exports.EnqueueRemoteHaulingWork=function(colony,creep,fakeStores,source)
     }
     else
     {
-        creep.say("dump");
-        if(source.containerID && fakeStores[source.containerID].total < CONTAINER_CAPACITY)
+        creep.say(source.containerID);
+        if(source.containerId && fakeStores[source.containerId].total < CONTAINER_CAPACITY)
         {
             let work = 
             {
                 action:CREEP_TRANSFER,
-                target:source.containerID,
+                target:source.containerId,
                 arg1:RESOURCE_ENERGY
             }
             creep.EnqueueWork(work);
@@ -353,13 +353,13 @@ module.exports.RemoteMining=function(colony)
         {
             continue;
         }
-        if(!source.containerID && source.containerPos)
+        if(!source.containerId && source.containerPos)
         {
             for(let s of room.lookForAt(LOOK_STRUCTURES,source.containerPos.x,source.containerPos.y))
             {
                 if(s.structureType == STRUCTURE_CONTAINER)
                 {
-                    source.containerID = s.id;
+                    source.containerId = s.id;
                     break;
                 }
             }
@@ -692,59 +692,25 @@ module.exports.ConsiderRoom=function(colony,room)
 
 module.exports.ExpandMining=function(colony)
 {
-    if(colony.level < 2)
+    if(colony.level < 2 || colony.kickStart.workers.length > 3)
     {
         return;
     }
-    if(!colony.kickStart.checkedRooms) { colony.kickStart.checkedRooms = {}}
     let status = colony.kickStart.checkedRooms;
-    let wantMoreScouts = false;
     let list = colony.kickStart.scouts;
     deleteDead(list);
     for(let r2 of Object.values(Game.map.describeExits(colony.pos.roomName)))
     {
-        let room = Game.rooms[r2];
         if(!status[r2])
         {
+            let room = Game.rooms[r2];
             if(room)
             {
                 this.ConsiderRoom(colony,room);
                 status[r2] = true;
                 continue;
             }
-            let onTheWay = false;
-            for(let c of list)
-            {
-                let creep = Game.creeps[c];
-                if(_.isUndefined(creep.memory.target))
-                {
-                    creep.memory.target = r2;
-                    onTheWay = true;
-                    break;
-                }
-                else if(creep.memory.target = r2)
-                {
-                    onTheWay = true;
-                    break;
-                }
-            }
-            if(!onTheWay)
-            {
-                wantMoreScouts = true;
-            }
-        }
-    }
-
-    for(let c of list)
-    {
-        let creep = Game.creeps[c];
-        if(creep.memory.target)
-        {
-            creep.GoToRoom(creep.memory.target);
-            if(creep.room.name == creep.memory.target)
-            {
-                delete creep.memory.target;
-            }
+            Empire.Scouting.WantsVision(r2);
         }
     }
     for(let source of Object.values(colony.kickStart.remoteSites))
@@ -828,16 +794,6 @@ module.exports.ExpandMining=function(colony)
 
             colony.kickStart.hasDecidedRemotes = true;
         }
-    }
-
-    if(wantMoreScouts)
-    {
-        Colony.Helpers.SpawnCreep(
-            colony,
-            list,
-            BODIES.SCOUT,
-            ROLE_SCOUT
-        )
     }
 }
 
@@ -934,7 +890,7 @@ let GenerateRoad=function(colony,target)
         new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),
         [{pos:target,range:1}],
         {
-            roomCallback:Colony.Planner.MatrixRoadPreferFuture
+            roomCallback:Colony.Planner.PFCostMatrixRoadCallback
         });
     if(res.incomplete)
     {
@@ -1121,7 +1077,7 @@ module.exports.Mine=function(colony)
 
                 RequestEmptying(colony,creep.id,RESOURCE_ENERGY,limit,REQUEST_PRIORITY_FUNCTION);
             }
-            if(creep.store.getUsedCapacity(RESOURCE_ENERGY) >= Math.min(creep.store.getCapacity(RESOURCE_ENERGY),creep.getActiveBodyparts(WORK) * BUILD_POWER))
+            if(colony.kickStart.length > 0 && creep.store.getUsedCapacity(RESOURCE_ENERGY) >= Math.min(creep.store.getCapacity(RESOURCE_ENERGY),creep.getActiveBodyparts(WORK) * BUILD_POWER))
             {
                 for(let s of room.lookForAtArea(
                     LOOK_CONSTRUCTION_SITES,
@@ -1269,14 +1225,13 @@ module.exports.CreateContainersSites=function(colony,onlyMining)
         locations.push(new RoomPosition(colony.pos.x,colony.pos.y+1,colony.pos.roomName));
         if(colony.upgradePos)
         {
-            locations.push(new RoomPosition(colony.upgradePos.x,colony.upgradePos.y+1,colony.upgradePos.roomName));
+            locations.push(new RoomPosition(colony.upgradePos.x,colony.upgradePos.y,colony.upgradePos.roomName));
         }
         for(let source of Object.values(colony.kickStart.remoteSites))
         {
             if(source.enabled && source.containerPos)
             {
                 locations.push(new RoomPosition(source.containerPos.x,source.containerPos.y,source.containerPos.roomName));
-                break;
             }
         }
     }
@@ -1628,11 +1583,11 @@ module.exports.Develop=function(colony)
         throughput *= (BUILD_POWER/UPGRADE_CONTROLLER_POWER);
     }
 
-    if(room.energyCapacityAvailable == 0 || throughput < Math.max(colony.kickStart.miningThoughput * 1.5,20))
+    if(throughput < Math.max(colony.kickStart.miningThoughput * 1.5,20))
     {
         let found = false;
         deleteDead(miners);
-        if(room.energyCapacityAvailable == 0 || room.energyCapacityAvailable > room.energyAvaialable)
+        if(room.energyCapacityAvailable > room.energyAvailable)
         {
             for(let i = miners.length - 1;i >= 0;i--)
             {
@@ -1842,7 +1797,7 @@ module.exports.FulfillRequests=function(colony)
         }
     }
 
-    if(haulingPower < 20 + 10 * Object.keys(colony.kickStart.remoteSites).length)
+    if(haulingPower < 20 + 10 * Object.keys(colony.kickStart.remoteSites).length * 0.1)
     {
         if(colony.kickStart.wantMoreWorkers)
         {

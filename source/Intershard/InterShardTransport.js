@@ -1,5 +1,9 @@
 module.exports.SendScoutToShard=function(shardName)
 {
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
     if(!Memory.interShard.to[shardName]) { Memory.interShard.to[shardName] = [] }
     if(!Memory.portals[shardName] || Object.keys(Memory.portals[shardName]).length == 0) { return; }
 
@@ -17,6 +21,10 @@ module.exports.SendScoutToShard=function(shardName)
 
 module.exports.ActivateDeadShards=function()
 {
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
     for(let shardName in Memory.portals)
     {
         if(!InterShard.Pulse.IsActive(shardName))
@@ -28,6 +36,10 @@ module.exports.ActivateDeadShards=function()
 
 module.exports.FlushScreeponauts=function()
 {
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
     for(let shard in Memory.interShard.to)
     {
         if(!Memory.interShard.to[shard]) { Memory.interShard.to[shard] = [] }
@@ -49,6 +61,10 @@ module.exports.FlushScreeponauts=function()
 
 module.exports.FindOrphans=function()
 {
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
     let shardNumber = SHARD_CREEP_NAME_PREFIXES[Game.shard.name];
     for(let creepName in Game.creeps)
     {
@@ -76,6 +92,10 @@ module.exports.FindOrphans=function()
 
 module.exports.Adopt=function(list,role)
 {
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
     let shortRole = ROLE_PREFIXES[role];
     if(!Memory.orphans[shortRole]) { return; }
 
@@ -90,6 +110,10 @@ module.exports.Adopt=function(list,role)
 
 module.exports.FillRequests=function()
 {
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
     for(let shard in Memory.interShard.to)
     {
         if(shard == Game.shard.name)
@@ -130,7 +154,11 @@ module.exports.FillRequests=function()
 
 module.exports.Request=function(role)
 {
-   let mem = InterShard.Memory.Get();
-   if(!mem.needs) { mem.needs = [] };
-   if(!mem.needs.includes(role)) { mem.needs.push(role) }
+    if(!(IS_PERSISTENT || IS_PTR))
+    {
+        return;
+    }
+    let mem = InterShard.Memory.Get();
+    if(!mem.needs) { mem.needs = [] };
+    if(!mem.needs.includes(role)) { mem.needs.push(role) }
 }

@@ -652,3 +652,12 @@ module.exports.Commit=function()
         Memory.empire.expansion.rooms = {};
     }
 }
+
+module.exports.StartInitialColony=function()
+{
+    if(Memory.colonies.length == 0 && Object.keys(Game.spawns).length > 0)
+    {
+        let s = Object.values(Game.spawns)[0];
+        Colony.Starter.Generate(s.pos.offsetDirection(LEFT))
+    }
+}

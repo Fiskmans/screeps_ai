@@ -19,7 +19,7 @@ let C =
     {
         ["Source"]          :10,
         ["SK"]              :14,
-        ["Mineral"]         :40
+        ["Mineral"]         :5
     },
 
     STATE_UNCHECKED         :"unchecked",
@@ -30,7 +30,11 @@ let C =
     STATE_PAUSED            :"Paused",
 
     MINER_SPAWN_GRACE_PERIOD:10,
-    REBUILD_INTERVAL        :1000
+    REBUILD_INTERVAL        :1000,
+
+    SK_CLEARER_HITS_TO_HEAL :2500,
+    SK_CLEARER_MAX_WAIT_TICKS:50
+
 }
 
 
@@ -43,6 +47,7 @@ let Check = function(colony,roomName,blob)
         return;
     }
 
+    blob.layout = "";
     blob.sources = [];
     for(let s of room.find(FIND_SOURCES))
     {
@@ -62,7 +67,8 @@ let Check = function(colony,roomName,blob)
                 {
                     id:m.id,
                     pos:m.pos,
-                    type:C.MINING_TYPE_MINERAL
+                    type:C.MINING_TYPE_MINERAL,
+                    mineralType:m.mineralType
                 }
             )
         }
@@ -105,7 +111,7 @@ let Setup=function(colony,roomName,blob)
             new RoomPosition(s.pos.x,s.pos.y,s.pos.roomName),
             [{pos:new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName),range:1}],
             {
-                roomCallback:Colony.Planner.MatrixRoadPreferFuture
+                roomCallback:Colony.Planner.PFCostMatrixRoadCallback
             }
         )
         if(pathResult.incomplete)
@@ -182,6 +188,7 @@ let Setup=function(colony,roomName,blob)
             }
 
             s.setup = true;
+            break;
         }
     }
     if(newStructures.length > 0)
@@ -266,15 +273,20 @@ let HaulSource = function(colony,roomName,blob,s)
         partsNeeded -= creep.getActiveBodyparts(CARRY);
         if(!creep.HasAtleast1TickWorthOfWork() && !shuttingDown)
         {
+            let res = RESOURCE_ENERGY;
+            if(s.type == C.MINING_TYPE_MINERAL)
+            {
+                res = s.mineralType;
+            }
             creep.EnqueueWork({
                 action:CREEP_TRANSFER,
                 target:colonyRoom.storage.id,
-                arg1:RESOURCE_ENERGY
+                arg1:res
             })
             creep.EnqueueWork({
                 action:CREEP_WITHDRAW,
                 target:s.storageId,
-                arg1:RESOURCE_ENERGY
+                arg1:res
             })
         }
         
@@ -291,7 +303,7 @@ let HaulSource = function(colony,roomName,blob,s)
         creep.OpportuneRenew();
     }
 
-    if(partsNeeded > 0)
+    if(partsNeeded > 0 && (!blob.isSK || s.isDefended))
     {
         let body = BODIES.LV3_REMOTE_HAULER;
         if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4] 
@@ -325,7 +337,7 @@ let MineSource = function(colony,roomName,blob,s)
     if(s.type == C.MINING_TYPE_MINERAL)
     {
         let target = Game.getObjectById(s.id);
-        if(target.mineralAmount == 0)
+        if(!target || target.mineralAmount == 0)
         {
             for(let creep of Helpers.Creep.List(s.miners))
             {
@@ -341,6 +353,15 @@ let MineSource = function(colony,roomName,blob,s)
         if(creep.ticksToLive > creep.body.length + s.distance - C.MINER_SPAWN_GRACE_PERIOD || creep.spawning)
         {
             needReplacementMiner = false;
+        }
+
+        if(!(!blob.isSK || s.isDefended))
+        {
+            if(creep.pos.getRangeTo(new RoomPosition(s.pos.x,s.pos.y,s.pos.roomName)) < 7)
+            {
+                creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName));
+            }
+            continue;
         }
         
         if(creep.pos.x != s.pos.x || creep.pos.y != s.pos.y || creep.pos.roomName != s.pos.roomName)
@@ -373,7 +394,7 @@ let MineSource = function(colony,roomName,blob,s)
     }
     
 
-    if(needReplacementMiner)
+    if(needReplacementMiner && (!blob.isSK || s.isDefended))
     {
         Colony.Helpers.SpawnCreep(colony,s.miners,C.BODIES[s.type], ROLE_MINER);
     }
@@ -588,6 +609,243 @@ let Defend = function(colony,roomName,blob)
     }
 }
 
+let SKDefend=function(colony,roomName,blob)
+{
+
+    if(!blob.skClearers) { blob.skClearers = [] }
+
+    let room = Game.rooms[roomName];
+    for(let source of blob.sources)
+    {
+        if(!source.lairId)
+        {
+            source.isDefended = false;
+            if(!room)
+            {
+                console.log("need vision");
+                continue;
+            }
+
+            let sourceObj = Game.getObjectById(source.id);
+            
+            let closest = false;
+            let distance = 50;
+            for(let s of room.Structures(STRUCTURE_KEEPER_LAIR))
+            {
+                let d = s.pos.getRangeTo(sourceObj.pos);
+                if(d < distance)
+                {
+                    closest = s;
+                    distance = d;
+                }
+            }
+            if(!closest)
+            {
+                Helpers.Externals.Notify("Remote room marked as SK does not have any lairs in it: " + roomName,true);
+                return;
+            }
+            source.lairId = closest.id;
+        }
+        else if(!source.lairPos)
+        {
+            source.isDefended = false;
+            if(!room)
+            {
+                console.log("need vision");
+                continue;
+            }
+            let sourceObj = Game.getObjectById(source.id);
+            let lairObj = Game.getObjectById(source.lairId);
+            let pathResult = PathFinder.search(lairObj.pos,{pos:sourceObj.pos,range:1});
+            if(pathResult.incomplete)
+            {
+                continue;
+            }
+            if(pathResult.path.length == 0)
+            {
+                source.lairPos = source.pos;
+            }
+            else
+            {
+                source.lairPos = pathResult.path.shift();
+            }
+        }
+        else if(room)
+        {
+            let lair = Game.getObjectById(source.lairId);
+            if(!lair)
+            {
+                delete source.lairId;
+                delete source.lairPos;
+            }
+            if(lair.ticksToSpawn < 10)
+            {
+                source.isDefended = false;
+            }
+        }
+    }
+
+
+    let needNewClearer = true;
+    for(let creep of Helpers.Creep.List(blob.skClearers))
+    {
+        if(creep.ticksToLive > 150 + 100)
+        {
+            needNewClearer = false;
+        }
+        if(creep.spawning)
+        {
+            needNewClearer = false;
+            continue;
+        }
+        if(!room)
+        {
+            creep.GoToRoom(roomName);
+            continue;
+        }
+
+
+        if(!creep.memory.target)
+        {
+            let nextTarget = false;
+            let tts = 301;
+            for(let index in blob.sources)
+            {
+                let source = blob.sources[index];
+                if(!source.lairId || !source.lairPos)
+                {
+                    continue;
+                }
+
+                if(source.type == C.MINING_TYPE_MINERAL)
+                {
+                    let mineral = Game.getObjectById(source.id);
+                    if(!mineral.mineralAmount)
+                    {
+                        continue;
+                    }
+                }
+
+                let lair = Game.getObjectById(source.lairId);
+                if(!lair)
+                {
+                    delete source.lairId;
+                }
+
+                if((lair.ticksToSpawn || -1) < tts)
+                {
+                    tts = lair.ticksToSpawn || -1;
+                    if(tts == -1)
+                    {
+                        nextTarget = 
+                        {
+                            pos:source.pos,
+                            target:source.lairId,
+                            source:index
+                        };
+                    }
+                    else
+                    {
+                        nextTarget = 
+                        {
+                            pos:source.lairPos,
+                            target:source.lairId,
+                            source:index
+                        };                        
+                    }
+                }
+            }
+
+            if(nextTarget)
+            {
+                creep.memory.target = nextTarget;
+            }
+        }
+        let canHeal = true;
+        let shouldHeal = false;
+        if(creep.memory.target)
+        {
+            let p = creep.memory.target.pos;
+            let targetPos = new RoomPosition(p.x,p.y,p.roomName);
+            creep.travelTo(targetPos);
+            let l = Game.getObjectById(creep.memory.target.target);
+
+            let clear = true;
+            for(let c of room.find(FIND_HOSTILE_CREEPS))
+            {
+                let distance = c.pos.getRangeTo(creep);
+                if(distance < 5)
+                {
+                    if(c.owner.username == INVADER_USERNAME && distance < 2)
+                    {
+                        creep.attack(c);
+                        canHeal = false;
+                    }
+
+                    creep.memory.target.pos = c.pos;
+                    clear = false;
+                    shouldHeal = true;
+                }
+            }
+            if(creep.hits >= C.SK_CLEARER_HITS_TO_HEAL)
+            {
+                if(clear && targetPos.getRangeTo(l.pos) > 6)
+                {
+                    creep.memory.target.pos = blob.sources[creep.memory.target.source].pos;
+                }
+                if(clear && targetPos.getRangeTo(creep.pos) < 3 && l.ticksToSpawn > C.SK_CLEARER_MAX_WAIT_TICKS)
+                {
+                    let index = creep.memory.target.source;
+                    blob.sources[index].isDefended = true;
+                    delete creep.memory.target;
+                    for(let c2 of Helpers.Creep.List(blob.skClearers))
+                    {
+                        if(c2.memory.target && c2.memory.target.source == index)
+                        {
+                            delete c2.memory.target;
+                        }
+                    }
+                }
+            }
+        }
+        if(canHeal)
+        {
+            let healedOther = false;
+            for(let c of room.find(FIND_MY_CREEPS))
+            {
+                if(c !== creep)
+                {
+                    if(c.hits < c.hitsMax)
+                    {
+                        let dist = c.pos.getRangeTo(creep.pos);
+                        if(dist < 2)
+                        {
+                            creep.heal(c);
+                            healedOther = true;
+                            break;
+                        }
+                        else if(dist < 4)
+                        {
+                            creep.rangedHeal(c);
+                            healedOther = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if((creep.hits < creep.hitsMax || shouldHeal) && !healedOther)
+            {
+                creep.heal(creep);
+            }
+        }
+    }
+
+    if(needNewClearer)
+    {
+        Colony.Helpers.SpawnCreep(colony,blob.skClearers,BODIES.SK_CLEARER,ROLE_ATTACKER);
+    }
+}
+
 let Mine = function(colony,roomName,blob)
 {
     if(blob.isSK && colony.level < 7)
@@ -650,6 +908,10 @@ let Mine = function(colony,roomName,blob)
                 blob.hasInvader = true;
             }
         }
+    }
+    if(blob.isSK)
+    {
+        SKDefend(colony,roomName,blob);
     }
     Defend(colony,roomName,blob);
     Attack(colony,roomName,blob);
@@ -802,6 +1064,22 @@ let Build = function(colony,roomName,blob)
             if(creep.HasWork())
             {
                 creep.DoWork();
+            }
+            if(blob.isSK)
+            {
+                let thretened = false;
+                for(let sk of creep.room.find(FIND_HOSTILE_CREEPS))
+                {
+                    if(sk.pos.getRangeTo(creep.pos) < 7)
+                    {
+                        thretened = true;
+                        break;
+                    }
+                }
+                if(thretened)
+                {
+                    creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName));
+                }
             }
         }
         if(!hasBuilder && colony.workerpool.length > 0)

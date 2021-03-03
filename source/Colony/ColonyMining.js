@@ -45,7 +45,7 @@ let Setup = function(colony)
                 range:1
             },
             {
-                roomCallback:Colony.Planner.MatrixRoadPreferFuture
+                roomCallback:Colony.Planner.PFCostMatrixRoadCallback
             });
 
         if(pathResult.incomplete)
@@ -80,7 +80,7 @@ let Setup = function(colony)
                 range:1
             },
             {
-                roomCallback:Colony.Planner.MatrixRoadPreferFuture
+                roomCallback:Colony.Planner.PFCostMatrixRoadCallback
             });
 
         if(pathResult.incomplete)

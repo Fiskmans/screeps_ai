@@ -1,5 +1,7 @@
 defaultMemory=function()
 {
+    if(!Memory.colonies) { Memory.colonies = [] }
+
     if(!Memory.lastViewed) {Memory.lastViewed = {}}
 
     if(!Memory.creepid){Memory.creepid = 0}
@@ -11,8 +13,13 @@ defaultMemory=function()
     if(!Memory.console) {Memory.console = {};}
     if(!Memory.console.jobs) {Memory.console.jobs = [];}
     if(!Memory.portals) { Memory.portals = {} }
-    if(!Memory.interShard) { Memory.interShard = { to:{} } }
-    if(!Memory.orphans) { Memory.orphans = {} }
+    
+    if(IS_PERSISTENT || IS_PTR)
+    {
+        if(!Memory.interShard) { Memory.interShard = { to:{} } }
+        if(!Memory.orphans) { Memory.orphans = {} }
+    }
+
     if(!Memory.empire) { Memory.empire = {} }
 
     if(!Memory.empire.scouting) { Memory.empire.scouting = {}; }
@@ -22,4 +29,28 @@ defaultMemory=function()
     if(!Memory.empire.expansion) { Memory.empire.expansion = {}; }
     if(!Memory.empire.expansion.rooms) {Memory.empire.expansion.rooms = {}; }
     if(!Memory.empire.expansion.finalized) {Memory.empire.expansion.finalized = []; }
+
+    if(!Memory.empire.strongholds) 
+    { 
+        Memory.empire.strongholds = 
+        {
+            quadrants:
+            {
+                "WS":{},
+                "WN":{},
+                "ES":{},
+                "EN":{}
+            }
+        }; 
+    }
+
+    
+    if(!Memory.performancedecisions)
+    {
+        Memory.performancedecisions = 
+        {
+            average:Game.cpu.limit,
+            count:1
+        };
+    }
 }

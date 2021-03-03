@@ -78,7 +78,17 @@ module.exports.SpawnCreep=function(colonyOrRoomName,list,body,role,options)
     {
         if(!spawn.spawning)
         {
-            let name = (SHARD_CREEP_NAME_PREFIXES[Game.shard.name] || '?' ) + (ROLE_PREFIXES[role] || '?') + Memory.creepid;
+            let name = "";
+            if(Game.shard)
+            {
+                name += (SHARD_CREEP_NAME_PREFIXES[Game.shard.name] || '?' );
+            }
+            if(role)
+            {
+                name += (ROLE_PREFIXES[role] || '?');
+            }
+            name += Memory.creepid;
+            
             if(spawn.spawnCreep(body,name,{memory:{home:roomName}}) == OK)
             {
                 spawn.spawning = true;
@@ -180,4 +190,21 @@ module.exports.DecrementIncome=function(colony,tag,amount)
 module.exports.SetIncome=function(colony,tag,amount)
 {
     colony.income[tag] = amount;
+}
+
+module.exports.FindClosest=function(roomName)
+{
+    let d = 100;
+    let closest = false;
+    for(let c of Object.values(Memory.colonies))
+    {
+        let distance =  Game.map.getRoomLinearDistance(roomName,c.pos.roomName);
+        if(distance < d)
+        {
+            closest = c;
+            d = distance;
+        }
+    }
+
+    return closest;
 }

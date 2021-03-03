@@ -10,7 +10,7 @@ let Push=function(functionName)
     if(!Memory.profiler.data) { Memory.profiler.data = {children:{}}}
     
     let target = false;
-    if(_stack.length == 0)
+    if(_stack.length == 0 || Memory.profiler.options.flat)
     {
         if(Memory.profiler.options.filter)
         {
@@ -277,9 +277,10 @@ let Finalize=function()
     
     if(Memory.profiler.data)
     {
-        for(let obj of Object.values(Memory.profiler.data.children))
+        let keys = _.sortBy(Object.keys(Memory.profiler.data.children),(k) => -Memory.profiler.data.children[k].CPU);
+        for(let key of keys)
         {
-            GenerateRapport(obj,rows, " ");
+            GenerateRapport(Memory.profiler.data.children[key],rows, " ");
         }
     }
     else

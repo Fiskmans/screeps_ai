@@ -2,6 +2,16 @@
 module.exports.Generate=function(pos)
 {
     if(!Memory.colonies) {Memory.colonies = []}
+
+    for(let c of Memory.colonies)
+    {
+        if(c.pos.roomName == pos.roomName)
+        {
+            Helpers.Externals.Notify("Relocating colony at " + c.pos + " to " + pos);
+            c.pos = pos;
+            return;
+        }
+    }
     Memory.colonies.push(
         {
             pos : pos,
@@ -14,4 +24,6 @@ module.exports.Generate=function(pos)
             subLayouts:{},
             layout:""
         });
+
+    Helpers.Externals.Notify("Starting a new colony at " + pos);
 }

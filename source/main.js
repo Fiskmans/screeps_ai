@@ -12,7 +12,7 @@ module.exports.loop = function()
     {
         room.PopulateShorthands();
     }
-    
+    Empire.Expansion.StartInitialColony();
     
     Colony.Dispatcher.DispatchAll();
     PowerCreeps();
@@ -20,10 +20,18 @@ module.exports.loop = function()
     worldVisuals();
     ConsoleHelperUpdate();
     
-    InterShard.Transport.FlushScreeponauts();
-    InterShard.Transport.FindOrphans();
-    InterShard.Transport.FillRequests();
-    
+    if(IS_PERSISTENT || IS_PTR)
+    {
+        InterShard.Transport.FlushScreeponauts();
+        InterShard.Transport.FindOrphans();
+        InterShard.Transport.FillRequests();
+    }
+
+    if(IS_SEASONAL)
+    {
+        Seasonal.Empire.Update();
+    }
+        
     
     TrackCPU(Game.cpu.getUsed() / Game.cpu.limit);
     if (Game.cpu.bucket > 1000 && Game.cpu.getUsed() < Game.cpu.limit) 
@@ -33,7 +41,10 @@ module.exports.loop = function()
         Helpers.Spawn.CleanMemory();
           
         
-        InterShard.Transport.ActivateDeadShards();
+        if(IS_PERSISTENT || IS_PTR)
+        {
+            InterShard.Transport.ActivateDeadShards();
+        }
     }
     
     applyFlags();
@@ -45,13 +56,16 @@ module.exports.loop = function()
     
     UpdateGrafanaStats();
     
-    if(Game.cpu.bucket > 9900 && Game.shard.name == "shard2")
+    if(IS_PERSISTENT && Game.cpu.bucket > 9900 && Game.shard.name == "shard2")
     {
         Game.cpu.generatePixel();
     }
 
-    InterShard.Pulse.Pulse();
-    InterShard.Memory.Commit();
+    if(IS_PERSISTENT || IS_PTR)
+    {
+        InterShard.Pulse.Pulse();
+        InterShard.Memory.Commit();
+    }
     Performance.Profiler.Update();
     Performance.Decisions.UpdateAverage();
 }

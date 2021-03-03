@@ -380,16 +380,6 @@ let visuals =
                                 flag.pos.y - -y,
                                 STRUCTURE_RAMPART)
                         }
-
-                        //vis.rect(
-                        //    flag.pos.x + x-0.5, 
-                        //    flag.pos.y - -y-0.5,
-                        //    1,
-                        //    1,
-                        //    { 
-                        //        fill:RICK_QR_CODE[y].charAt(x) == '1' ? "#000000" : "#FFFFFF",
-                        //        opacity:1
-                        //    });
                     }
                 }
             }
@@ -420,10 +410,4 @@ worldVisuals=function()
             }
             );
     }
-
-    //if(Game.shard.name == "shard2")
-    //{
-    //   let vis = new RoomVisual("W37S47");
-    //   vis.CostMatrix("W37S47",Colony.Planner.MatrixRoadPreferFuture("W37S47"));
-    //}
 }

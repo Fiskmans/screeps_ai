@@ -1,7 +1,8 @@
 
 let C =
 {
-    BUILDINGS_AT_LEVEL:
+    BLOCKED             : 0xff,
+    BUILDINGS_AT_LEVEL  :
     {
         0: {},
         1: {
@@ -128,8 +129,35 @@ module.exports.BuildPlannerAllPlanned=function(roomName)
     return matrix;
 }
 
-module.exports.MatrixRoadPreferFuture=function(roomName)
+module.exports.PFCostMatrixRoadCallback=function(roomName)
 {
+    let isSK = false;
+    try
+    {
+        const [, we, lon, ns, lat] = ROOM_NAME_REGEX.exec(roomName);
+        let sectorLon = lon%10;
+        let sectorLat = lat%10;
+
+        if(sectorLon > 3 && sectorLon < 7 &&
+            sectorLat > 3 && sectorLat < 7)
+        {
+            if(sectorLat != 5 || sectorLon != 5)
+            {
+                isSK = true;
+            }   
+        }
+        if(isSK && !Game.rooms[roomName])
+        {
+            Empire.Scouting.WantsVision(roomName);
+            return false;
+        }
+    }
+    catch
+    {
+        Helpers.Externals.Notify(roomName + " failed roomName regex",true);
+        return false
+    }
+
     let matrix = new PathFinder.CostMatrix();
 
     let terrain = new Room.Terrain(roomName);
@@ -141,7 +169,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
             let t = terrain.get(x,y);
             if(t == TERRAIN_MASK_SWAMP)
             {
-                matrix.set(x,y,5);
+                matrix.set(x,y,3);
             }
             if(t == 0)
             {
@@ -149,7 +177,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
             }
             if(t == TERRAIN_MASK_WALL)
             {
-                matrix.set(x,y,256);
+                matrix.set(x,y,C.BLOCKED);
             }
         }
     }
@@ -193,7 +221,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
             let buildings = DeserializeLayout(colony.layout,roomName);
             for(let b of buildings)
             {
-                matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
+                matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : C.BLOCKED);
             }
             if(colony.subLayouts)
             {
@@ -202,7 +230,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
                     let buildings = DeserializeLayout(layout,roomName);
                     for(let b of buildings)
                     {
-                        matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : 255);
+                        matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : C.BLOCKED);
                     }
                 }
             }
@@ -219,7 +247,7 @@ module.exports.MatrixRoadPreferFuture=function(roomName)
                     {
                         if(b.structure == STRUCTURE_ROAD)
                         {
-                            matrix.set(b.pos.x,b.pos.y,1);
+                            matrix.set(b.pos.x,b.pos.y,b.structure == STRUCTURE_ROAD ? 1 : C.BLOCKED);
                         }
                     }
                 }

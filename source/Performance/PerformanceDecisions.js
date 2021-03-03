@@ -45,15 +45,6 @@ module.exports._conditions =
 }
 module.exports.UpdateAverage=function()
 {
-    if(!Memory.performance)
-    {
-        Memory.performance = 
-        {
-            average:Game.cpu.limit,
-            count:1
-        };
-    }
-
     Memory.performancedecisions.average = lerp(
         Game.cpu.getUsed(),
         Memory.performancedecisions.average,

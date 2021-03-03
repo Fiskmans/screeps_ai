@@ -3,8 +3,14 @@
 module.exports.DispatchAll=function()
 {
     if(!Memory.colonies) {Memory.colonies = []}
+    let count = 0;
     for(let colony of Object.values(Memory.colonies))
     {
+        count++;
+        if(count > Game.gcl.level)
+        {
+            break;
+        }
         this.Dispatch(colony)
     }
 }

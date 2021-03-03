@@ -2,6 +2,11 @@
 
 ColonyIdleWorkers=function(colony)
 {
+    if(colony.level == 8 && !Performance.Decisions.Enabled("normal_mode"))
+    {
+        ColonyControllerKeepAlive(colony);
+        return;
+    }
     if(colony.sendLink && colony.upgradeLink)
     {
         ColonyUpgradeLinked(colony);
@@ -12,13 +17,29 @@ ColonyIdleWorkers=function(colony)
     }
 }
 
+ColonyControllerKeepAlive=function(colony)
+{
+    let room = Game.rooms[colony.pos.roomName];
+    if(room.controller.ticksToDowngrade < CONTROLLER_DOWNGRADE[colony.level] - CONTROLLER_DOWNGRADE_RESTORE)
+    {
+        if(colony.sendLink && colony.upgradeLink)
+        {
+            ColonyUpgradeLinked(colony);
+        }
+        else
+        {
+            ColonyIdleWorkersDumb(colony);
+        }
+    }
+}
+
 ColonyIdleWorkersDumb=function(colony)
 {
     for(var creep of Helpers.Creep.List(colony.workerpool))
     {
         if (creep.pos.roomName != colony.pos.roomName) 
         {
-            creep.travelTo(new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName))
+            creep.GoToRoom(colony.pos.roomName);
         }
         else
         {

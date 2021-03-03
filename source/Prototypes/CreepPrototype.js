@@ -139,6 +139,13 @@ Creep.prototype._workPossible=function(work)
                 return false;
             }
             break;
+        case CREEP_BUILD:
+            target = Game.getObjectById(work.target);
+            if(!target)
+            {
+                return false;
+            }
+            break;
     }
 
     return true;
@@ -365,11 +372,11 @@ Creep.prototype.smarterUpgradeLoop=function(link)
             }
             else
             {
-                if(creep.room.storage && creep.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > UPGRADE_FROM_STORAGE_MIN_ENERGY)
+                if(link.room.storage && link.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > UPGRADE_FROM_STORAGE_MIN_ENERGY)
                 {
                     this.EnqueueWork({
                         action:CREEP_WITHDRAW,
-                        target:creep.room.storage.id,
+                        target:link.room.storage.id,
                         arg1:RESOURCE_ENERGY
                     });
                 }

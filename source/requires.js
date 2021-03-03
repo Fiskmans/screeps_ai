@@ -2,6 +2,7 @@ require('Globals')
 require('constants')
 require('functions')
 
+
 Colony      = require('ColonyRequires');
 InterShard  = require('InterShardRequires');
 Combat      = require('CombatRequires');
@@ -10,6 +11,10 @@ Performance = require('PerformanceRequires');
 Helpers     = require('HelpersRequires');
 QuickFind   = require('QuickFindRequires');
 Empire      = require('EmpireRequires');
+if(IS_SEASONAL)
+{
+Seasonal    = require('SeasonalRequires');
+}
 
 require('traveler')
 
