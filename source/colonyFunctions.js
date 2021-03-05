@@ -710,7 +710,7 @@ ColonyBuildRamparts=function(colony)
     let store = room.storage.store;
 
     let hasBetterThingsToDo = colony.constructionsite || false;
-    if(!hasBetterThingsToDo && colony.refreshDowngrade)
+    if((!hasBetterThingsToDo && colony.refreshDowngrade) || IS_SEASONAL)
     {
         hasBetterThingsToDo = true;
     }

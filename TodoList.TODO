@@ -18,6 +18,7 @@
 - Rampart hole filler
 - hauler taskplanner followup based on expected position not target position offset 1 towards last target enough
 - Memhack
+- Priority Lock spawns on failure
 
 Done
 - Adaptive worker count based on income

@@ -161,6 +161,7 @@ let visuals =
     },
     resourceDemo:function()
     {
+        /*
         if(Game.flags["ResourceDemo"] && Game.flags["ResourceDemo"].color != COLOR_RED)
         {
             let pos = {x:Game.flags["ResourceDemo"].pos.x+1,y:Game.flags["ResourceDemo"].pos.y+1};
@@ -168,11 +169,27 @@ let visuals =
             
             RESOURCES_ALL.forEach((r) =>
             {
-                vis.symbol(pos.x,pos.y,r,{scale:1.2});
+                vis.symbol(pos.x,pos.y,r,{scale:1});
                 pos.x += 2;
                 if(pos.x > 48)
                 {
                     pos.x = Game.flags["ResourceDemo"].pos.x+1;
+                    pos.y += 2;
+                }
+            })
+        }*/
+        if(Game.flags["Test"] && Game.flags["Test"].color != COLOR_RED)
+        {
+            let pos = {x:Game.flags["Test"].pos.x+1,y:Game.flags["Test"].pos.y+1};
+            let vis = Game.flags["Test"].room && Game.flags["Test"].room.visual ? Game.flags["Test"].room.visual : new RoomVisual(Game.flags["Test"].pos.roomName);
+            
+            [RESOURCE_SYMBOL_TAW].forEach((r) =>
+            {
+                vis.symbol(pos.x,pos.y,r,{scale:1});
+                pos.x += 2;
+                if(pos.x > 48)
+                {
+                    pos.x = Game.flags["Test"].pos.x+1;
                     pos.y += 2;
                 }
             })

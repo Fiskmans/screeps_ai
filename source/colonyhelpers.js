@@ -10,8 +10,7 @@ RequestResource=function(colony,objectId,type,wantedAmount,priority)
 {
     if(!wantedAmount || wantedAmount < 1 || !type)
     {
-        console.log("Bad call to RequestResource: " + wantedAmount + " " + type);
-        Game.notify("Bad call to RequestResource: " + wantedAmount + " " + type);
+        Helpers.Externals.Notify("Bad call to RequestResource: " + wantedAmount + " " + type,true);
         return;
     }
 
@@ -35,7 +34,6 @@ RequestResource=function(colony,objectId,type,wantedAmount,priority)
     {
         return;
     }
-
     if(!colony.requests) { colony.requests = [] };
     for(let i in colony.requests)
     {

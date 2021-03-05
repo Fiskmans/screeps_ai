@@ -39,14 +39,14 @@ let ParseStyle=function(string)
     return out;
 }
 
-let readNumber=function(at,string)
+let readNumber=function(at,string,log)
 {
     let out = {};
     let data = "";
     for(let i = at;i < string.length; i++)
     {
         let char = string[i];
-        if(char != " " && char != ",")
+        if(char != " " && char != "," && char != ")")
         {
             data += char;
         }
@@ -56,11 +56,22 @@ let readNumber=function(at,string)
             out.jumpTo = i;
             if(isNaN(out.value))
             {
-                console.log(data)
+                console.log("nan: " + data + "[" + string.substring(Math.max(at-5,0), at + 5) + "]");
             }
             return out;
         }
     }
+    if(data.length > 0)
+    {
+        out.value = parseFloat(data);
+        out.jumpTo = string.length;
+        if(isNaN(out.value))
+        {
+            console.log("nan: " + data + "[" + string.substring(Math.max(at-5,0), at + 5) + "]");
+        }
+        return out;
+    }
+
     out.value = 0;
     out.jumpTo = string.length;
     return out;
@@ -71,7 +82,7 @@ let readPoint=function(at,string)
     let out = {};
     let x = readNumber(at,string);
     at = x.jumpTo;
-    if(string[at] == ",") {at++};
+    if(string[at] == "," || string[at] == " ") {at++};
     let y = readNumber(at,string);
 
     out.value = [x.value,y.value];
@@ -79,7 +90,7 @@ let readPoint=function(at,string)
     return out;
 }
 
-let ParsePoly=function(string)
+let ParsePoly=function(string, transform)
 {
     let out = [];
     let cursor = [0,0];
@@ -220,10 +231,14 @@ let ParsePoly=function(string)
                 case "Z":
                     out.push(_.first(out));
                     break;
+                default:
+                    console.log("unkown path char: [" + command + "]");
+                    break;
             }
         }
     }
-    return out;
+
+    return out.map(p => { return transformPoint(p[0],p[1],transform); });
 }
 
 let ParseColor=function(color,opacity)
@@ -240,17 +255,75 @@ let ParseColor=function(color,opacity)
     return result;
 }
 
-let ParseSVG=function(fileName)
+let ParseTransform=function(data)
 {
-    let data = require(fileName);
-    let object = xml.parseFromString(""+data)
-
-    let out = [];
-    object.forEach((element) =>
+    if(!data.startsWith("matrix("))
     {
+        console.log("unkown transform type");
+        return [1,0,0,1,0,0];
+    }
+    let out = [];
+    let stripped = data.substring(7,data.length-1);
+
+    let at = 0;
+    
+    for(let i = 0;i < 6;i++)
+    {
+        let n = readNumber(at,stripped);
+        at = n.jumpTo;
+        if(stripped[at] == "," || stripped[at] == " ") {at++};
+        out.push(n.value);
+    }
+    console.log("transform: " + JSON.stringify(out));
+    return out;
+}
+
+let ParseDefs=function(data)
+{
+    //frick off
+}
+
+let ParseStyleElement=function(data,ruleSet)
+{
+    //maybe later but not now
+}
+
+let transformVector=function(x,y,transform)
+{
+    let nx = x * transform[0] + y * transform[2];
+    let ny = x * transform[1] + y * transform[3];
+    if(transform[0] != 1)
+    {
+        console.log(x.toFixed(2) + " " + y.toFixed(2) + " --> " + nx.toFixed(2) + " " + ny.toFixed(2));
+    }
+
+    return [nx,ny];
+}
+let transformPoint=function(x,y,transform)
+{
+
+    let [nx,ny] = transformVector(x,y,transform);
+    //nx += transform[4];
+    //ny += transform[5];
+    return [nx,ny];
+}
+
+let ParseXML_Element=function(object,out,transform)
+{
+    for(let element of object)
+    {
+        let trans = transform || [1,0,0,1,0,0];
+        if(element.attributes && element.attributes.transform)
+        {
+            trans = ParseTransform(element.attributes.transform);
+        }
         if(element.type == "element")
         {
-            switch(element.tagName.replace("\n",""))
+            if(element.childNodes)
+            {
+                ParseXML_Element(element.childNodes,out,trans);
+            }
+            switch(element.tagName.replace("\n","").replace("\r",""))
             {
             case "rect":
                 {
@@ -263,6 +336,9 @@ let ParseSVG=function(fileName)
                     layer.width = attr.width;
                     layer.height = attr.height;
                     
+                    [layer.x,layer.y] = transformPoint(layer.x,layer.y,trans);
+                    [layer.width,layer.height] = transformVector(layer.width,layer.height,trans);
+
                     let style = ParseStyle(attr.style);
                     
                     layer.fill = ParseColor(style.fill, style["fill-opacity"])
@@ -278,7 +354,7 @@ let ParseSVG=function(fileName)
                     let layer = {};
                     layer.type = VISUALTYPE_POLY
                     let attr = element.attributes;
-                    layer.poly = ParsePoly(attr.d)
+                    layer.poly = ParsePoly(attr.d,trans);
                     
                     let style = ParseStyle(attr.style);
                     
@@ -298,6 +374,9 @@ let ParseSVG=function(fileName)
                     layer.x = parseFloat(attr.cx)
                     layer.y = parseFloat(attr.cy)
                     layer.radius = parseFloat(attr.r);
+
+                    [layer.x,layer.y] = transformPoint(layer.x,layer.y,trans);
+                    [layer.radius,] = transformVector(layer.radius,0,trans);
                     
                     let style = ParseStyle(attr.style);
                     
@@ -309,9 +388,40 @@ let ParseSVG=function(fileName)
                     out.push(layer)
                 }
                 break;
+
+            case "defs":
+                ParseDefs(element);
+                break;
+
+            case "style":
+                ParseStyleElement(element,{}/* ruleset */); 
+                break;
+            case "polygon":
+                console.log("polygon elements not supported, convert to path in your favorite svg editor, inkscape?");
+                break;
+            case "?xml":
+            case "metadata":
+                console.log(("redundant tag detected [" + element.tagName.replace("\n","").replace("\r","") + "]").padEnd(38) + " save-as 'optimized svg' in inkscape to reduce file size");
+                break;
+            case "svg":
+            case "g":
+                break;
+            default:
+                console.log("unkown tagname: " + element.tagName.replace("\n","").replace("\r",""));
+                break;
             }
         }
-    })
+    }   
+}
+
+let ParseSVG=function(fileName)
+{
+    let data = require(fileName);
+    let object = xml.parseFromString(""+data)
+
+    let out = [];
+    ParseXML_Element(object,out);
+    console.log(fileName + " has " + out.length + " layers");
     return out;
 }
 
@@ -344,7 +454,6 @@ RoomVisual.prototype.DrawSvg=function(x,y,filePath,opt={})
                     args.stroke = layer.stroke;
                     args.strokeWidth =  layer.strokeWidth;
                     args.opacity = layer.opacity * opt.alpha;
-                    
                     this.poly(layer.poly.map(p => [ p[0]*opt.scale + x, p[1]*opt.scale + y ]),args);
                 }
                 break;

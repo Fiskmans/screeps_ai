@@ -53,4 +53,12 @@ defaultMemory=function()
             count:1
         };
     }
+
+    if(IS_SEASONAL)
+    {
+        if(!Memory.seasonal) {Memory.seasonal = {}}
+        if(!Memory.seasonal.rooms) {Memory.seasonal.rooms = {}}
+    }
+
+
 }

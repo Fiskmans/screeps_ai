@@ -254,33 +254,6 @@ RoomVisual.prototype.stock=function(x,y,obj,opt = {})
     return this
 }
 
-RoomVisual.prototype.plan=function(_x,_y,plan,opt = {})
-{
-    _.defaults(opt,{scale:1,alpha:0.5})
-    if(_x && _y && plan)
-    {
-        for(var y=0;y<plan.length;y++)
-        {
-            for(var x=0;x<plan[y].length;x++)
-            {
-                if(plan[y][x])
-                {
-                    this.symbol(_x+x*opt.scale,_y+y*opt.scale,plan[y][x],opt)
-                }
-            }
-        }
-    }
-    else
-    {
-        console.log("Missing arguments in plan")
-        console.log("x:" + _x)
-        console.log("y:" + _y)
-        console.log("plan:" + plan)
-    }
-    return this
-}
-
-
 RoomVisual.prototype.layout=function(buildings,opt = {})
 {
     _.defaults(opt,{scale:1,alpha:0.5});
@@ -947,6 +920,31 @@ RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
         case RESOURCE_COMPOSITE:
         case RESOURCE_CRYSTAL:
         case RESOURCE_LIQUID:
+
+        
+        case RESOURCE_SYMBOL_ALEPH: 
+        case RESOURCE_SYMBOL_BETH: 
+        case RESOURCE_SYMBOL_GIMMEL: 
+        case RESOURCE_SYMBOL_DALETH:
+        case RESOURCE_SYMBOL_HE: 
+        case RESOURCE_SYMBOL_WAW:
+        case RESOURCE_SYMBOL_ZAYIN:
+        case RESOURCE_SYMBOL_HETH:
+        case RESOURCE_SYMBOL_TETH:
+        case RESOURCE_SYMBOL_YODH:
+        case RESOURCE_SYMBOL_KAPH:
+        case RESOURCE_SYMBOL_LAMEDH: 
+        case RESOURCE_SYMBOL_MEM:
+        case RESOURCE_SYMBOL_NUN: 
+        case RESOURCE_SYMBOL_SAMEKH: 
+        case RESOURCE_SYMBOL_AYIN:
+        case RESOURCE_SYMBOL_PE:
+        case RESOURCE_SYMBOL_TSADE: 
+        case RESOURCE_SYMBOL_QOPH:
+        case RESOURCE_SYMBOL_RES: 
+        case RESOURCE_SYMBOL_SIN: 
+        case RESOURCE_SYMBOL_TAW: 
+        
 
             this.unique(x,y,symbol,opt);
             break;

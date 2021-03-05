@@ -1,7 +1,8 @@
 
 let C =
 {
-    DECODER_REQUEST_AMOUNT : 1000
+    DECODER_REQUEST_AMOUNT      : 1000,
+    CHECK_INTERVAL              : 500
 }
 
 module.exports.IsAlly = function(userName)
@@ -9,20 +10,97 @@ module.exports.IsAlly = function(userName)
     return false;
 }
 
-module.exports.Update = function()
+module.exports.CheckForSymbols=function()
 {
-    for(let r of Object.values(Game.rooms))
+    if(Game.flags["S"])
     {
-        if(r.controller && (r.controller.my || (r.controller.owner && this.IsAlly(r.controller.owner.userName))))
+        if(!Memory.seasonal.rooms[Game.flags["S"].pos.roomName]) {Memory.seasonal.rooms[Game.flags["S"].pos.roomName] = {}}
+        Game.flags["S"].remove();
+    }
+
+    for(let roomName in Memory.seasonal.rooms)
+    {
+        let rData = Memory.seasonal.rooms[roomName];
+        if(Game.time - (rData.checked || 0 ) > C.CHECK_INTERVAL)
         {
-            let closest = Colony.Helpers.FindClosest(r.name);
-            if(closest)
+            let room = Game.rooms[roomName];
+            if(!room)
             {
-                for(let dec of r.find(FIND_SYMBOL_DECODERS))
+                Empire.Scouting.WantsVision(roomName);
+                continue;
+            }
+
+            let closest = Colony.Helpers.FindClosest(roomName);
+            if(!closest)
+            {
+                Helpers.External.Notify("No colonies exist",true);
+                return;
+            }
+            let has = false;
+            for(let s of room.find(FIND_SYMBOL_CONTAINERS))
+            {
+                has = true;
+                if(s.store.getUsedCapacity(s.resourceType) > 0)
                 {
-                    RequestResource(closest,dec.id,dec.resourceType,C.DECODER_REQUEST_AMOUNT,REQUEST_PRIORITY_PROGRESS);
+                    if(!rData.creep && closest.haulerpool.length > 1)
+                    {
+                        rData.creep = closest.haulerpool.shift();
+                    }
                 }
+                else
+                {
+                    if(rData.creep)
+                    {
+                        closest.haulerpool.push(rData.creep);
+                        delete rData.creep;
+                    }
+                    rData.checked = Game.time;
+                }
+                if(rData.creep)
+                {
+                    let creep = Game.creeps[rData.creep];
+                    if(!creep)
+                    {
+                        delete rData.creep;
+                        continue;
+                    }
+                    let colRoom = Game.rooms[closest.pos.roomName];
+                    if(!colRoom || !colRoom.storage)
+                    {
+                        continue;
+                    }
+                    if(creep.store.getUsedCapacity() > 0)
+                    {
+                        creep.say("d");
+                        creep.do("transfer",colRoom.storage,Object.keys(creep.store)[0]);
+                    }
+                    else
+                    {
+                        creep.say("p");
+                        creep.do("withdraw",s,s.resourceType);
+                    }
+                }
+            }
+            if(!has)
+            {
+                if(rData.creep)
+                {
+                    closest.haulerpool.push(rData.creep);
+                    delete rData.creep;
+                }
+                rData.checked = Game.time;
             }
         }
     }
+}
+
+module.exports.DecoderRequests=function()
+{
+    //decoders don't have a store :thinking:
+}
+
+module.exports.Update = function()
+{
+    this.CheckForSymbols();
+    this.DecoderRequests();
 }

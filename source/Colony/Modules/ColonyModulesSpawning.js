@@ -40,7 +40,7 @@ let SpawnWorkers = function(colony)
 
     colony.targetWorkers = target;
 
-    if (count < target && (room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < SPAWNING_ENERGY_PANIC_AMOUNT || colony.haulerpool.length != 0))
+    if (count < target && (room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < SPAWNING_ENERGY_PANIC_AMOUNT || (colony.haulerpool.length != 0 && colony.workerpool.length < 3)))
     {
         let body = BODIES.LV1_WORKER;
 
@@ -124,6 +124,10 @@ let SpawnHaulers = function(colony)
     
     let toTransfer = _.sum(colony.income) + _.sum(colony.expenses); // + tranfer for extra stuff
     let target = Math.ceil(toTransfer / C.HAULING_EFFECTIVE_POWER);
+    if(IS_SEASONAL)
+    {
+        target *= 2;
+    }
     colony.targetHaulers = (target / HAULER_PARTS_AT_LEVEL[colony.level]).toFixed(2);
 
     colony.needMoreHaulers = parts < target;

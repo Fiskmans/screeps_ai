@@ -31,20 +31,12 @@ Creep.prototype.LeaveEdge=function()
 
 Creep.prototype.dumbHarvest=function()
 {
-    if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > this.store.getCapacity(RESOURCE_ENERGY))
+    if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) >= this.store.getFreeCapacity(RESOURCE_ENERGY))
     {
-        this.say("🧱")
         let err = this.withdraw(this.room.storage,RESOURCE_ENERGY);
         if (err == ERR_NOT_IN_RANGE) {
             this.travelTo(this.room.storage);
             return
-        }
-        else if(err == ERR_FULL)
-        {
-            if(this.store.getUsedCapacity(RESOURCE_ENERGY) < 50)
-            {
-                err = this.transfer(this.room.storage,ExtractContentOfStore(this.store)[0]);
-            }
         }
         else if(err == OK)
         {
@@ -52,18 +44,25 @@ Creep.prototype.dumbHarvest=function()
         }
     }
     
+    for(let c of this.room.Structures(STRUCTURE_CONTAINER))
+    {
+        if(c.store.getUsedCapacity(RESOURCE_ENERGY) >= this.store.getFreeCapacity(RESOURCE_ENERGY))
+        {
+            this.do("withdraw",c,RESOURCE_ENERGY);
+            return;
+        }
+    }
+
     let resourses = this.room.find(FIND_DROPPED_RESOURCES,{filter:(r) => {return r.resourceType == RESOURCE_ENERGY}});
     if (resourses.length > 0) 
     {
         let target = this.pos.findClosestByPath(resourses);
-        if (this.pickup(target) == ERR_NOT_IN_RANGE)
-        {
-            this.travelTo(target)
-        }
+        this.do(CREEP_PICKUP,target);
         return;
     }
     
-    this.say("🧱")
+
+
     var source = this.pos.findClosestByPath(FIND_SOURCES_ACTIVE)
     if(this.harvest(source) == ERR_NOT_IN_RANGE)
     {
@@ -352,8 +351,25 @@ Creep.prototype.dumbUpgradeLoop=function()
     }
     else
     {
+        
+        if(!this.room.storage || this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < 1000)
+        {
+            this.fillAnything();
+            return;
+        }
         this.dumbUpgrade()
     }
+}
+
+Creep.prototype.fillAnything=function()
+{
+    this.do(
+        "transfer",
+        _.filter(
+            this.room.Structures(STRUCTURE_EXTENSION).concat(
+                this.room.Structures(STRUCTURE_SPAWN)),
+            (s) => s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)[0],
+        RESOURCE_ENERGY)
 }
 
 Creep.prototype.smarterUpgradeLoop=function(link)

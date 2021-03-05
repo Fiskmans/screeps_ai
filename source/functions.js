@@ -985,10 +985,6 @@ Power_Matilda=function(matilda)
                                 let err = matilda.usePower(PWR_REGEN_SOURCE,s);
                                 switch(err)
                                 {
-                                    case OK:
-                                        if(!Memory.boostedSource) { Memory.boostedSource = {}}
-                                        Memory.boostedSource[s.id] = matilda.powers[PWR_REGEN_SOURCE].level;
-                                        break;
                                     case ERR_TIRED:
                                         matilda.say("Out of sync");
                                         break;
