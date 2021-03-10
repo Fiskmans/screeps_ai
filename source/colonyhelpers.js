@@ -272,7 +272,8 @@ MakeFakeStores=function(colony,outObj)
 
 EnqueueToRequests=function(colony,storageId,creep,predicted)
 {
-    let req = ColonyFindUnfilledToRequest(colony,predicted,creep.pos,storageId);
+    let storage = Game.getObjectById(storageId);
+    let req = ColonyFindUnfilledToRequest(colony,predicted,storage ? storage.pos : creep.pos,storageId);
     if(req)
     {
         if(storageId && predicted[creep.id].GetCapacity(req.resource) - predicted[creep.id].total < req.targetAmount - predicted[req.id].Get(req.resource))

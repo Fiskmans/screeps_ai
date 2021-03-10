@@ -2,12 +2,14 @@
 let C =
 {
     DECODER_REQUEST_AMOUNT      : 1000,
-    CHECK_INTERVAL              : 500
+    CHECK_INTERVAL              : 500,
+
+    FREE_SPACE_TO_LEAVE         : 50000
 }
 
 module.exports.IsAlly = function(userName)
 {
-    return false;
+    return ["Eiskalt","Mirroar","reggaremuffin","Meridon","SirFrump","rysade"].includes(userName);
 }
 
 module.exports.CheckForSymbols=function()
@@ -36,6 +38,7 @@ module.exports.CheckForSymbols=function()
                 Helpers.External.Notify("No colonies exist",true);
                 return;
             }
+
             let has = false;
             for(let s of room.find(FIND_SYMBOL_CONTAINERS))
             {
@@ -67,6 +70,16 @@ module.exports.CheckForSymbols=function()
                     let colRoom = Game.rooms[closest.pos.roomName];
                     if(!colRoom || !colRoom.storage)
                     {
+                        continue;
+                    }
+                    if(!colRoom.storage || colRoom.storage.store.getFreeCapacity() < C.FREE_SPACE_TO_LEAVE)
+                    {
+                        if(rData.creep)
+                        {
+                            closest.haulerpool.push(rData.creep);
+                            delete rData.creep;
+                        }
+                        rData.checked = Game.time;
                         continue;
                     }
                     if(creep.store.getUsedCapacity() > 0)

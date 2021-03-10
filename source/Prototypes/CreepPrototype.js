@@ -351,7 +351,6 @@ Creep.prototype.dumbUpgradeLoop=function()
     }
     else
     {
-        
         if(!this.room.storage || this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) < 1000)
         {
             this.fillAnything();
@@ -518,6 +517,31 @@ Creep.prototype.Retire = function(roomName)
     {
         this.say("bad retirement: " + roomName);
     }
+}
+
+
+let cachedSK = {}
+let AvoidSK = function(roomName)
+{
+    let matrix = new PathFinder.CostMatrix();
+
+    let room = Game.rooms[roomName];
+    if(!room)
+    {  
+        return matrix;
+    }
+    for(let sk of room.Structures(STRUCTURE_KEEPER_LAIR))
+    {
+        for(let x = Mat.max(sk.pos.x-5,1); x < Math.min(sk.pos.x + 5, 48); x++)
+        {
+            for(let y = Mat.max(sk.pos.y-5,1); y < Math.min(sk.pos.y + 5, 48); y++)
+            {
+                matrix.set(x,y,0xff);
+            }
+        }
+    }
+
+    return matrix;
 }
 
 Creep.prototype.GoToRoom=function(roomName)

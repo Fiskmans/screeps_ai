@@ -1,9 +1,10 @@
 
 
-IS_PERSISTENT                       = !!Game.shard; 
+IS_PERSISTENT                       = !!(Game.shard && Game.shard.name.startsWith("shard")); 
 IS_SIM                              = !!Game.rooms['sim'];
 IS_PTR                              = !!(Game.shard && Game.shard.ptr);
 IS_SEASONAL                         = !!(Game.shard && Game.shard.name == "shardSeason")
+IS_FISK_SERVER                      = !!(Game.shard && Game.shard.name == "FiskServer")
 
 
 

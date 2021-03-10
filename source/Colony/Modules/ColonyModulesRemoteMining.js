@@ -303,7 +303,7 @@ let HaulSource = function(colony,roomName,blob,s)
         creep.OpportuneRenew();
     }
 
-    if(partsNeeded > 0 && (!blob.isSK || s.isDefended) && !blob.hasInvader)
+    if(partsNeeded > 0 && (!blob.isSK || s.isDefended) && (!blob.hasInvader && !blob.hasCore))
     {
         let body = BODIES.LV3_REMOTE_HAULER;
         if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4] 
@@ -394,7 +394,7 @@ let MineSource = function(colony,roomName,blob,s)
     }
     
 
-    if(needReplacementMiner && (!blob.isSK || s.isDefended) && !blob.hasInvader)
+    if(needReplacementMiner && (!blob.isSK || s.isDefended) && (!blob.hasInvader && !blob.hasCore))
     {
         Colony.Helpers.SpawnCreep(colony,s.miners,C.BODIES[s.type], ROLE_MINER);
     }

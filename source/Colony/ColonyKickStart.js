@@ -1282,7 +1282,7 @@ module.exports.CreateSites=function(colony)
     {
         if(StampSites(colony,colony.layout,[STRUCTURE_STORAGE]))
         {
-            if(this.CreateContainersSites(colony,true))
+            if(room.Structures(STRUCTURE_SPAWN).length > 0 && this.CreateContainersSites(colony,true))
             {
                 return;
             }

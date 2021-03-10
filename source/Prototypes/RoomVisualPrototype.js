@@ -822,6 +822,40 @@ RoomVisual.prototype.structure = function(x,y,type,opt)
 RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
 {
     _.defaults(opt,{scale:1,alpha:1})
+
+    if(IS_SEASONAL)
+    {
+        const SYMBOLS = [
+             RESOURCE_SYMBOL_ALEPH, 
+             RESOURCE_SYMBOL_BETH, 
+             RESOURCE_SYMBOL_GIMMEL, 
+             RESOURCE_SYMBOL_DALETH,
+             RESOURCE_SYMBOL_HE, 
+             RESOURCE_SYMBOL_WAW,
+             RESOURCE_SYMBOL_ZAYIN,
+             RESOURCE_SYMBOL_HETH,
+             RESOURCE_SYMBOL_TETH,
+             RESOURCE_SYMBOL_YODH,
+             RESOURCE_SYMBOL_KAPH,
+             RESOURCE_SYMBOL_LAMEDH, 
+             RESOURCE_SYMBOL_MEM,
+             RESOURCE_SYMBOL_NUN, 
+             RESOURCE_SYMBOL_SAMEKH, 
+             RESOURCE_SYMBOL_AYIN,
+             RESOURCE_SYMBOL_PE,
+             RESOURCE_SYMBOL_TSADE, 
+             RESOURCE_SYMBOL_QOPH,
+             RESOURCE_SYMBOL_RES, 
+             RESOURCE_SYMBOL_SIN, 
+             RESOURCE_SYMBOL_TAW
+        ]
+        if(SYMBOLS.includes(symbol))
+        {
+            this.unique(x,y,symbol,opt);
+            return this;
+        }
+    }
+
     switch(symbol)
     {
         case RESOURCE_ENERGY:
@@ -920,32 +954,6 @@ RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
         case RESOURCE_COMPOSITE:
         case RESOURCE_CRYSTAL:
         case RESOURCE_LIQUID:
-
-        
-        case RESOURCE_SYMBOL_ALEPH: 
-        case RESOURCE_SYMBOL_BETH: 
-        case RESOURCE_SYMBOL_GIMMEL: 
-        case RESOURCE_SYMBOL_DALETH:
-        case RESOURCE_SYMBOL_HE: 
-        case RESOURCE_SYMBOL_WAW:
-        case RESOURCE_SYMBOL_ZAYIN:
-        case RESOURCE_SYMBOL_HETH:
-        case RESOURCE_SYMBOL_TETH:
-        case RESOURCE_SYMBOL_YODH:
-        case RESOURCE_SYMBOL_KAPH:
-        case RESOURCE_SYMBOL_LAMEDH: 
-        case RESOURCE_SYMBOL_MEM:
-        case RESOURCE_SYMBOL_NUN: 
-        case RESOURCE_SYMBOL_SAMEKH: 
-        case RESOURCE_SYMBOL_AYIN:
-        case RESOURCE_SYMBOL_PE:
-        case RESOURCE_SYMBOL_TSADE: 
-        case RESOURCE_SYMBOL_QOPH:
-        case RESOURCE_SYMBOL_RES: 
-        case RESOURCE_SYMBOL_SIN: 
-        case RESOURCE_SYMBOL_TAW: 
-        
-
             this.unique(x,y,symbol,opt);
             break;
 

@@ -22,6 +22,16 @@
                 "isDefault": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "push to localhost",
+            "type": "shell",
+            "command": "grunt screeps --server=localhost",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }
