@@ -142,9 +142,8 @@ module.exports.FillRequests=function()
                 }
                 if(!onTheWay)
                 {
-                    console.log(role);
                     let col = FindClosestColony(portal.pos.roomName);
-                    spawnRoleIntoList(col.pos.roomName,list,role);
+                    //spawnRoleIntoList(col.pos.roomName,list,role);
                 }
             }
 

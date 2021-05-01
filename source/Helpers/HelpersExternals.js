@@ -1,5 +1,10 @@
 module.exports.IsRoomVisible=function(roomName)
 {
+    if(IS_FISK_SERVER)
+    {
+        return true;
+    }
+
     return Memory.lastViewed && Memory.lastViewed.room == roomName && (Game.time - Memory.lastViewed.at < 5);
 }
 

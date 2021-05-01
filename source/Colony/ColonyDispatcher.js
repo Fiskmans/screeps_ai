@@ -23,7 +23,6 @@ module.exports.Dispatch=function(colony)
         deleteDead(colony.haulerpool)
     }
 
-    Colony.Planner.Expand(colony);
 
     let room = Game.rooms[colony.pos.roomName]
     if (room && room.controller.my && room.controller.level != 0) 
@@ -34,17 +33,25 @@ module.exports.Dispatch=function(colony)
     {
         colony.level = 0;
     }
-    if(!room || !room.storage || !room.storage.my || !room.storage.isActive())
+    if(IS_FISK_SERVER && colony.level < RCL_MAX)
     {
-        Colony.KickStart.Main(colony);
+        Colony.KickStart2.Main(colony);
     }
     else
     {
-        if(colony.kickStart)
+        Colony.Planner.Expand(colony);
+        if(!room || !room.storage || !room.storage.my || !room.storage.isActive())
         {
-            delete colony.kickStart;
+            Colony.KickStart.Main(colony);
         }
-        colonyLogic[colony.level](colony);
+        else
+        {
+            if(colony.kickStart)
+            {
+                delete colony.kickStart;
+            }
+            colonyLogic[colony.level](colony);
+        }
     }
     
     Colony.Modules.Misc.CompactifyLayout(colony);

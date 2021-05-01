@@ -55,7 +55,8 @@ let C =
             [STRUCTURE_TERMINAL]: 1,
             [STRUCTURE_FACTORY]: 1,
             [STRUCTURE_POWER_SPAWN]: 1,
-            [STRUCTURE_LINK]: 2
+            [STRUCTURE_LINK]: 2,
+            [STRUCTURE_OBSERVER]: 1
         }
     }
 }

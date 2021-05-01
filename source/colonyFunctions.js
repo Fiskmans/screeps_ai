@@ -356,39 +356,10 @@ StartBuilding=function(colony,room,building)
 ColonySelling=function(colony,terminal)
 {
     if(terminal.cooldown > 0) { return; }
-    if(!colony.selling) { return; }
-    if(!globalPrices) { return; }
-    let prices = globalPrices.prices;
-    if(!prices) { return; }
-    for(let i in colony.selling)
+    for(let r of (colony.selling || []))
     {
-        let res = colony.selling[i];
-        if(prices[ORDER_BUY][res] && prices[ORDER_BUY][res].price > MinimumSellingPrice[res])
-        {
-            let order = Game.market.getOrderById(prices[ORDER_BUY][res].id);
-            if(!order) { break; }
-            let amount = Math.min(order.amount,terminal.store.getUsedCapacity(res));
-            if(!amount) { break; }
-            if(res == RESOURCE_ENERGY) { amount = amount/2; }
-            amount = Math.floor(amount);
-            if(!amount) { break; }
-            let energyamount = Game.market.calcTransactionCost(amount,colony.pos.roomName,order.roomName)
-            if(terminal.store.getUsedCapacity(RESOURCE_ENERGY) < energyamount) { return; }
-
-            let err = Game.market.deal(order.id,amount,colony.pos.roomName);
-            if(err == OK)
-            {   
-                terminal.cooldown = 11;
-                console.log(("Sold ".padEnd(10)) + "<img src='https://static.screeps.com/upload/mineral-icons/" + res + ".png'/>" + (amount + " ").padEnd(18) + " from " + colony.pos.roomName + (" for " + order.price + " credits/unit").padEnd(26) + " total <font color=\"green\">" + (amount * order.price) + "<font>");
-                order.amount -= amount;
-            }
-            else
-            {
-                console.log(amount)
-                console.log("Tried to sell " + res + " from " + colony.pos.roomName + " but got error: " + err);
-            }
-            break;
-        }
+        Market.Actions.Sell(terminal,r);
+        break;
     }
 }
 
@@ -612,7 +583,7 @@ ColonyCollectPower=function(colony)
 
             if(exp.healers.length < Math.min(exp.attackers.length,limit))
             {
-                spawnRoleIntoList(Game.rooms[colony.pos.roomName],exp.healers,ROLE_BANK_HEALER);
+                Colony.Helpers.SpawnCreep(colony.pos.roomName,exp.healers,BODIES.BANK_HEALER);
             }
             if(exp.attackers.length < limit && exp.attackers.length <= exp.healers.length)
             {

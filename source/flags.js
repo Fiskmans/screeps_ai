@@ -114,7 +114,6 @@ MarkAsOwned=function(flag)
 
 Abandon=function(flag)
 {
-
     for (var i = 0; i < Memory.colonies.length; i++) {
         let roomname = Memory.colonies[i].pos.roomName
         if (roomname == flag.pos.roomName) 
@@ -125,10 +124,29 @@ Abandon=function(flag)
                 let buildings = room.find(FIND_MY_STRUCTURES,{filter: (s) => s.structureType != STRUCTURE_CONTROLLER});
                 if (buildings.length > 0) {
                     console.log("Removing buildings")
-                    buildings.forEach((s) =>
+                    for(let s of buildings)
                     {
-                        s.destroy();
-                    })
+                        s.notifyWhenAttacked(false);
+                        let err = s.destroy();
+                        if(err == ERR_BUSY)
+                        {
+                            Game.notify("Abandoning colony in room " + flag.pos.roomName);
+
+                            console.log("hostile creeps in abandoning colony assuming lost, abandoning");
+                            Memory.colonies.splice(i,1);
+                            flag.remove();
+                            return;
+                        }
+                        else if(err == ERR_NOT_OWNER)
+                        {
+                            Game.notify("Abandoning colony in room " + flag.pos.roomName);
+
+                            console.log("not owner if building in colony room, assuming lost, abandoning");
+                            Memory.colonies.splice(i,1);
+                            flag.remove();
+                            return;
+                        }
+                    }
                 }
                 else
                 {
@@ -161,11 +179,21 @@ Abandon=function(flag)
                             })    
                         }
                     }
+                    Game.notify("Abandoning colony in room " + flag.pos.roomName);
+
                     console.log("Unclaiming room")
                     room.controller.unclaim();
-                    Memory.colonies.splice(i,1)
+                    Memory.colonies.splice(i,1);
                     flag.remove();
                 }
+            }
+            else
+            {
+                Game.notify("Abandoning colony in room " + flag.pos.roomName);
+
+                console.log("No vision on room with colony waiting to be abandoned, abandoning");
+                Memory.colonies.splice(i,1);
+                flag.remove();
             }
             break;
         }

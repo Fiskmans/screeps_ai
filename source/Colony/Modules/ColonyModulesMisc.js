@@ -148,3 +148,49 @@ module.exports.CompactifyLayout=function(colony)
         Colony.Helpers.ReduceSubLayouts(colony);
     }
 }
+
+module.exports.DumpExcess=function(colony)
+{
+    let dumping = (colony.dumping || []);
+    let colonyRoom = Game.rooms[colony.pos.roomName];
+    if(!colonyRoom || !colonyRoom.storage)
+    {
+        return;
+    }
+
+    if(dumping.length > 0 && colonyRoom.storage.store.getFreeCapacity() < 50000)
+    {
+        if(!colony.dumper)
+        {
+            colony.dumper = colony.haulerpool.shift();
+        }
+        if(colony.dumper)
+        {
+            let creep = Game.creeps[colony.dumper];
+            if(!creep) 
+            {
+                delete colony.dumper;
+            }
+            else
+            {
+                if(creep.HasWork())
+                {
+                    creep.DoWork();
+                }
+                else
+                {
+                    creep.do(CREEP_WITHDRAW,colonyRoom.storage,dumping[0]);
+                    creep.drop(Object.keys(creep.store)[0]);
+                }
+            }
+        }
+    }
+    else
+    {
+        if(colony.dumper)
+        {
+            colony.haulerpool.push(colony.dumper);
+            delete colony.dumper;
+        }
+    }
+}

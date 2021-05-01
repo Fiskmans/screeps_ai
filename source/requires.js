@@ -11,6 +11,7 @@ Performance = require('PerformanceRequires');
 Helpers     = require('HelpersRequires');
 QuickFind   = require('QuickFindRequires');
 Empire      = require('EmpireRequires');
+
 if(IS_SEASONAL)
 {
 Seasonal    = require('SeasonalRequires');

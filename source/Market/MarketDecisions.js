@@ -130,6 +130,7 @@ module.exports.Selling=function(colony)
     if(!room.terminal)  { return; }
 
     let selling = [];
+    let dumping = [];
     let resources = {};
     Helpers.Resources.FindAll(room,resources);
     for(let res of Object.keys(resources))
@@ -143,7 +144,14 @@ module.exports.Selling=function(colony)
 
         if(resources[res] > limits.dump)
         {
-            selling.push(res);
+            if(Market.Prices.ToSell(res,room.name) > 0)
+            {
+                selling.push(res);
+            }
+            else
+            {
+                dumping.push(res);
+            }
         }
         else if(resources[res] > limits.sell)
         {
@@ -160,4 +168,5 @@ module.exports.Selling=function(colony)
         }
     }
     colony.selling = selling;
+    colony.dumping = dumping;
 }

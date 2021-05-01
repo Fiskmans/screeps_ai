@@ -49,6 +49,10 @@ drawColony=function(colony)
         minx = Math.min(b.pos.x, minx);
         miny = Math.min(b.pos.y, miny);
     }
+    if (minx == 50)
+    {
+        return;
+    }
     pos = new RoomPosition(minx,miny,colony.pos.roomName);
     
     if(colony.subLayouts)
@@ -80,7 +84,7 @@ drawColony=function(colony)
                 }
                 let index = counts[obj.id] || 0;
                 counts[obj.id] = index + 1;
-                vis.text(action,obj.pos.x-0.15,obj.pos.y-0.2 + 0.25*index,{align:'right',font:0.2});
+                vis.text(action + req.prio,obj.pos.x-0.15,obj.pos.y-0.2 + 0.25*index,{align:'right',font:0.2});
                 vis.symbol(obj.pos.x+0.3,obj.pos.y-0.28 + 0.25*index, req.resource,{scale:0.3})
             }
         }

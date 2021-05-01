@@ -4,7 +4,7 @@ module.exports = function(grunt) {
 	let options = require('./Credentials.json');
 	let useToken = true;
 	let server = grunt.option('server') || "persistent";
-	console.log("pushing to " + server);
+	console.log("Pushing to " + server);
 	
 	if(server === "localhost")
 	{

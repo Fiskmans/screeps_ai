@@ -9,7 +9,7 @@ let C =
 
 module.exports.IsAlly = function(userName)
 {
-    return ["Eiskalt","Mirroar","reggaremuffin","Meridon","SirFrump","rysade"].includes(userName);
+    return ["Eiskalt","Mirroar","reggaremuffin","Meridon","SirFrump","rysade","likeafox","Geir1983"].includes(userName);
 }
 
 module.exports.CheckForSymbols=function()

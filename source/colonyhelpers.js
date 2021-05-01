@@ -150,7 +150,7 @@ ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,storageid,ofType)
         return false;
     }
 
-    let highestPrio = 0;;
+    let highestPrio = 0;
     let filtered = [];
     for(let req of colony.requests)
     {
@@ -169,7 +169,11 @@ ColonyFindUnfilledToRequest=function(colony,fakeStores,pos,storageid,ofType)
                         filtered = [];
                         highestPrio = req.prio;
                     }
-                    filtered.push(req);
+                    
+                    if(req.prio == highestPrio)
+                    {
+                        filtered.push(req);
+                    }
                 }
             }
         }
@@ -222,7 +226,11 @@ ColonyFindUnfilledFromRequest=function(colony,fakeStores,pos)
                     filtered = [];
                     highestPrio = req.prio;
                 }
-                filtered.push(req);
+                    
+                if(req.prio == highestPrio)
+                {
+                    filtered.push(req);
+                }
             }
         }
     }

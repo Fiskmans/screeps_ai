@@ -4,17 +4,69 @@ let C =
 {
     UNDER_ATTACK: 'attack',
     HAS_CORE: 'core',
-    SAFE: 'safe'
+    SAFE: 'safe',
+
+    SPAWN_PRIORITY_NORMAL:1,
+    SPAWN_PRIORITY_PANIC:2,
+
+    CLAIMER_COST:650
+}
+
+let TickData =
+{
+    spawnRequests:[],
+    spawnCapacity:0
+}
+
+let ResetTickData = function()
+{
+    TickData.spawnRequests = [];
+    TickData.spawnCapacity = 0;
+}
+
+let SpawnLocal=function(body,list,prio)
+{
+    if(Helpers.Creep.BodyCost(body) <= TickData.spawnCapacity)
+    {
+        TickData.spawnRequests.push({body:body,list:list,prio:prio});
+    }
+}
+
+let SpawnFromQueue=function(colony)
+{
+    let best = false;
+    let highestPrio = 0;
+    for(let e of TickData.spawnRequests)
+    {
+        if(e.prio > highestPrio)
+        {
+            highestPrio = e.prio;
+            best = e;
+        }
+    }
+
+    if(best)
+    {
+        console.log(JSON.stringify(best));
+        Colony.Helpers.SpawnCreep(colony,best.list,best.body);
+    }
 }
 
 module.exports.Main=function(colony)
 {
+    ResetTickData();
+    let room = Game.rooms[colony.pos.roomName];
+    if(room)
+    {
+        TickData.spawnCapacity = room.energyCapacityAvailable;
+    }
 
     this.Setup(colony);
 
     RemoveDoneRequests(colony);
     if(!this.InvaderDeterent(colony))
     {
+        this.PanicFilling(colony);
         this.Claim(colony);
         this.Reserve(colony);
         this.Mine(colony);
@@ -27,6 +79,8 @@ module.exports.Main=function(colony)
         this.Defend(colony);
         this.FulfillRequests(colony);
     }
+
+    SpawnFromQueue(colony);
 }
 
 module.exports.Setup=function(colony)
@@ -57,9 +111,178 @@ module.exports.Setup=function(colony)
             remoteState:{}
         }
     }
+    if(!colony.kickStart.panicFillers)
+    {
+        colony.kickStart.panicFillers = [];
+    }
     if(!colony.haulerpool)
     {
         colony.haulerpool = [];
+    }
+}
+
+module.exports.PanicFilling=function(colony)
+{
+    let needPanicFillers = true;
+    if(Helpers.Creep.List(colony.kickStart.miners).length > 0 &&
+    Helpers.Creep.List(colony.haulerpool).length > 0)
+    {
+        needPanicFillers = false;
+    }
+
+    if(Helpers.Creep.List(colony.kickStart.panicFillers).length > 1)
+    {
+        needPanicFillers = false;
+    }
+    let room = Game.rooms[colony.pos.roomName];
+    if(!room)
+    {
+        return;
+    }
+
+    let fill=function(creep)
+    {
+        let fillable = room.Structures(STRUCTURE_SPAWN).concat(room.Structures(STRUCTURE_EXTENSION))
+        fillable = _.filter(fillable,(f) => f.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
+
+        let closest = creep.pos.findClosestByRange(fillable);
+
+        switch(creep.transfer(closest,RESOURCE_ENERGY))
+        {
+            case OK:
+                return true;
+            case ERR_NOT_IN_RANGE:
+                creep.travelTo(closest);
+                break;
+        }
+
+        return false;
+    }
+
+    let harvest = function(creep)
+    {
+        let target = false;
+        let cs = [];
+        for(let c of room.Structures(STRUCTURE_CONTAINER))
+        {
+            if(c.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
+            {
+                cs.push(c);
+            }
+        }
+        target = creep.pos.findClosestByRange(cs);
+
+        if(!target)
+        {
+            let crs = [];
+            for(let miner of Helpers.Creep.List(colony.kickStart.miners))
+            {
+                if(!creep.spawning && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
+                {
+                    crs.push(miner)
+                }
+            }
+            target = creep.pos.findClosestByRange(crs);
+        }
+
+        if(!target)
+        {
+            let rs = [];
+            for(let r of room.find(FIND_DROPPED_RESOURCES))
+            {
+                if(r.resourceType == RESOURCE_ENERGY && r.pos.getRangeTo(creep.pos) * 2 < r.amount)
+                {
+                    rs.push(r);
+                }
+            }
+            target = creep.pos.findClosestByRange(rs);
+        }
+
+        if(!target)
+        {
+            let ss = room.find(FIND_SOURCES_ACTIVE);
+            target = creep.pos.findClosestByRange(ss);
+        }
+
+
+        let added = 0;
+        if(target instanceof Resource)
+        {
+            switch(creep.pickup(target))
+            {
+                case OK:
+                    added += target.amount;
+                    break;
+                case ERR_NOT_IN_RANGE:
+                    creep.travelTo(target);
+                    break;
+            }
+        }
+        if(added == 0)
+        {
+            for(let r of room.find(FIND_DROPPED_RESOURCES))
+            {
+                if(creep.pos.isNearTo(r.pos) && r.resourceType == RESOURCE_ENERGY)
+                {
+                    if(creep.pickup(r) == OK)
+                    {
+                        added += r.amount;
+                    }
+                }
+            }
+
+            if(target instanceof StructureContainer)
+            {
+                switch(creep.withdraw(target,RESOURCE_ENERGY))
+                {
+                    case OK:
+                        added += target.store.getUsedCapacity(RESOURCE_ENERGY);
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.travelTo(target);
+                        break;
+                }
+            }
+
+            if(target instanceof Source)
+            {
+                switch(creep.harvest(target))
+                {
+                    case OK:
+                        added += creep.getActiveBodyparts(WORK) * HARVEST_POWER;
+                        break;
+                    case ERR_NOT_IN_RANGE:
+                        creep.travelTo(target);
+                        break;
+                }
+            }
+        }
+
+        return added > creep.store.getFreeCapacity(RESOURCE_ENERGY);
+    }
+
+    for(let creep of Helpers.Creep.List(colony.kickStart.panicFillers))
+    {
+        if(creep.store.getFreeCapacity(RESOURCE_ENERGY) == 0)
+        {
+            if(fill(creep))
+            {
+                harvest(creep);
+            }
+        }
+        else
+        {
+            if(harvest(creep))
+            {
+                fill(creep);
+            }
+        }
+    }
+
+    if(needPanicFillers)
+    {
+        let body = [MOVE,CARRY,WORK];
+        SpawnLocal(body,colony.kickStart.panicFillers,C.SPAWN_PRIORITY_PANIC);
     }
 }
 
@@ -118,7 +341,11 @@ module.exports.Reserve=function(colony)
     if(needMoreClaimers)
     {
         let body = BODIES.LV3_CLAIMER;
-        Colony.Helpers.SpawnCreep(colony,list,body,ROLE_CLAIMER);
+        let room = Game.rooms[colony.pos.roomName];
+        if(room && room.energyCapacityAvailable >= C.CLAIMER_COST)
+        {
+            SpawnLocal(body,list,C.SPAWN_PRIORITY_NORMAL);
+        }
     }
 }
 
@@ -299,7 +526,7 @@ module.exports.EnqueueRemoteHaulingWork=function(colony,creep,fakeStores,source)
     else
     {
         creep.say(source.containerID);
-        if(source.containerId && fakeStores[source.containerId] && fakeStores[source.containerId].total < CONTAINER_CAPACITY)
+        if(source.containerId && fakeStores[source.containerId ]&& fakeStores[source.containerId].total < CONTAINER_CAPACITY)
         {
             let work = 
             {
@@ -542,7 +769,7 @@ module.exports.RemoteMining=function(colony)
         }
 
 
-        if(colony.kickStart.wantMoreWorkers || colony.haulerpool.length == 0)
+        if(colony.haulerpool.length == 0)
         {
             continue;
         }
@@ -552,7 +779,7 @@ module.exports.RemoteMining=function(colony)
             continue;
         }
 
-        if(hauled < generated)
+        if(hauled < generated && room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
         {
             let body = BODIES.LV2_HAULER;
             if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
@@ -563,9 +790,9 @@ module.exports.RemoteMining=function(colony)
             {
                 body = BODIES.LV4_HAULER;
             }
-            Colony.Helpers.SpawnCreep(colony,source.haulers,body,ROLE_HAULER);
+            SpawnLocal(body,source.haulers,C.SPAWN_PRIORITY_NORMAL);
         }
-        if(generated < sourceEnergy && source.miners.length < source.spots.length)
+        if(generated < sourceEnergy && source.miners.length < source.spots.length && room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
         {
             let body = BODIES.LV2_REMOTE_MINER;
             if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
@@ -576,7 +803,7 @@ module.exports.RemoteMining=function(colony)
             {
                 body = BODIES.LV4_REMOTE_MINER;
             }
-            Colony.Helpers.SpawnCreep(colony,source.miners,body,ROLE_WORKER);
+            SpawnLocal(body,source.miners,C.SPAWN_PRIORITY_NORMAL);
         }
     }
 
@@ -587,7 +814,7 @@ module.exports.RemoteMining=function(colony)
         {
             body = BODIES.LV4_REMOTE_DEFENDER;
         }
-        Colony.Helpers.SpawnCreep(colony,colony.kickStart.defenders,body,ROLE_DEFENDER);
+        SpawnLocal(body,colony.kickStart.defenders,C.SPAWN_PRIORITY_NORMAL);
     }
     if(wantsMoreDestroyers)
     {
@@ -596,7 +823,7 @@ module.exports.RemoteMining=function(colony)
         {
             body = BODIES.LV4_CORE_POPPER;
         }
-        Colony.Helpers.SpawnCreep(colony,colony.kickStart.destroyers,body,ROLE_DEFENDER);
+        SpawnLocal(body,colony.kickStart.destroyers,C.SPAWN_PRIORITY_NORMAL);
     }
 }
 
@@ -868,19 +1095,6 @@ module.exports.InvaderDeterent = function(colony)
 
     if(shutdown)
     {
-        console.log("shutting down")
-        for(let spawn of room.Structures(STRUCTURE_SPAWN))
-        {
-            if (spawn.spawning)
-            {
-                for(let c of room.find(FIND_MY_CREEPS))
-                {
-                    c.suicide();
-                }
-                return;
-            }
-        }
-        Colony.Helpers.SpawnCreep(colony, colony.kickStart.workers,[WORK,CARRY,MOVE],ROLE_WORKER,{allowShards:true});
     }
 }
 
@@ -990,14 +1204,14 @@ module.exports.Claim=function(colony)
         {
             if(!room.controller.owner)
             {
-                if(creep.do('claimController',room.controller) == OK)
+                if(creep.do(CCREEP_CLAIM_CONTROLLER,room.controller) == OK)
                 {
                     creep.signController(room.controller,"Colony started at: " + Game.time);
                 }
             }
             else
             {
-                creep.do('attackController',room.controller);
+                creep.do(CREEP_ATTACK_CONTROLLER,room.controller);
             }
         }
     }
@@ -1149,8 +1363,7 @@ module.exports.Mine=function(colony)
                 body = [MOVE,MOVE,MOVE,WORK,WORK,WORK,WORK,WORK,CARRY,CARRY,CARRY];
             }
         }
-
-        Colony.Helpers.SpawnCreep(colony,list,body,ROLE_WORKER);
+        SpawnLocal(body,list,C.SPAWN_PRIORITY_NORMAL);
     }
     else
     {
@@ -1528,11 +1741,6 @@ module.exports.Develop=function(colony)
             this.CreateSites(colony);
         }
     }
-
-    if(colony.kickStart.wantMoreWorkers)
-    {
-        colony.kickStart.wantMoreWorkers = false;
-    }
     
     deleteDead(list);
     let fakeStores = {};
@@ -1585,52 +1793,16 @@ module.exports.Develop=function(colony)
 
     if(throughput < Math.max(colony.kickStart.miningThoughput * 1.5,20))
     {
-        let found = false;
-        deleteDead(miners);
-        if(room.energyCapacityAvailable > room.energyAvailable)
+        let body = BODIES.LV1_WORKER;
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
         {
-            for(let i = miners.length - 1;i >= 0;i--)
-            {
-                let creepName = miners[i];
-                let creep = Game.creeps[creepName];
-                if(creep.store.getFreeCapacity(RESOURCE_ENERGY) == 0)
-                {
-                    list.push(creepName);
-                    miners.splice(i,1);
-                    
-                    if(creep.memory.miningIndex)
-                    {
-                        delete creep.memory.miningIndex;
-                    }
-                    found = true;
-                    break;
-                }
-            }
+            body = BODIES.LV2_WORKER;
         }
-        if(!found)
+        if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
         {
-            colony.kickStart.wantMoreWorkers = true;
-            let body = BODIES.LV1_WORKER;
-            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
-            {
-                body = BODIES.LV2_WORKER;
-            }
-            if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[3])
-            {
-                body = BODIES.LV3_WORKER;
-            }
-            Colony.Helpers.SpawnCreep(
-                colony,
-                list,
-                body,
-                ROLE_WORKER,
-                {
-                    allowShards:true,
-                    allowNearby:true,
-                    nearbyBody:BODY_GROUPS.WORKERS,
-                    extraList:colony.workersensus
-                });
+            body = BODIES.LV3_WORKER;
         }
+        SpawnLocal(body,list,C.SPAWN_PRIORITY_NORMAL);
     }
 }
 
@@ -1799,14 +1971,6 @@ module.exports.FulfillRequests=function(colony)
 
     if(haulingPower < 20 + 10 * Object.keys(colony.kickStart.remoteSites).length * 0.1)
     {
-        if(colony.kickStart.wantMoreWorkers)
-        {
-            if(colony.level < 3 || colony.haulerpool.length > 1)
-            {
-                return;
-            }
-        }
-
         let body = BODIES.LV1_HAULER;
         if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
         {
@@ -1820,10 +1984,6 @@ module.exports.FulfillRequests=function(colony)
         {
             body = BODIES.LV4_HAULER;
         }
-        Colony.Helpers.SpawnCreep(
-            colony,
-            colony.haulerpool,
-            body,
-            ROLE_HAULER);
+        SpawnLocal(body,colony.haulerpool,C.SPAWN_PRIORITY_NORMAL);
     }
 }

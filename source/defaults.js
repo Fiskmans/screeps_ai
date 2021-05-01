@@ -59,6 +59,4 @@ defaultMemory=function()
         if(!Memory.seasonal) {Memory.seasonal = {}}
         if(!Memory.seasonal.rooms) {Memory.seasonal.rooms = {}}
     }
-
-
 }
