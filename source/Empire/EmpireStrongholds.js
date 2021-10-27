@@ -32,7 +32,7 @@ module.exports.RegisterStrongHold=function(evidenceRoom)
         }
         entry = Memory.empire.quadrants[quadrant][sector];
     }
-    catch
+    catch (e)
     {
         Helpers.Externals.Notify(roomName + " failed roomName regex",true);
         return false

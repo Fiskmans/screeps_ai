@@ -123,7 +123,7 @@ module.exports.Run=function(tag,code,...args)
 
 module.exports.Draw=function(vis)
 {
-    vis.rect(43,-0.3,6.3,1.8+Object.keys(Performance.Decisions._conditions).length * 0.5,{stroke:"#FFFFFF",fill:"#00000",strokeWidth:0.02});
+    vis.rect(43,-0.3,6.3,1.8+ 0.5+Object.keys(Performance.Decisions._conditions).length * 0.5,{stroke:"#FFFFFF",fill:"#00000",strokeWidth:0.02});
     if(Memory.performancedecisions && Memory.performancedecisions.average)
     {
         let cpu = Memory.performancedecisions.average;
@@ -152,6 +152,11 @@ module.exports.Draw=function(vis)
 
         vis.text("Subsystems",43.1,1.3,{align:"left",font:0.5});
         y = 1.8;
+        vis.text("tag", 43.1,y,{align:"left",font:0.4});
+        vis.text("enabled", 46.5,y,{ font:0.4})
+        vis.text("threshold", 49.2, y, { align:"right", font:0.4,} );
+        y += 0.5;
+
         for(let tag in Performance.Decisions._conditions)
         {
             vis.text(tag,43.1,y,{align:"left",font:0.4});

@@ -401,6 +401,15 @@ let visuals =
                 }
             }
         }
+    },
+    cat:function()
+    {
+        let flag = Game.flags["cat"];
+        if(flag && flag.color != COLOR_RED)
+        {
+            let vis = new RoomVisual(flag.pos.roomName);
+            vis.DrawSvg(flag.pos.x,flag.pos.y,SVG.cat,{scale:1,alpha:1})
+        }
     }
 }
 
@@ -414,6 +423,7 @@ worldVisuals=function()
     visuals.damage();
     visuals.hud();
     visuals.QRCode();
+    visuals.cat();
     
     if(Game.flags["Start"] && Game.flags["End"])
     {

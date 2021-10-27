@@ -11,13 +11,34 @@ module.exports.SpawnCreep=function(colonyOrRoomName,list,body,role,options)
         });
 
     let roomName = false;
+    let colony = false;
     if(typeof(colonyOrRoomName) === 'string')
     {
         roomName = colonyOrRoomName;
+        for(let col of Memory.colonies)
+        {
+            if(col.pos.roomName == roomName)
+            {
+                colony = col;
+                break;
+            }
+        }
     }
     else
     {
+        colony = colonyOrRoomName;
         roomName = colonyOrRoomName.pos.roomName;
+    }
+
+    if(colony)
+    {
+        if(colony.needMoreHaulers)
+        {
+            if(role != ROLE_HAULER)
+            {
+                return ERR_BUSY;
+            }
+        }
     }
     
     let room = Game.rooms[roomName];

@@ -29,7 +29,7 @@ require("layouts")
 require('colony')
 require('colonylogics')
 require('colonyFunctions')
-require('colonyhelpers')
+require('colonyhelpers_old')
 
 require('roomvisuals')
 require('worldvisuals')

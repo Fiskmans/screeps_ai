@@ -27,6 +27,7 @@ module.exports.Sell=function(terminal,resource)
         terminal.cooldown = 11;
         console.log(("Sold ".padEnd(10)) + "<img src='https://static.screeps.com/upload/mineral-icons/" + resource + ".png'/>" + (amount + " ").padEnd(18) + " from " + terminal.room.name + (" for " + order.price + " credits/unit").padEnd(26) + " total <font color=\"green\">" + (amount * order.price) + "<font>");
         order.amount -= amount;
+        GrafanaSold(resource,amount,order.price);
     }
     else
     {

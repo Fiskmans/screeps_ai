@@ -2,39 +2,40 @@
 
 let C =
 {
-    TAG                     :"remote_mining",
+    TAG                         :"remote_mining",
 
-    MINING_TYPE_SOURCE      :"Source",
-    MINING_TYPE_SK          :"SK",
-    MINING_TYPE_MINERAL     :"Mineral",
+    MINING_TYPE_SOURCE          :"Source",
+    MINING_TYPE_SK              :"SK",
+    MINING_TYPE_MINERAL         :"Mineral",
 
-    BODIES:
-    {
-        ["Source"]          :BODIES.SOURCE_REMOTE_MINER,
-        ["SK"]              :BODIES.SK_REMOTE_MINER,
-        ["Mineral"]         :BODIES.MINERAL_REMOTE_MINER
-    },
+    BODIES: 
+    {   
+        ["Source"]              :BODIES.SOURCE_REMOTE_MINER,        
+        ["SK"]                  :BODIES.SK_REMOTE_MINER,
+        ["Mineral"]             :BODIES.MINERAL_REMOTE_MINER
+    },  
 
-    OUTPUT:
-    {
-        ["Source"]          :10,
-        ["SK"]              :14,
-        ["Mineral"]         :5
-    },
+    OUTPUT: 
+    {   
+        ["Source"]              :10,
+        ["SK"]                  :14,
+        ["Mineral"]             :5
+    },  
 
-    STATE_UNCHECKED         :"unchecked",
-    STATE_SETUP             :"setup",
-    STATE_MINE              :"Mine",
-    STATE_BUILD             :"Build",
-    STATE_WAIT_LV7          :"Wait_lv7",
-    STATE_PAUSED            :"Paused",
+    STATE_UNCHECKED             :"unchecked",
+    STATE_SETUP                 :"setup",
+    STATE_MINE                  :"Mine",
+    STATE_BUILD                 :"Build",
+    STATE_WAIT_LV7              :"Wait_lv7",
+    STATE_PAUSED                :"Paused",
 
-    MINER_SPAWN_GRACE_PERIOD:10,
-    REBUILD_INTERVAL        :1000,
+    MINER_SPAWN_GRACE_PERIOD    :10,
+    REBUILD_INTERVAL            :1000,
 
-    SK_CLEARER_HITS_TO_HEAL :2500,
-    SK_CLEARER_MAX_WAIT_TICKS:50
+    SK_CLEARER_HITS_TO_HEAL     :2500,
+    SK_CLEARER_MAX_WAIT_TICKS   :50,
 
+    CONTEST_TIMEOUT             :2000
 }
 
 
@@ -332,6 +333,35 @@ let HaulSource = function(colony,roomName,blob,s)
 
 }
 
+let ContestSource = function(colony,roomName,blob,s)
+{
+    let room = Game.rooms[roomName];
+    if(!room) { return; }
+
+    if(room.lookForAround(LOOK_CREEPS, s.pos, { range:4, filter:(t) => { return !t[LOOK_CREEPS].my }}).length > 0)
+    {
+        blob.lastContested = Game.time;
+    }
+    
+    blob.contested = !((blob.lastContested || 0) + C.CONTEST_TIMEOUT <= Game.time);
+    if(!blob.contested)
+    {
+        return;
+    }
+
+    for(let creep of room.find(FIND_MY_CREEPS))
+    {
+        if(creep.getActiveBodyparts(ATTACK) > 0)
+        {
+            for(let target of room.lookForAround(LOOK_CREEPS, s.pos, { range:1, filter:(t) => { return !t[LOOK_CREEPS].my }}))
+            {
+                creep.attack(target[LOOK_CREEPS]);
+                break;
+            }
+        }
+    }
+}
+
 let MineSource = function(colony,roomName,blob,s)
 {
     if(s.type == C.MINING_TYPE_MINERAL)
@@ -346,6 +376,8 @@ let MineSource = function(colony,roomName,blob,s)
             return;
         }
     }
+    
+    ContestSource(colony,roomName,blob,s);
 
     let needReplacementMiner = true;
     for(let creep of Helpers.Creep.List(s.miners))
@@ -392,11 +424,17 @@ let MineSource = function(colony,roomName,blob,s)
             creep.harvest(Game.getObjectById(s.id));
         }
     }
-    
 
     if(needReplacementMiner && (!blob.isSK || s.isDefended) && (!blob.hasInvader && !blob.hasCore))
     {
-        Colony.Helpers.SpawnCreep(colony,s.miners,C.BODIES[s.type], ROLE_MINER);
+        if(s.type == C.MINING_TYPE_SOURCE && !blob.isSK && blob.contested)
+        {
+            Colony.Helpers.SpawnCreep(colony,s.miners,BODIES.SOURCE_REMOTE_MINER_CONTESTED, ROLE_MINER);
+        }
+        else
+        {
+            Colony.Helpers.SpawnCreep(colony,s.miners,C.BODIES[s.type], ROLE_MINER);
+        }
     }
     HaulSource(colony,roomName,blob,s);
 }
@@ -436,17 +474,36 @@ let Reserve=function(colony,roomName,blob)
     if(needReserver && colonyRoom)
     {
         let body = BODIES.LV3_CLAIMER;
-        if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+        if(blob.contested)
         {
-            body = BODIES.LV4_CLAIMER;
+            body = BODIES.LV3_CLAIMER_CONTESTED;
+            if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+            {
+                body = BODIES.LV4_CLAIMER_CONTESTED;
+            }
+            if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
+            {
+                body = BODIES.LV6_CLAIMER_CONTESTED;
+            }
+            if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
+            {
+                body = BODIES.LV7_CLAIMER_CONTESTED;
+            }
         }
-        if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
+        else
         {
-            body = BODIES.LV6_CLAIMER;
-        }
-        if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
-        {
-            body = BODIES.LV7_CLAIMER;
+            if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])
+            {
+                body = BODIES.LV4_CLAIMER;
+            }
+            if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[6])
+            {
+                body = BODIES.LV6_CLAIMER;
+            }
+            if(colonyRoom.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[7])
+            {
+                body = BODIES.LV7_CLAIMER;
+            }
         }
         Colony.Helpers.SpawnCreep(colony,blob.claimers,body,ROLE_CLAIMER);
     }
@@ -915,6 +972,12 @@ let Mine = function(colony,roomName,blob)
     }
     Defend(colony,roomName,blob);
     Attack(colony,roomName,blob);
+    
+    if(blob.contested)
+    {
+        let vis = new RoomVisual(roomName);
+        vis.text("Contested",0.5,5,{color:"#FF8888",font:3,align:"left"});
+    }
 }
 
 let EnqueueBuildWork = function(room, creep, target)

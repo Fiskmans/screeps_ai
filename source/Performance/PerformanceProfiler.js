@@ -335,7 +335,7 @@ module.exports.Register=function(objectName,object,functionName)
                     this.Register(objectName, object,name);
                 }
             }
-            catch
+            catch (e)
             {
                 console.log("Performance.Profiler: Failed to register function: " + name);
             }

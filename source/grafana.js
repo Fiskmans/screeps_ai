@@ -1,5 +1,161 @@
+
+
+GrafanaDeadRoom=function(colony,roomName)
+{
+  let roomStat = {};
+  
+  Memory.stats["rooms"].dead[roomName] = roomStat;
+}
+
+GrafanaMaxRoom=function(colony,roomName,room)
+{
+  let roomStat = {};
+
+  roomStat['spawn.energy'] = room.energyAvailable
+  roomStat['spawn.energyTotal'] = room.energyCapacityAvailable
+  
+  if(room.storage){
+    let store = room.storage.store;
+    roomStat['storage.energy'] = store.getUsedCapacity(RESOURCE_ENERGY);
+    roomStat['storage.other'] = store.getUsedCapacity() - store.getUsedCapacity(RESOURCE_ENERGY);
+  }
+  {
+    let hits = 0;
+    let maxHits = 0;
+    room.find(FIND_MY_STRUCTURES,{filter:(s) => {return s.structureType == STRUCTURE_RAMPART}}).forEach(
+      (s) =>
+      {
+        hits += s.hits;
+      }
+    )
+
+    maxHits = colony.layout.length / 3 * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
+
+    roomStat['rampartshits'] = hits;
+    roomStat['rampartshitsmax'] = maxHits;
+  }
+  Memory.stats["rooms"].max[roomName] = roomStat;
+
+  for(let event of room.getEventLog())
+  {
+    if(event.event == EVENT_UPGRADE_CONTROLLER)
+    {
+      colony.gcl_contribution = (colony.gcl_contribution || 0) + event.data.amount;
+    }
+  }
+  roomStat["gcl_contribution"] = colony.gcl_contribution;
+}
+
+GrafanaGrowingRoom=function(colony,roomName,room)
+{
+  let roomStat = {};
+  roomStat['rcl.level'] = room.controller.level
+  roomStat['rcl.progress'] = room.controller.progress
+  roomStat['rcl.progressTotal'] = room.controller.progressTotal
+  
+  roomStat['spawn.energy'] = room.energyAvailable
+  roomStat['spawn.energyTotal'] = room.energyCapacityAvailable
+  
+  if(room.storage){
+    let store = room.storage.store;
+    roomStat['storage.energy'] = store.getUsedCapacity(RESOURCE_ENERGY);
+    roomStat['storage.other'] = store.getUsedCapacity() - store.getUsedCapacity(RESOURCE_ENERGY);
+  }
+  {
+    let hits = 0;
+    let maxHits = 0;
+    room.find(FIND_MY_STRUCTURES,{filter:(s) => {return s.structureType == STRUCTURE_RAMPART}}).forEach(
+      (s) =>
+      {
+        hits += s.hits;
+      }
+    )
+
+    maxHits = colony.layout.length / 3 * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
+
+    roomStat['rampartshits'] = hits;
+    roomStat['rampartshitsmax'] = maxHits;
+  }
+  Memory.stats["rooms"].growing[roomName] = roomStat;
+}
+
+GrafanaRoom=function(colony,roomName)
+{
+  let room = Game.rooms[roomName];
+
+  if(!room || !(room.controller && room.controller.my))
+  {
+    GrafanaDeadRoom(colony,roomName);
+    return;
+  }
+
+  if(room.storage){
+    let store = room.storage.store;
+    Object.keys(store).forEach((r) =>
+    {
+      let amount = store.getUsedCapacity(r)
+      if(amount > 0)  
+      {
+        if(!Memory.stats['store'][r]) {Memory.stats['store'][r] = 0};
+        Memory.stats['store'][r] += amount;
+      }
+    })
+  }
+  if(room.terminal){
+    let store = room.terminal.store;
+    Object.keys(store).forEach((r) =>
+    {
+      let amount = store.getUsedCapacity(r)
+      if(amount > 0)  
+      {
+        if(!Memory.stats['store'][r]) {Memory.stats['store'][r] = 0};
+        Memory.stats['store'][r] += amount;
+      }
+    })
+  }
+  if(room.factory){
+    let store = room.factory.store;
+    Object.keys(store).forEach((r) =>
+    {
+      let amount = store.getUsedCapacity(r)
+      if(amount > 0)  
+      {
+        if(!Memory.stats['store'][r]) {Memory.stats['store'][r] = 0};
+        Memory.stats['store'][r] += amount;
+      }
+    })
+  }
+
+  if(room.controller.level < 8)
+  {
+    GrafanaGrowingRoom(colony,roomName,room);
+    return;
+  }
+
+  GrafanaMaxRoom(colony,roomName,room);
+}
+
+GrafanaRooms=function()
+{
+  Memory.stats['rooms'] = {max:{},growing:{},dead:{}};
+  Memory.stats['store'] = {};
+
+  for(let colony of Object.values(Memory.colonies))
+  {
+    GrafanaRoom(colony,colony.pos.roomName);
+  };
+}
+
 UpdateGrafanaStats=function()
 {
+    Memory.stats["game.time"] = Game.time;
+    Memory.stats["game.recompiles"] = Memory.recompiles;
+    Memory.stats["game.resources"] = {};
+    for(let r in Game.resources)
+    {
+      Memory.stats["game.resources"][r] = Game.resources[r];
+    } 
+    Memory.stats["game.time"] = Game.time;
     Memory.stats["game.time"] = Game.time;
     Memory.stats['cpu.limit'] = Game.cpu.limit
     Memory.stats['cpu.bucket'] = Game.cpu.bucket
@@ -16,67 +172,23 @@ UpdateGrafanaStats=function()
     Memory.stats['gpl.level'] = Game.gpl.level;
     
     Memory.stats['colonies.count'] = Memory.colonies.length;
-    Memory.stats['scouting.targets'] = Object.keys(Memory.scouting).length;
     
     Memory.stats['creep.count'] = Object.keys(Game.creeps).length;
 
-    Memory.stats['store'] = {};
-    _.forEach(Memory.colonies, function(colony){
+    GrafanaRooms();
+    Memory.stats['cpu.getUsed'] = Game.cpu.getUsed();
+  }
 
-      let roomName = colony.pos.roomName;
-      let room = Game.rooms[roomName]
-      
-      if(!room)
-      {
-        return;
-      }
+  GrafanaSold=function(resource,amount,costPerUnit)
+  {
+    if(!Memory.stats) { Memory.stats = {}; }
+    if(!Memory.stats.market) { Memory.stats.market = {}; }
+    if(!Memory.stats.market.sold ) { Memory.stats.market.sold = {}; }
+    if(!Memory.stats.market.earned ) { Memory.stats.market.earned = {}; }
 
+    if(!Memory.stats.market.sold[resource]) { Memory.stats.market.sold[resource] = 0; }
+    if(!Memory.stats.market.earned[resource]) { Memory.stats.market.earned[resource] = 0; }
 
-      if(room.controller && room.controller.my)
-      {
-        Memory.stats['rooms.' + roomName + '.rcl.level'] = room.controller.level
-        Memory.stats['rooms.' + roomName + '.rcl.progress'] = room.controller.progress
-        Memory.stats['rooms.' + roomName + '.rcl.progressTotal'] = room.controller.progressTotal
-        
-        Memory.stats['rooms.' + roomName + '.spawn.energy'] = room.energyAvailable
-        Memory.stats['rooms.' + roomName + '.spawn.energyTotal'] = room.energyCapacityAvailable
-
-        let mineral = room.find(FIND_MINERALS)[0];
-        if (mineral) {
-          Memory.stats['rooms.' + roomName + '.mineral.type.' + mineral.mineralType] = 1;
-        }
-        
-        if(room.storage){
-          let store = room.storage.store;
-          Memory.stats['rooms.' + roomName + '.storage.energy'] = store.getUsedCapacity(RESOURCE_ENERGY);
-          Memory.stats['rooms.' + roomName + '.storage.other'] = store.getUsedCapacity() - store.getUsedCapacity(RESOURCE_ENERGY);
-          Object.keys(store).forEach((r) =>
-          {
-            let amount = store.getUsedCapacity(r)
-            if(amount > 0)  
-            {
-              if(!Memory.stats['store'][r]) {Memory.stats['store'][r] = 0};
-              Memory.stats['store'][r] += amount;
-            }
-          })
-        }
-        {
-          let hits = 0;
-          let maxHits = 0;
-          room.find(FIND_MY_STRUCTURES,{filter:(s) => {return s.structureType == STRUCTURE_RAMPART}}).forEach(
-            (s) =>
-            {
-              hits += s.hits;
-            }
-          )
-
-          maxHits = colony.layout.length / 3 * (RAMPARTS_HITS_TO_IGNORE[colony.level] || 1);
-
-          Memory.stats['rooms.' + roomName + '.rampartshits'] = hits;
-          Memory.stats['rooms.' + roomName + '.rampartshitsmax'] = maxHits;
-        }
-          
-      }
-    })
-    Memory.stats['cpu.getUsed'] = Game.cpu.getUsed()
+    Memory.stats.market.sold[resource] += amount;
+    Memory.stats.market.earned[resource] += amount * costPerUnit;
   }

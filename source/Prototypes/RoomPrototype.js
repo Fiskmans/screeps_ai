@@ -9,7 +9,84 @@ REFILLPRIORITY =
     [STRUCTURE_STORAGE]:450
 }
 
+Room.prototype.lookForAround=function(lookType,arg1,arg2,arg3)
+{
+    let pos;
+    let options;
+    if(arg1 instanceof Number)
+    {
+        pos = {x:arg1,y:arg2};
+        options = arg3;
+    }
+    else
+    {
+        options = arg2;
+        if(arg1 instanceof RoomObject)
+        {
+            pos = arg1.pos;
+        }
+        else
+        {
+            pos = arg1;
+        }
+    }
 
+    let area =
+    {
+        top:Math.max(pos.y - options.range,0),
+        left:Math.max(pos.x - options.range,0),
+        bottom:Math.min(pos.y + options.range,49),
+        right:Math.min(pos.x + options.range,49),
+    }
+    if(options.filter)
+    {
+        return _.filter(this.lookForAtArea(lookType,area.top,area.left,area.bottom,area.right,true),options.filter);
+    }
+    else
+    {
+        return this.lookForAtArea(lookType,area.top,area.left,area.bottom,area.right,true);
+    }
+}
+
+Room.prototype.lookAround=function(arg1,arg2,arg3)
+{
+    let pos;
+    let options;
+    if(arg1 instanceof Number)
+    {
+        pos = {x:arg1,y:arg2};
+        options = arg3;
+    }
+    else
+    {
+        options = arg2;
+        if(arg1 instanceof RoomObject)
+        {
+            pos = arg1.pos;
+        }
+        else
+        {
+            pos = arg1;
+        }
+    }
+
+    let area =
+    {
+        top:Math.max(pos.y - options.range,0),
+        left:Math.max(pos.x - options.range,0),
+        bottom:Math.min(pos.y + options.range,49),
+        right:Math.min(pos.x + options.range,49),
+    }
+
+    if(options.filter)
+    {
+        return _.filter(this.lookAtArea(area.top,area.left,area.bottom,area.right,true),options.filter);
+    }
+    else
+    {
+        return this.lookAtArea(area.top,area.left,area.bottom,area.right,true);
+    }
+}
 
 Room.prototype.refillable=function()
 {

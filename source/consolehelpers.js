@@ -11,7 +11,7 @@ ConsoleHelperUpdate=function()
         {
             eval(Memory.console.jobs[i].code)
         }
-        catch
+        catch (e)
         {
             Memory.console.jobs.splice(i,1);
             break;

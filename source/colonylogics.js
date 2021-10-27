@@ -17,6 +17,7 @@ colonyLogic=
         Colony.Modules.RemoteMining.Update(colony);
         Colony.Modules.Mining.Update(colony);
         Colony.Modules.Misc.DumpExcess(colony);
+        Colony.Modules.Looting.Update(colony);
     },
     //level 5
     5:function(colony)

@@ -146,7 +146,6 @@ let SpawnHaulers = function(colony)
             body = BODIES.LV3_HAULER;
         }
         
-
         if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT && parts != 0)
         {
             if(room.energyCapacityAvailable >= ENERGY_CAPACITY_AT_LEVEL[4])

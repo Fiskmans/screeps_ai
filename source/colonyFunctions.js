@@ -474,7 +474,7 @@ ColonyCollectPower=function(colony)
             exp.haulers.forEach((name) =>
             {
                 let creep = Game.creeps[name];
-                creep.wa
+                creep.notifyWhenAttacked(false);
                 carryCapacity += creep.store.getFreeCapacity();
                 if(target)
                 {
@@ -535,6 +535,7 @@ ColonyCollectPower=function(colony)
             exp.attackers.forEach((name) =>
             {
                 let creep = Game.creeps[name];
+                creep.notifyWhenAttacked(false);
                 if(attackindex > limit)
                 {
                     creep.Retire(colony.pos.roomName);
@@ -554,6 +555,7 @@ ColonyCollectPower=function(colony)
             exp.healers.forEach((name) =>
             {
                 let creep = Game.creeps[name];
+                creep.notifyWhenAttacked(false);
                 if(count < limit && exp.attackers.length <= count)
                 {
                     creep.Retire(colony.pos.roomName);

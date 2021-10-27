@@ -70,6 +70,7 @@ module.exports.loop = function()
     Performance.Decisions.UpdateAverage();
 }
 
+Memory.recompiles = (Memory.recompiles || 0) + 1;
 
 Performance.Profiler.Register("main",module.exports);
 require('PerformanceProfilerRegistry')

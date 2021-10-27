@@ -15,7 +15,7 @@ module.exports.Get = function()
                 _memory = {};
             }
         }
-        catch
+        catch (e)
         {
             _memory = {};
         }
@@ -31,7 +31,7 @@ module.exports.Commit = function()
         {
             InterShardMemory.setLocal(JSON.stringify(_memory));
         }
-        catch
+        catch (e)
         {
             Game.notify("Intershard Memory commit error (likely stack overflow)");
             console.log("Intershard Memory commit error (likely stack overflow)");
@@ -51,7 +51,7 @@ module.exports.GetRemote = function(shardName)
     {
         return JSON.parse(mem);
     }
-    catch
+    catch (e)
     {
         return {}
     }

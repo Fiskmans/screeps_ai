@@ -153,7 +153,7 @@ module.exports.PFCostMatrixRoadCallback=function(roomName)
             return false;
         }
     }
-    catch
+    catch (e)
     {
         Helpers.Externals.Notify(roomName + " failed roomName regex",true);
         return false

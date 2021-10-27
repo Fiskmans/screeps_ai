@@ -439,7 +439,7 @@ PosFromRoomName=function(roomName)
             ns === 'S' ? -lat - 1 : +lat
         ];
     }
-    catch
+    catch (e)
     {
         console.log(roomName + " failed the regex");
         return[0,0]
@@ -929,18 +929,26 @@ Power_Matilda=function(matilda)
     }
     if(matilda.store.getFreeCapacity(RESOURCE_OPS) < 50)
     {
-        let targetRoom = Game.rooms[Memory.colonies[0].pos.roomName];
-        if(targetRoom && targetRoom.controller && targetRoom.controller.my)
+        let closest = FindClosestColony(matilda.pos.roomName,true);
+        if(closest)
         {
-            let storage = targetRoom.storage;
-            if(storage)
+            let targetRoom = Game.rooms[closest.pos.roomName];
+            if(targetRoom && targetRoom.controller && targetRoom.controller.my)
             {
-                let res = matilda.transfer(storage,ExtractContentOfStore(matilda.store)[0]);
-                if(res == ERR_NOT_IN_RANGE)
+                let storage = targetRoom.storage;
+                if(storage)
                 {
-                    matilda.travelTo(storage);
+                    let res = matilda.transfer(storage,ExtractContentOfStore(matilda.store)[0]);
+                    if(res == ERR_NOT_IN_RANGE)
+                    {
+                        matilda.travelTo(storage);
+                    }
                 }
             }
+        }
+        else
+        {
+            Game.notify("Matidla is lost");
         }
     }
     else
@@ -1029,13 +1037,10 @@ PowerCreeps=function()
     {
         if(!matilda.shard && Game.flags["Matilda_Idle"])
         {
-            if(Memory.mainColony)
+            let room = Game.rooms[Game.flags["Matilda_Idle"].pos.roomName];
+            if(room && room.powerSpawn)
             {
-                let room = Game.rooms[Memory.mainColony];
-                if(room && room.powerSpawn)
-                {
-                    matilda.spawn(room.powerSpawn);
-                }
+                matilda.spawn(room.powerSpawn);
             }
         }
         if (matilda.shard == Game.shard.name) // dont execute if on another shard ;)
