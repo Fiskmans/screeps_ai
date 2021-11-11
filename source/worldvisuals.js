@@ -368,7 +368,8 @@ let visuals =
             return;
         }
         Performance.Decisions.Draw(vis);
-        Empire.Expansion.Draw(Memory.lastViewed.room)
+        Empire.Expansion.Draw(Memory.lastViewed.room);
+
     },
     QRCode:function()
     {

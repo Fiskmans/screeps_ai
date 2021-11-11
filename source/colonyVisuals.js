@@ -1,19 +1,13 @@
 
 drawColony=function(colony)
 {
-    if (!(Helpers.Externals.IsRoomVisible(colony.pos.roomName) && Game.cpu.bucket > 500)) 
-    {
-        return;
-    }
+    if (!(Helpers.Externals.IsRoomVisible(colony.pos.roomName) && Game.cpu.bucket > 500)) { return; }
     let room = Game.rooms[colony.pos.roomName];
-    if(!room)
-    {
-        return;
-    }
+    if(!room) { return; }
+
     let vis = new RoomVisual(colony.pos.roomName)
 
     let pos = colony.pos;
-    let center = new RoomPosition(colony.pos.x,colony.pos.y,colony.pos.roomName);
 
     let controllerPercent = room.controller.progress/room.controller.progressTotal;
     vis.text(
@@ -118,13 +112,11 @@ drawColony=function(colony)
         vis.text("Nr." + index,49,49,{font:2,align:"right"});
     }
     
-    if(colony.haulerpool)
+    for(let creep of Helpers.Creep.List(colony.haulerpool))
     {
-        for(let cname of colony.haulerpool)
-        {
-            Game.creeps[cname].DrawWork(vis,{baseRoom:colony.pos.roomName});
-        }
+        creep.DrawWork(vis,{baseRoom:colony.pos.roomName});
     }
+    
     for(let list of Object.values(colony.workerRoster))
     {
         for(let creep of Helpers.Creep.List(list))
@@ -144,6 +136,8 @@ drawColony=function(colony)
         }
     }
     
+    Colony.Modules.Spawning.Visuals(colony,room,vis,pos.x + 16.5, pos.y + 2);
+
     if (room.storage) 
     {
         vis.stock(pos.x + 12,pos.y+2,room.storage,{scale:0.7,name:"Storage",showPrice:true})

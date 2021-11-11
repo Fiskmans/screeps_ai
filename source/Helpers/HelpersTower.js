@@ -2,7 +2,6 @@
 
 let C =
 {
-
     BASE_EFFECT:
     {
         [TOWER_ACTION_ATTACK]:TOWER_POWER_ATTACK,
@@ -14,5 +13,11 @@ let C =
 
 module.exports.Effectivness=function(distance,actionType)
 {
-    return Math.round(lerp(C.BASE_EFFECT[actionType],C.BASE_EFFECT[actionType]*(1-TOWER_FALLOFF), (distance - TOWER_OPTIMAL_RANGE)/(TOWER_FALLOFF_RANGE-TOWER_OPTIMAL_RANGE)).clamp(0,1))
+    return Math.round(
+        lerp(
+            C.BASE_EFFECT[actionType],
+            C.BASE_EFFECT[actionType] * (1-TOWER_FALLOFF), 
+            (distance - TOWER_OPTIMAL_RANGE)/(TOWER_FALLOFF_RANGE-TOWER_OPTIMAL_RANGE).clamp(0,1)
+            )
+        )
 }

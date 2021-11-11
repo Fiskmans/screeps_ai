@@ -35,10 +35,7 @@ module.exports.Setup=function(colony)
     {
         colony.upgradePos = FindUpgradePosition(colony);
     }
-    if(!colony.workersensus)
-    {
-        colony.workersensus = [];
-    }
+    
     if(!colony.kickStart)
     {
         colony.kickStart = 
@@ -56,10 +53,6 @@ module.exports.Setup=function(colony)
             remoteSites:{},
             remoteState:{}
         }
-    }
-    if(!colony.haulerpool)
-    {
-        colony.haulerpool = [];
     }
 }
 
@@ -1765,8 +1758,6 @@ module.exports.FulfillRequests=function(colony)
     {
         return;
     }
-    
-    deleteDead(colony.haulerpool);
 
     let storageId = false;
     for(let c of room.lookForAt(LOOK_STRUCTURES,colony.pos.x,colony.pos.y+1))

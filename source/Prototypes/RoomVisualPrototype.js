@@ -1014,7 +1014,7 @@ RoomVisual.prototype.symbol=function(x,y,symbol,opt = {})
                     c = "#b99cee";
                     break;
             }
-            this.circle(x,y,{radius:0.15*opt.scale,fill:c})
+            this.circle(x,y,{radius:0.15*opt.scale,fill:c,opacity:1,stroke:"#FFFFFF", strokeWidth: 0.025*opt.scale})
             break;
         
             

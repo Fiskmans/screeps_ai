@@ -18,10 +18,6 @@ module.exports.DispatchAll=function()
 module.exports.Dispatch=function(colony)
 {
     deleteDead(colony.workerpool)
-    if (colony.haulerpool) 
-    {
-        deleteDead(colony.haulerpool)
-    }
 
 
     let room = Game.rooms[colony.pos.roomName]

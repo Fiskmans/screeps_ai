@@ -503,7 +503,7 @@ DefendColony=function(colony)
                 break;
             }
             t.attack(c);
-            c.hits -= Helpers.Tower.Effectivness((c.pos.getRangeTo(t.pos),TOWER_ACTION_HEAL));
+            c.hits -= Helpers.Tower.Effectivness(c.pos.getRangeTo(t.pos), TOWER_ACTION_ATTACK);
         }
     }
     else
@@ -519,7 +519,7 @@ DefendColony=function(colony)
                         break;
                     }
                     t.heal(c);
-                    c.hits += Helpers.Tower.Effectivness((c.pos.getRangeTo(t.pos),TOWER_ACTION_HEAL));
+                    c.hits += Helpers.Tower.Effectivness(c.pos.getRangeTo(t.pos), TOWER_ACTION_HEAL);
                 }
                 break;
             }
@@ -679,7 +679,7 @@ deleteDead=function(list)
 {
     for(var i = 0;i < list.length; i++)
     {
-        if (!Game.creeps[list[i]]) 
+        if (!Game.creeps[list[i]] && !Colony.Modules.Spawning.IsQueued(list[i])) 
         {
             list.splice(i,1);
         }

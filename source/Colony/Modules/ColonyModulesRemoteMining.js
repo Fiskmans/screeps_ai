@@ -619,50 +619,39 @@ let Attack = function(colony,roomName,blob)
 let Defend = function(colony,roomName,blob)
 {
     if(!blob.defenders) { blob.defenders = []}
-    let needPopper = false;
-    if(blob.hasCore)
-    {
-        needPopper = true;
-    }
+
     let room = Game.rooms[roomName];
+    let listData = { threshold: 50, validCreeps: 0} 
     if(room)
     {
         let target = _.find(room.find(FIND_HOSTILE_STRUCTURES),(s) => { return !ENEMY_STRUCTURES_WITH_LOOT.includes(s.structureType); })
         if(target)
         {
-            for(let creep of Helpers.Creep.List(blob.defenders))
+            for(let creep of Helpers.Creep.List(blob.defenders, listData))
             {
-                needPopper = false;
                 creep.do(CREEP_ATTACK,target);
             }
         }
         else
         {
-            for(let creep of Helpers.Creep.List(blob.defenders))
+            for(let creep of Helpers.Creep.List(blob.defenders, listData))
             {
-                needPopper = false;
                 creep.Retire(colony.pos.roomName);
             }
         }
     }
     else
     {
-        for(let creep of Helpers.Creep.List(blob.defenders))
+        for(let creep of Helpers.Creep.List(blob.defenders, listData))
         {
-            needPopper = false;
             creep.GoToRoom(roomName);
         }
     }
 
 
-    if(needPopper)
+    if(blob.hasCore && listData.validCreeps == 0)
     {
-        let colonyRoom = Game.rooms[colony.pos.roomName];
-        if(colonyRoom)
-        {
-            let body = BODIES.LV3_REMOTE_DEFENDER;
-            Colony.Helpers.SpawnCreep(colony,blob.defenders,body,ROLE_ATTACKER);
-        }
+        Colony.Modules.Spawning.QueueSpawn(colony, BODIES.LV3_REMOTE_DEFENDER, ROLE_ATTACKER, blob.defenders, SPAWN_PRIORITY_URGENT);
     }
 }
 
@@ -743,24 +732,14 @@ let SKDefend=function(colony,roomName,blob)
     }
 
 
-    let needNewClearer = true;
-    for(let creep of Helpers.Creep.List(blob.skClearers))
+    let listData = {threshold: 250, validCreeps: 0}
+    for(let creep of Helpers.Creep.List(blob.skClearers, listData))
     {
-        if(creep.ticksToLive > 150 + 100)
-        {
-            needNewClearer = false;
-        }
-        if(creep.spawning)
-        {
-            needNewClearer = false;
-            continue;
-        }
         if(!room)
         {
             creep.GoToRoom(roomName);
             continue;
         }
-
 
         if(!creep.memory.target)
         {
@@ -897,9 +876,9 @@ let SKDefend=function(colony,roomName,blob)
         }
     }
 
-    if(needNewClearer)
+    if(listData.validCreeps == 0)
     {
-        Colony.Helpers.SpawnCreep(colony,blob.skClearers,BODIES.SK_CLEARER,ROLE_ATTACKER);
+        Colony.Modules.Spawning.QueueSpawn(colony, BODIES.SK_CLEARER, ROLE_ATTACKER, blob.skClearers, SPAWN_PRIORITY_URGENT);
     }
 }
 

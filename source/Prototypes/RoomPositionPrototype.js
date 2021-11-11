@@ -9,7 +9,22 @@ RoomPosition.prototype.offset=function(x,y)
 
     return new RoomPosition(rx,ry,this.roomName);
 }
+
 RoomPosition.prototype.offsetDirection=function(dir)
 {
     return this.offset(DIRECTION_OFFSET[dir][0],DIRECTION_OFFSET[dir][1]);
+}
+
+RoomPosition.prototype.Around=function()
+{
+    let out = [];
+    for(let dir of ALL_DIRECTIONS)
+    {
+        let pos = this.offsetDirection(dir);
+        if(pos)
+        {
+            out.push(pos)
+        }
+    }
+    return out;
 }

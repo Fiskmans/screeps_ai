@@ -47,7 +47,6 @@ Performance.Profiler.Register("Market.Prices"               , require('MarketPri
 Performance.Profiler.Register("Colony.Dispatcher"           , require('ColonyDispatcher'));
 Performance.Profiler.Register("Colony.Helpers"              , require('ColonyHelpers'));
 Performance.Profiler.Register("Colony.KickStart"            , require('ColonyKickStart'));
-Performance.Profiler.Register("Colony.Modules"              , require('ColonyModules'));
 Performance.Profiler.Register("Colony.Modules.Mining"       , require('ColonyModulesMining'));
 Performance.Profiler.Register("Colony.Modules.RemoteMining" , require('ColonyModulesRemoteMining'));
 Performance.Profiler.Register("Colony.Planner"              , require('ColonyPlanner'));

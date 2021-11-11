@@ -258,13 +258,12 @@ ColonyFindUnfilledFromRequest=function(colony,fakeStores,pos)
     return closest;
 }
 
-MakeFakeStores=function(colony,outObj)
+MakeFakeStores=function(colony,creepList,outObj)
 {
     let room = Game.rooms[colony.pos.roomName];
 
-    for(let creepName of colony.haulerpool)
+    for(let creep of creepList)
     {
-        let creep = Game.creeps[creepName];
         outObj[creep.id] = new FakeStore(creep.store);
     }
     for(let req of colony.requests)

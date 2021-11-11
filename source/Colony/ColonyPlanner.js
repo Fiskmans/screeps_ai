@@ -857,3 +857,25 @@ module.exports.Reset=function(colony)
     colony.planner = {};
 
 }
+
+module.exports.IsTileFree = function(colony,pos)
+{
+    let buildings = DeserializeLayout(colony.layout,colony.pos.roomName);
+
+    if(colony.subLayouts)
+    {
+        for(let layout of Object.values(colony.subLayouts))
+        {
+            buildings = buildings.concat(DeserializeLayout(layout,colony.pos.roomName));
+        }
+    }
+    for(let building of buildings)
+    {
+        if(building.pos.x == pos.x && building.pos.y == pos.y)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}

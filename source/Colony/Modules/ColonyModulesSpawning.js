@@ -5,6 +5,12 @@ C =
     ACCEPTABLE_LIFE_LEFT:100
 }
 
+let G =
+{
+    SpawnQueue: {},
+    QueuedCreeps: {}
+}
+
 let SpawnWorkers = function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
@@ -21,11 +27,15 @@ let SpawnWorkers = function(colony)
     
     let target = Math.ceil((_.sum(colony.income) - _.sum(colony.expenses)) / WORKER_PARTS_AT_LEVEL[colony.level]);
     
+    if(colony.dediUpgrade)
+    {
+        target = 1;
+    }
+
     if(room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_EXTRA_WORKER_THRESHOLD && !colony.needMoreHaulers)
     {
         target++;
     }
-    
     
     colony.targetWorkers = target;
     if(room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > COLONY_WORKER_FREE_FOR_ALL_ENERGY_THRESHOLD && !colony.needMoreHaulers)
@@ -111,15 +121,18 @@ let SpawnWorkers = function(colony)
 let SpawnHaulers = function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
-    if(!colony.haulerpool) { colony.haulerpool = []};
-    if(!colony.haulersensus) { colony.haulersensus = []};
     let parts = 0;
-    for(let creep of Helpers.Creep.List(colony.haulersensus))
+    let listData = {threshold: 0, validCreeps: 0}; 
+    for(let creep of Helpers.Creep.List(colony.haulerpool,listData))
     {
         if(creep.ticksToLive > C.ACCEPTABLE_LIFE_LEFT)
         {
             parts += creep.getActiveBodyparts(CARRY);
         }
+    }
+    if(listData.hasSpawning)
+    {
+        return;
     }
     
     let toTransfer = _.sum(colony.income) + _.sum(colony.expenses); // + tranfer for extra stuff
@@ -135,6 +148,7 @@ let SpawnHaulers = function(colony)
     if (parts < target && (room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > SPAWNING_ENERGY_PANIC_AMOUNT || parts == 0))
     {
         let body = BODIES.LV1_HAULER;
+        let prio = SPAWN_PRIORITY_GENERIC;
 
         if(room.energyAvailable >= ENERGY_CAPACITY_AT_LEVEL[2])
         {
@@ -185,15 +199,22 @@ let SpawnHaulers = function(colony)
             }
         }
 
-        Colony.Helpers.SpawnCreep(
-            colony,
-            colony.haulerpool,
-            body,
-            ROLE_HAULER,
-            {
-                extraList:colony.haulersensus,
-                nearbyBody:BODY_GROUPS.HAULERS
-            })
+        if(listData.highestPrio == SPAWN_PRIORITY_VITAL && listData.hasQueued)
+        {
+            return;
+        }
+
+        if(!(listData.highestPrio == SPAWN_PRIORITY_VITAL) && listData.validCreeps == 0)
+        {
+            prio = SPAWN_PRIORITY_VITAL;
+            body = BODIES.LV1_HAULER;
+            console.log("here");
+        }
+        else if (listData.hasQueued)
+        {
+            return;
+        }
+        Colony.Modules.Spawning.QueueSpawn(colony, body, ROLE_HAULER, colony.haulerpool, prio);
     }
 }
 
@@ -201,4 +222,170 @@ module.exports.Update=function(colony)
 {
     SpawnHaulers(colony);
     SpawnWorkers(colony);
+}
+
+
+let lower_bound = function(array, value) 
+{
+    var low = 0,
+        high = array.length;
+
+    while (low < high) {
+        var mid = (low + high) >>> 1;
+        if (array[mid].prio > value.prio) low = mid + 1;
+        else high = mid;
+    }
+    return low;
+}
+
+module.exports.AddDummySpawningCreeps=function()
+{
+    G.queuedCreeps = {};
+    for(let queue of Object.values(G.SpawnQueue))
+    {
+        for(let c of queue)
+        {
+            G.queuedCreeps[c.name] = c.prio + 1;
+        }
+    }
+}
+
+module.exports.QueueSpawn = function(colony, body, role, list, priority = 0)
+{
+    let roomName = colony.pos.roomName;
+    if(!G.SpawnQueue[roomName]) { G.SpawnQueue[roomName] = []; }
+
+    let queue = G.SpawnQueue[roomName];
+    
+    let toAdd = {
+        body:body,
+        name:(SHARD_CREEP_NAME_PREFIXES[Game.shard.name] || '?') + (ROLE_PREFIXES[role] || '?') + Memory.creepid,
+        prio: priority
+    };
+    Memory.creepid++;
+    let index = lower_bound(queue,toAdd);
+    queue.splice(index, 0, toAdd);
+
+    G.queuedCreeps[toAdd.name] = toAdd.prio + 1;
+    list.push(toAdd.name);
+}
+
+module.exports.ProcessSpawnQueue = function(colony)
+{
+    let roomName = colony.pos.roomName;
+    if(!G.SpawnQueue[roomName]) { G.SpawnQueue[roomName] = []; }
+
+    let queue = G.SpawnQueue[roomName];
+    if (queue.length == 0) { return; }
+    
+    let room = Game.rooms[roomName];
+    if(!room) { return; }
+
+    for(let spawn of room.spawns)
+    {
+        if(spawn.spawning) { continue; }
+
+        let toSpawn = queue[0];
+
+        let code = spawn.spawnCreep(toSpawn.body,toSpawn.name);
+
+        if(code != OK) { return; }
+
+        queue.shift();
+
+        return;
+    } 
+}
+
+let visualizeCompactBody=function(vis, x, y, body, predicate)
+{
+    let bodyCount = _.countBy(body, predicate);
+    let bodyx = x;
+    for(let part in bodyCount)
+    {
+        vis.symbol(bodyx, y- 0.1, part, { scale: 0.7});
+        if(bodyCount[part] > 1)
+        {
+            vis.text("x" + bodyCount[part],bodyx+0.14,y,{font:0.2, align:"left"});
+            bodyx += 0.24 + ("x" + bodyCount[part]).length * 0.14;
+        }
+        else
+        {
+            bodyx += 0.24;
+        }
+    }
+}
+
+module.exports.Visuals=function(colony, room, vis, x, y)
+{
+    vis.rect(
+        x-0.45,
+        y-0.45,
+        4.4,
+        6,
+        {
+            fill:"#C4C4C4",
+            stroke:"#000000"
+        });
+
+    let ox = x;
+    let oy = y;
+    vis.text("Spawning", x-0.3, y+ 0.15, {font: 0.7, align: "left"})
+    y += 0.8;
+    x -= 0.3;
+    for(let spawn of room.spawns)
+    {
+        vis.text(spawn.name + ":", x + 1.5,y, { font:0.3, align: "right"});
+        if(spawn.spawning)
+        {
+            visualizeCompactBody(vis, x + 1.65, y, Game.creeps[spawn.spawning.name].body, 'type');
+
+            let progress = ((spawn.spawning.needTime - spawn.spawning.remainingTime) / spawn.spawning.needTime)
+            if(progress < 1)
+            {
+                vis.rect(x, y+0.1, progress * 4, 0.2, {fill: "#FFFF00", opacity: 0.5, opacity: 1});
+                vis.rect(x,y+0.1,4,0.2,{stroke:"#ffffff",fill: "#00000000", strokeWidth: 0.02, opacity: 1})
+            }
+            else
+            {
+                vis.rect(x,y+0.1,4,0.2,{stroke:"#ffffff",fill: "#FF0000", strokeWidth: 0.02, opacity: 1})
+            }
+        }
+        else
+        {
+            vis.text("Idle", x + 1.6,y, { font:0.3, align: "left"});
+            vis.rect(x,y+0.1,4,0.2,{stroke:"#ffffff",fill: "#00FF00", strokeWidth: 0.02, opacity: 1})
+        }
+        y += 0.6;
+    }
+
+    vis.line(x-0.1,y-0.2,x+4.2,y-0.2, {width: 0.02,opcaity:1});
+
+    let queue = G.SpawnQueue[colony.pos.roomName];
+    if(!queue) { return; }
+    vis.text("Queue", x-0.07, y+0.15, { align:"left", font:0.3 });
+    y += 0.5;
+    let prio = 100;
+    for(let queued of queue)
+    {
+        if(queued.prio < prio)
+        {
+            vis.text("Prio: " + queued.prio, x, y, { align:"left", font:0.3 });
+            prio = queued.prio;
+            y += 0.3;
+        }
+        vis.text(Helpers.Resources.BodyCost(queued.body) + ": ",x+1.3,y - 0.1,{font:0.2, align:"right"});
+        visualizeCompactBody(vis, x + 1.5, y- 0.1, queued.body);
+        y += 0.3;
+    }
+}
+
+module.exports.IsQueued = function(name, options)
+{
+    if(options && G.queuedCreeps[name])
+    {
+        options.highestPrio = Math.max((options.highestPrio || 0), G.queuedCreeps[name] - 1)
+        return true;
+    }
+    return G.queuedCreeps[name];
 }

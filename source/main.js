@@ -12,6 +12,8 @@ module.exports.loop = function()
     {
         room.PopulateShorthands();
     }
+    Colony.Modules.Spawning.AddDummySpawningCreeps();
+
     Empire.Expansion.StartInitialColony();
     
     Colony.Dispatcher.DispatchAll();

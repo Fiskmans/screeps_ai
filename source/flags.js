@@ -169,10 +169,7 @@ Abandon=function(flag)
                                         }
                                         else
                                         {
-                                            if(closest.haulerpool)
-                                            {
-                                                closest.haulerpool.push(c.name);
-                                            }
+                                            closest.haulerpool.push(c.name);
                                         }
                                     }
                                 }

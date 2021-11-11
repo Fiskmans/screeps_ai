@@ -18,6 +18,7 @@ colonyLogic=
         Colony.Modules.Mining.Update(colony);
         Colony.Modules.Misc.DumpExcess(colony);
         Colony.Modules.Looting.Update(colony);
+        Colony.Modules.Spawning.ProcessSpawnQueue(colony);
     },
     //level 5
     5:function(colony)
@@ -51,8 +52,7 @@ colonyLogic=
     8:function(colony)
     {
         this[7](colony)
-        ColonyLookForPower(colony);
-        ColonyCollectPower(colony);
         ColonyProcessPower(colony);
+        Colony.Modules.DedicatedUpgrading.Run(colony);
     }
 }
