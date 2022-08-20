@@ -54,6 +54,12 @@ defaultMemory=function()
         };
     }
 
+    if(!Memory.battles) { Memory.battles = {}; }
+    if(!Memory.storage) { Memory.storage = {}; }
+    if(!Memory.storage.reservations) { Memory.storage.reservations = {}; }
+    if(!Memory.storage.reservationId) { Memory.storage.reservationId = 0; }
+
+
     if(IS_SEASONAL)
     {
         if(!Memory.seasonal) {Memory.seasonal = {}}

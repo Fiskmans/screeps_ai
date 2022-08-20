@@ -13,10 +13,12 @@ module.exports.loop = function()
         room.PopulateShorthands();
     }
     Colony.Modules.Spawning.AddDummySpawningCreeps();
+    Storage.Reservations.SetUpTick();
 
     Empire.Expansion.StartInitialColony();
     
     Colony.Dispatcher.DispatchAll();
+    Combat.Battle.RunAll();
     PowerCreeps();
     
     worldVisuals();
@@ -58,7 +60,7 @@ module.exports.loop = function()
     
     UpdateGrafanaStats();
     
-    if(IS_PERSISTENT && Game.cpu.bucket > 9900 && Game.shard.name == "shard2")
+    if(IS_PERSISTENT && Game.cpu.bucket > 9900)
     {
         Game.cpu.generatePixel();
     }

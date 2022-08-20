@@ -11,6 +11,7 @@ Performance = require('PerformanceRequires');
 Helpers     = require('HelpersRequires');
 QuickFind   = require('QuickFindRequires');
 Empire      = require('EmpireRequires');
+Storage     = require('StorageRequires');
 
 if(IS_SEASONAL)
 {

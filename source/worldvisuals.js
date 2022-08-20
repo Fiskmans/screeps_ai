@@ -425,6 +425,8 @@ worldVisuals=function()
     visuals.hud();
     visuals.QRCode();
     visuals.cat();
+
+    Combat.Battle.DoUI();
     
     if(Game.flags["Start"] && Game.flags["End"])
     {

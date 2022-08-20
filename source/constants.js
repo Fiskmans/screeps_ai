@@ -669,14 +669,6 @@ RESOURCE_TYPES={
     [RESOURCE_LIQUID]:                          RESOURCE_TYPE_COMMODITY,
 }
 
-ENEMIES = [
-    "SteeleR",
-    "Jaemon", // self dying, sweet revenge >:)
-    "Viperl", // white peace? he didn't notice my attack and i dont what to fight
-    "CrossXBones" // nuke as soon as in range
-    ]
-FRENEMIES = []
-
 
 REMOTE_MINING_SIGN = "Beware of the hornets, They've found this area tasty";
 QUIPS = [
@@ -691,7 +683,6 @@ QUIPS = [
     "Lurendrejs are not do goods for yous",
     "https://youtu.be/dQw4w9WgXcQ",
     "An arrow in your knee is better than an arrow in your tea",
-    //"Ingenuity is shorting a battery to make a light when it's dark, stupidity is taking them out of the flashlight first.",
     "With all but the best decisions you can still end up in the wrong place",
     "Segmentation fault: Core dumped"
     ]

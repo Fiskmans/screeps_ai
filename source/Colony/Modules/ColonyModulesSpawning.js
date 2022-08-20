@@ -122,7 +122,7 @@ let SpawnHaulers = function(colony)
 {
     let room = Game.rooms[colony.pos.roomName];
     let parts = 0;
-    let listData = {threshold: 0, validCreeps: 0}; 
+    let listData = {threshold: 40, validCreeps: 0}; 
     for(let creep of Helpers.Creep.List(colony.haulerpool,listData))
     {
         if(creep.ticksToLive > C.ACCEPTABLE_LIFE_LEFT)
@@ -198,22 +198,24 @@ let SpawnHaulers = function(colony)
                 body = BODIES.LV7_HAULER;
             }
         }
+        
+        if(listData.hasQueued)
+        {
+            if(listData.validCreeps > 0 && !listData.hasSpawning)
+            {
+                if(listData.highestPrio == SPAWN_PRIORITY_VITAL)
+                    return;
 
-        if(listData.highestPrio == SPAWN_PRIORITY_VITAL && listData.hasQueued)
-        {
-            return;
+                prio = SPAWN_PRIORITY_VITAL;
+                body = BODIES.LV1_HAULER;
+            }
+            else
+            {
+                return;
+            }
         }
 
-        if(!(listData.highestPrio == SPAWN_PRIORITY_VITAL) && listData.validCreeps == 0)
-        {
-            prio = SPAWN_PRIORITY_VITAL;
-            body = BODIES.LV1_HAULER;
-            console.log("here");
-        }
-        else if (listData.hasQueued)
-        {
-            return;
-        }
+
         Colony.Modules.Spawning.QueueSpawn(colony, body, ROLE_HAULER, colony.haulerpool, prio);
     }
 }

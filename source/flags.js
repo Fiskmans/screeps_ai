@@ -1,3 +1,8 @@
+G = 
+{
+    FlagFunctions:{}
+} 
+
 Unplan=function(flag)
 {
     let pos = flag.pos;
@@ -244,14 +249,14 @@ EvaluateExpansion=function(flag)
     flag.remove();
 }
 
-FlagFunctions["Scout"] = Scout;
-FlagFunctions["Unplan"] = Unplan;
-FlagFunctions["Abandon"] = Abandon;
-FlagFunctions["Discard"] = Discard;
-FlagFunctions["Disassemble"] = Disassemble;
-FlagFunctions["StartColony"] = StartColony;
-FlagFunctions["MarkAsOwned"] = MarkAsOwned;
-FlagFunctions["EvaluateExpansion"] = EvaluateExpansion;
+G.FlagFunctions["Scout"] = Scout;
+G.FlagFunctions["Unplan"] = Unplan;
+G.FlagFunctions["Abandon"] = Abandon;
+G.FlagFunctions["Discard"] = Discard;
+G.FlagFunctions["Disassemble"] = Disassemble;
+G.FlagFunctions["StartColony"] = StartColony;
+G.FlagFunctions["MarkAsOwned"] = MarkAsOwned;
+G.FlagFunctions["EvaluateExpansion"] = EvaluateExpansion;
 
 applyFlags=function()
 {
@@ -261,45 +266,18 @@ applyFlags=function()
     }
     let flags = Game.flags;
 
-    for(let flagname in FlagFunctions)
+    for(let flagname in G.FlagFunctions)
     {
         if(flags[flagname])
         {
-            FlagFunctions[flagname](flags[flagname]);
+            G.FlagFunctions[flagname](flags[flagname]);
         }
     }
 
-    
-    if(flags["StartAttack"],flags["Attack"])
+    if(flags.StartBattle)
     {
-        let startflag = flags["StartAttack"];
-        let endflag = flags["Attack"];
-        
-        if (startflag.color != COLOR_RED && endflag.color != COLOR_RED) 
-        {
-            let startpos = startflag.pos;
-            let endpos = endflag.pos;
-            let col = false;
-            
-            for(let id in Memory.colonies)
-            {
-                let colony = Memory.colonies[id];
-                if (startpos.roomName == colony.pos.roomName) 
-                {
-                    col = colony;
-                    break;
-                }
-            }
-            if (col) 
-            {
-                col.attacking = endflag.pos.roomName;
-                endflag.remove();
-            }
-            else
-            {
-                startflag.setColor(COLOR_RED);
-                endflag.setColor(COLOR_RED);
-            }
-        }
+        Combat.Battle.StartBattle(flags.StartBattle.pos.roomName);
+        flags.StartBattle.remove();
     }
+    
 }
