@@ -1,0 +1,34 @@
+- CustomPathfinder with nexttarget as heuristic
+- update worker creeps to new DoWork structure
+- Migrate old code to module based system
+- Fix recipie visual, commodity/chemical different?
+- Hauler performance measurer and adaptive hauler count
+- Deposit mining
+- smarter Tower code
+- Implement buildRequests
+- optimize kickstart to avoid tick losses
+- kickstart stomping deterent
+- Attack vector finder in Combat
+- Invadercore tracker
+- Mining income includes boosted sources
+- replace all uses of spawnRoleIntoList() to Colony.Helpers.SpawnCreep()
+- remove old Maintain code
+- move Power creep code to new module
+- move bezier stuff to some place more fitting
+- Rampart hole filler
+- hauler taskplanner followup based on expected position not target position offset 1 towards last target enough
+- Memhack
+
+Done
+- Adaptive worker count based on income
+- Redo market
+- Implement Performance enable/disable 
+- make planner independent of builder
+- Migrate colonyPlanner to Colony.planner
+- Write own profiler in Performance.profile, hook intents?
+- Kickstart code for RCL<4 colonies
+- Remote mining
+- Move mining spot over to Planner/sublayout
+- remove MiningSpot from code
+- move mining and remote mining into colony.modules.*
+- remove Highways
