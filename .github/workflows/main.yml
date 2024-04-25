@@ -1,0 +1,9 @@
+on:
+  push:
+name: push_to_screeps
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Screeps Deployer
+      uses: aphistic/screeps-deployer@v0.1.0
